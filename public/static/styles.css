@@ -1,0 +1,203 @@
+/* NEO福岡 企業マイページ カスタムスタイル */
+
+/* 全体レイアウト */
+.min-h-screen {
+  min-height: 100vh;
+}
+
+/* ナビゲーション */
+.nav-item {
+  transition: all 0.2s ease-in-out;
+}
+
+.nav-item:hover {
+  transform: translateX(4px);
+}
+
+/* カード */
+.card-shadow {
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+}
+
+.card-shadow:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* プログレスバー */
+.progress-bar {
+  transition: width 0.5s ease-in-out;
+}
+
+/* テーブル */
+.table-hover tbody tr:hover {
+  background-color: #f9fafb;
+}
+
+/* ロード中アニメーション */
+.loading-spinner {
+  border-top-color: transparent;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+  /* モバイルでサイドバーを隠す */
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.3s ease-in-out;
+  }
+  
+  .sidebar.open {
+    transform: translateX(0);
+  }
+  
+  /* テーブルをカード表示に変更 */
+  .mobile-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .mobile-card-header {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+  
+  .mobile-card-content {
+    font-size: 0.875rem;
+    color: #6b7280;
+  }
+}
+
+/* ヒーロージャーニー進捗バー */
+.hero-progress {
+  background: linear-gradient(90deg, #10b981 0%, #34d399 50%, #6ee7b7 100%);
+}
+
+/* 満足度・理解度スコア */
+.score-excellent {
+  color: #059669;
+  background-color: #d1fae5;
+}
+
+.score-good {
+  color: #d97706;
+  background-color: #fef3c7;
+}
+
+.score-poor {
+  color: #dc2626;
+  background-color: #fee2e2;
+}
+
+/* NPSスコア */
+.nps-promoter {
+  color: #059669;
+  font-weight: 600;
+}
+
+.nps-passive {
+  color: #d97706;
+  font-weight: 600;
+}
+
+.nps-detractor {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+/* ステータスバッジ */
+.status-active {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.status-inactive {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.status-pending {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+/* アニメーション */
+.fade-in {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.slide-in-left {
+  animation: slideInLeft 0.3s ease-out;
+}
+
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* フォーカス状態 */
+.focus-ring:focus {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+}
+
+/* ダークモード対応（将来的な拡張用） */
+@media (prefers-color-scheme: dark) {
+  .dark-mode {
+    background-color: #1f2937;
+    color: #f9fafb;
+  }
+  
+  .dark-mode .card {
+    background-color: #374151;
+    border-color: #4b5563;
+  }
+  
+  .dark-mode .nav-item {
+    color: #d1d5db;
+  }
+  
+  .dark-mode .nav-item:hover {
+    background-color: #4b5563;
+  }
+}
+
+/* 印刷用スタイル */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-break {
+    page-break-after: always;
+  }
+  
+  .card-shadow {
+    box-shadow: none;
+    border: 1px solid #e5e7eb;
+  }
+}
