@@ -851,9 +851,9 @@ class NEODigitalPlatform {
               </div>
             </div>
             
-            <!-- 編集ボタン -->
-            ${permissions.canEdit ? `
-              <div class="flex items-center space-x-3">
+            <!-- アクションボタン -->
+            <div class="flex items-center space-x-3">
+              ${permissions.canEdit ? `
                 ${isEditing ? `
                   <button onclick="app.cancelProfileEdit()" 
                           class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors">
@@ -869,8 +869,15 @@ class NEODigitalPlatform {
                     <i class="fas fa-edit mr-2"></i>編集
                   </button>
                 `}
-              </div>
-            ` : ''}
+              ` : ''}
+              
+              ${(this.userInfo?.role === 'secretariat' || this.userInfo?.role === 'owner') && !isEditing ? `
+                <button onclick="app.showEnhancedCSVImportForm()" 
+                        class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                  <i class="fas fa-upload mr-2"></i>CSVインポート
+                </button>
+              ` : ''}
+            </div>
           </div>
         </div>
       </div>
@@ -880,19 +887,26 @@ class NEODigitalPlatform {
   // プロフィール表示モード
   renderProfileDisplay(profile) {
     return `
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- 左カラム: 基本情報 -->
-        <div class="lg:col-span-1 space-y-6">
-          ${this.renderBasicInfoCard(profile)}
-          ${this.renderSocialLinksCard(profile)}
-          ${this.renderConnectionsCard(profile)}
+      <div class="space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <!-- 左カラム: 基本情報 -->
+          <div class="lg:col-span-1 space-y-6">
+            ${this.renderBasicInfoCard(profile)}
+            ${this.renderSocialLinksCard(profile)}
+            ${this.renderConnectionsCard(profile)}
+          </div>
+          
+          <!-- 右カラム: 自己紹介・動機 -->
+          <div class="lg:col-span-2 space-y-6">
+            ${this.renderProfileDescriptionCard(profile)}
+            ${this.renderNEOMotivationCard(profile)}
+          </div>
         </div>
         
-        <!-- 右カラム: 自己紹介・動機 -->
-        <div class="lg:col-span-2 space-y-6">
-          ${this.renderProfileDescriptionCard(profile)}
-          ${this.renderNEOMotivationCard(profile)}
-        </div>
+        <!-- 管理者向けセクション -->
+        ${(this.userInfo?.role === 'secretariat' || this.userInfo?.role === 'owner') ? `
+          ${this.renderAdminActionsCard()}
+        ` : ''}
       </div>
     `;
   }
@@ -3030,6 +3044,159 @@ class NEODigitalPlatform {
         </div>
       </div>
     `;
+  }
+
+  // 管理者向けアクションカード（プロフィールページ用）
+  renderAdminActionsCard() {
+    return `
+      <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+        <div class="p-6 border-b border-blue-200">
+          <h3 class="text-lg font-semibold text-blue-900">
+            <i class="fas fa-user-shield mr-2"></i>管理者機能
+          </h3>
+          <p class="text-sm text-blue-700 mt-1">メンバー管理とデータインポート機能</p>
+        </div>
+        
+        <div class="p-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- CSVインポート -->
+            <div class="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-sm transition-shadow">
+              <div class="flex items-center mb-3">
+                <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                  <i class="fas fa-upload text-green-600"></i>
+                </div>
+                <div class="ml-3">
+                  <h4 class="font-medium text-gray-900">CSVインポート</h4>
+                  <p class="text-xs text-gray-500">一括メンバー登録</p>
+                </div>
+              </div>
+              <div class="space-y-2">
+                <button onclick="app.showEnhancedCSVImportForm()" 
+                        class="w-full bg-green-600 text-white px-3 py-2 rounded-md hover:bg-green-700 transition-colors text-sm">
+                  <i class="fas fa-cogs mr-1"></i>詳細インポート
+                </button>
+                <button onclick="app.showBulkRegistrationForm()" 
+                        class="w-full bg-amber-600 text-white px-3 py-2 rounded-md hover:bg-amber-700 transition-colors text-sm">
+                  <i class="fas fa-file-upload mr-1"></i>簡易インポート
+                </button>
+                <button onclick="app.downloadSampleCSV()" 
+                        class="w-full bg-indigo-600 text-white px-3 py-2 rounded-md hover:bg-indigo-700 transition-colors text-sm">
+                  <i class="fas fa-download mr-1"></i>サンプルCSV
+                </button>
+              </div>
+            </div>
+
+            <!-- メンバー管理 -->
+            <div class="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-sm transition-shadow">
+              <div class="flex items-center mb-3">
+                <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <i class="fas fa-users text-blue-600"></i>
+                </div>
+                <div class="ml-3">
+                  <h4 class="font-medium text-gray-900">メンバー管理</h4>
+                  <p class="text-xs text-gray-500">登録・承認管理</p>
+                </div>
+              </div>
+              <div class="space-y-2">
+                <button onclick="app.showTentativeRegistrationForm()" 
+                        class="w-full bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700 transition-colors text-sm">
+                  <i class="fas fa-user-plus mr-1"></i>仮登録作成
+                </button>
+                <button onclick="app.changePage('admin')" 
+                        class="w-full bg-gray-600 text-white px-3 py-2 rounded-md hover:bg-gray-700 transition-colors text-sm">
+                  <i class="fas fa-cogs mr-1"></i>管理ダッシュボード
+                </button>
+              </div>
+            </div>
+
+            <!-- データ管理 -->
+            <div class="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-sm transition-shadow">
+              <div class="flex items-center mb-3">
+                <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                  <i class="fas fa-database text-purple-600"></i>
+                </div>
+                <div class="ml-3">
+                  <h4 class="font-medium text-gray-900">データ管理</h4>
+                  <p class="text-xs text-gray-500">エクスポート・統計</p>
+                </div>
+              </div>
+              <div class="space-y-2">
+                <button onclick="app.exportMemberData()" 
+                        class="w-full bg-purple-600 text-white px-3 py-2 rounded-md hover:bg-purple-700 transition-colors text-sm">
+                  <i class="fas fa-download mr-1"></i>データエクスポート
+                </button>
+                <button onclick="app.changePage('members')" 
+                        class="w-full bg-gray-600 text-white px-3 py-2 rounded-md hover:bg-gray-700 transition-colors text-sm">
+                  <i class="fas fa-list mr-1"></i>受講生一覧
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- クイックアクセス統計 -->
+          <div class="mt-6 bg-white rounded-lg border border-gray-200 p-4">
+            <h4 class="font-medium text-gray-900 mb-3">
+              <i class="fas fa-chart-bar mr-2 text-gray-600"></i>クイック統計
+            </h4>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+              <div>
+                <div class="text-2xl font-bold text-blue-600">-</div>
+                <div class="text-xs text-gray-500">総メンバー数</div>
+              </div>
+              <div>
+                <div class="text-2xl font-bold text-yellow-600">-</div>
+                <div class="text-xs text-gray-500">仮登録</div>
+              </div>
+              <div>
+                <div class="text-2xl font-bold text-green-600">-</div>
+                <div class="text-xs text-gray-500">アクティブ</div>
+              </div>
+              <div>
+                <div class="text-2xl font-bold text-red-600">-</div>
+                <div class="text-xs text-gray-500">承認待ち</div>
+              </div>
+            </div>
+            <div class="mt-3 text-center">
+              <button onclick="app.loadAdminStats()" 
+                      class="text-sm text-blue-600 hover:text-blue-800 transition-colors">
+                <i class="fas fa-refresh mr-1"></i>統計を更新
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // 管理者統計読み込み
+  async loadAdminStats() {
+    try {
+      const token = localStorage.getItem('sessionToken');
+      if (!token) return;
+
+      const response = await axios.get('/api/admin/dashboard-stats', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.data.success) {
+        const stats = response.data.data;
+        // 統計を表示に反映（簡易版）
+        const statsContainer = document.querySelector('.grid.grid-cols-2.md\\:grid-cols-4');
+        if (statsContainer) {
+          const statValues = statsContainer.querySelectorAll('.text-2xl.font-bold');
+          if (statValues.length >= 4) {
+            statValues[0].textContent = stats.totalMembers || '0';
+            statValues[1].textContent = stats.tentativeMembers || '0';
+            statValues[2].textContent = stats.activeMembers || '0';
+            statValues[3].textContent = stats.pendingApprovals || '0';
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error loading admin stats:', error);
+    }
   }
 
   // =========================================

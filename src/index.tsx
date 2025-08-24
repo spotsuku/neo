@@ -444,6 +444,98 @@ app.get('/api/admin/csv-import/format', async (c) => {
   }
 });
 
+// プロフィール取得
+app.get('/api/profile/:memberId', async (c) => {
+  try {
+    const { env } = c;
+    const memberId = c.req.param('memberId');
+    const regionId = c.req.query('region_id') as RegionId;
+    
+    if (!regionId) {
+      return c.json({ error: 'region_id が必要です' }, 400);
+    }
+    
+    const notionService = createNotionService(env);
+    
+    // デモプロフィールデータを返す
+    const demoProfile = {
+      id: memberId,
+      fullName: 'デモ ユーザー',
+      fullNameKana: 'デモ ユーザー',
+      email: 'demo@example.com',
+      birthPlace: '福岡県福岡市',
+      schools: 'デモ大学',
+      birthday: '1995-01-01',
+      jobTitle: 'システムエンジニア',
+      catchPhrase: 'テクノロジーで社会を変える',
+      profileDescription: 'プログラミングとデザインが好きなシステムエンジニアです。NEOで新しい技術と人とのつながりを学びたいと思っています。',
+      neoMotivation: 'NEOでは様々な分野の専門家と交流し、自分のスキルを活かしてイノベーションを創出したいと考えています。',
+      profileImageUrl: null,
+      socialLinks: {
+        twitter: '@demo_user',
+        instagram: '@demo_user',
+        otherUrl: 'https://demo.example.com'
+      },
+      memberCategories: ['youth_selected'],
+      fukuokaConnections: ['resident_worker_student'],
+      permissions: {
+        canEdit: true
+      }
+    };
+    
+    return c.json({ 
+      success: true, 
+      data: demoProfile 
+    });
+  } catch (error) {
+    console.error('Error getting profile:', error);
+    return c.json({ error: 'プロフィール取得中にエラーが発生しました' }, 500);
+  }
+});
+
+// プロフィール更新
+app.put('/api/profile/:memberId', async (c) => {
+  try {
+    const { env } = c;
+    const memberId = c.req.param('memberId');
+    const regionId = c.req.query('region_id') as RegionId;
+    
+    if (!regionId) {
+      return c.json({ error: 'region_id が必要です' }, 400);
+    }
+    
+    const profileData = await c.req.json();
+    
+    // バリデーション
+    const validationErrors = [];
+    if (!profileData.fullName?.trim()) {
+      validationErrors.push('氏名は必須です');
+    }
+    if (!profileData.fullNameKana?.trim()) {
+      validationErrors.push('氏名（カナ）は必須です');
+    }
+    if (profileData.profileDescription && profileData.profileDescription.length > 200) {
+      validationErrors.push('プロフィール文は200文字以内で入力してください');
+    }
+    
+    if (validationErrors.length > 0) {
+      return c.json({ 
+        success: false, 
+        validationErrors 
+      }, 400);
+    }
+    
+    // デモでは更新成功を返す
+    return c.json({
+      success: true,
+      message: 'プロフィールが更新されました'
+    });
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    return c.json({ error: 'プロフィール更新中にエラーが発生しました' }, 500);
+  }
+});
+
 // プロフィール補完（初回ログイン後）
 app.post('/api/profile-completion', async (c) => {
   try {
