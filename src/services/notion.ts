@@ -17,10 +17,18 @@ import type {
   ClassAssignment,
   ClassMember,
   SurveyAnalytics,
+  MemberProfile,
+  ProfileFormData,
+  MemberCategory,
+  FukuokaConnection,
   NotionDatabase,
   NotionPage,
   FilterParams,
-  PaginationParams
+  PaginationParams,
+  TentativeRegistration,
+  ProfileCompletionData,
+  MemberStatus,
+  EmailNotificationData
 } from '../types';
 
 export class NotionService {
@@ -1164,5 +1172,756 @@ export class NotionService {
   private parseLearningLogs(logsProperty: any): any[] {
     // 実際の実装では、ログの詳細構造をパース
     return [];
+  }
+
+  // メンバープロフィール取得
+  async getMemberProfile(regionId: RegionId, memberId: string): Promise<MemberProfile | null> {
+    try {
+      const filters = [
+        {
+          property: 'MemberID',
+          rich_text: {
+            equals: memberId
+          }
+        }
+      ];
+
+      const regionFilter = this.createRegionFilter(regionId);
+      if (regionFilter) filters.push(regionFilter);
+
+      const response = await this.notion.databases.query({
+        database_id: this.databases.privateMemberCards,
+        filter: this.createCompoundFilter(filters)
+      }) as NotionDatabase;
+
+      if (response.results.length === 0) {
+        // プロフィールが存在しない場合、デフォルトプロフィールを作成
+        return this.createDefaultProfile(regionId, memberId);
+      }
+
+      return this.parseMemberProfileFromNotion(response.results[0]);
+    } catch (error) {
+      console.error('Error fetching member profile:', error);
+      return null;
+    }
+  }
+
+  // メンバープロフィール更新
+  async updateMemberProfile(
+    regionId: RegionId, 
+    memberId: string, 
+    profileData: ProfileFormData
+  ): Promise<boolean> {
+    try {
+      // 既存プロフィールを検索
+      const existing = await this.getMemberProfile(regionId, memberId);
+      
+      if (existing && existing.id) {
+        // 既存プロフィールを更新
+        await this.notion.pages.update({
+          page_id: existing.id,
+          properties: this.buildProfilePropertiesForNotion(profileData, regionId, memberId)
+        });
+      } else {
+        // 新規プロフィールを作成
+        await this.notion.pages.create({
+          parent: { database_id: this.databases.privateMemberCards },
+          properties: this.buildProfilePropertiesForNotion(profileData, regionId, memberId)
+        });
+      }
+
+      // public_membersも同期更新
+      await this.syncProfileToPublicMembers(regionId, memberId, profileData);
+
+      return true;
+    } catch (error) {
+      console.error('Error updating member profile:', error);
+      return false;
+    }
+  }
+
+  // デフォルトプロフィール作成
+  private createDefaultProfile(regionId: RegionId, memberId: string): MemberProfile {
+    return {
+      id: '',
+      regionId,
+      memberId,
+      companyId: '',
+      fullName: '',
+      fullNameKana: '',
+      birthPlace: '',
+      schools: '',
+      birthday: '',
+      jobTitle: '',
+      catchPhrase: '',
+      profileDescription: '',
+      neoMotivation: '',
+      profileImageUrl: '',
+      socialLinks: {
+        twitter: '',
+        instagram: '',
+        otherUrl: ''
+      },
+      memberCategories: [],
+      fukuokaConnections: [],
+      isPublic: false,
+      lastUpdated: new Date().toISOString(),
+      updatedBy: memberId
+    };
+  }
+
+  // NotionページからMemberProfileオブジェクトをパース
+  private parseMemberProfileFromNotion(page: NotionPage): MemberProfile {
+    const props = page.properties;
+    
+    return {
+      id: page.id,
+      regionId: props.RegionID?.rich_text?.[0]?.text?.content || 'FUK',
+      memberId: props.MemberID?.rich_text?.[0]?.text?.content || '',
+      companyId: props.CompanyID?.rich_text?.[0]?.text?.content || '',
+      fullName: props.FullName?.title?.[0]?.text?.content || '',
+      fullNameKana: props.FullNameKana?.rich_text?.[0]?.text?.content || '',
+      birthPlace: props.BirthPlace?.rich_text?.[0]?.text?.content || '',
+      schools: props.Schools?.rich_text?.[0]?.text?.content || '',
+      birthday: props.Birthday?.date?.start || '',
+      jobTitle: props.JobTitle?.rich_text?.[0]?.text?.content || '',
+      catchPhrase: props.CatchPhrase?.rich_text?.[0]?.text?.content || '',
+      profileDescription: props.ProfileDescription?.rich_text?.[0]?.text?.content || '',
+      neoMotivation: props.NEOMotivation?.rich_text?.[0]?.text?.content || '',
+      profileImageUrl: props.ProfileImageUrl?.url || '',
+      socialLinks: {
+        twitter: props.TwitterHandle?.rich_text?.[0]?.text?.content || '',
+        instagram: props.InstagramHandle?.rich_text?.[0]?.text?.content || '',
+        otherUrl: props.OtherUrl?.url || ''
+      },
+      memberCategories: this.parseMemberCategories(props.MemberCategories),
+      fukuokaConnections: this.parseFukuokaConnections(props.FukuokaConnections),
+      isPublic: props.IsPublic?.checkbox || false,
+      lastUpdated: page.last_edited_time,
+      updatedBy: props.UpdatedBy?.rich_text?.[0]?.text?.content || 'system'
+    };
+  }
+
+  // Notion用プロフィールプロパティ構築
+  private buildProfilePropertiesForNotion(
+    profileData: ProfileFormData, 
+    regionId: RegionId, 
+    memberId: string
+  ): Record<string, any> {
+    return {
+      RegionID: {
+        rich_text: [{ text: { content: regionId } }]
+      },
+      MemberID: {
+        rich_text: [{ text: { content: memberId } }]
+      },
+      FullName: {
+        title: [{ text: { content: profileData.fullName } }]
+      },
+      FullNameKana: {
+        rich_text: [{ text: { content: profileData.fullNameKana } }]
+      },
+      BirthPlace: {
+        rich_text: [{ text: { content: profileData.birthPlace } }]
+      },
+      Schools: {
+        rich_text: [{ text: { content: profileData.schools } }]
+      },
+      Birthday: profileData.birthday ? {
+        date: { start: profileData.birthday }
+      } : { date: null },
+      JobTitle: {
+        rich_text: [{ text: { content: profileData.jobTitle } }]
+      },
+      CatchPhrase: {
+        rich_text: [{ text: { content: profileData.catchPhrase } }]
+      },
+      ProfileDescription: {
+        rich_text: [{ text: { content: profileData.profileDescription } }]
+      },
+      NEOMotivation: {
+        rich_text: [{ text: { content: profileData.neoMotivation } }]
+      },
+      TwitterHandle: {
+        rich_text: [{ text: { content: profileData.socialLinks.twitter } }]
+      },
+      InstagramHandle: {
+        rich_text: [{ text: { content: profileData.socialLinks.instagram } }]
+      },
+      OtherUrl: profileData.socialLinks.otherUrl ? {
+        url: profileData.socialLinks.otherUrl
+      } : { url: null },
+      MemberCategories: {
+        multi_select: profileData.memberCategories.map(cat => ({ name: this.getMemberCategoryDisplayName(cat) }))
+      },
+      FukuokaConnections: {
+        multi_select: profileData.fukuokaConnections.map(conn => ({ name: this.getFukuokaConnectionDisplayName(conn) }))
+      },
+      IsPublic: {
+        checkbox: profileData.isPublic
+      },
+      UpdatedBy: {
+        rich_text: [{ text: { content: memberId } }]
+      }
+    };
+  }
+
+  // 会員区分をパース
+  private parseMemberCategories(categoriesProperty: any): MemberCategory[] {
+    if (!categoriesProperty?.multi_select) return [];
+    return categoriesProperty.multi_select.map((item: any) => 
+      this.mapMemberCategoryFromDisplayName(item.name)
+    ).filter(Boolean);
+  }
+
+  // 福岡との繋がりをパース
+  private parseFukuokaConnections(connectionsProperty: any): FukuokaConnection[] {
+    if (!connectionsProperty?.multi_select) return [];
+    return connectionsProperty.multi_select.map((item: any) => 
+      this.mapFukuokaConnectionFromDisplayName(item.name)
+    ).filter(Boolean);
+  }
+
+  // 会員区分表示名取得
+  private getMemberCategoryDisplayName(category: MemberCategory): string {
+    const displayNames = {
+      'youth_selected': 'ユース選抜会員',
+      'company_selected': '企業選抜会員',
+      'corporate_member': '企業会員',
+      'council_member': '評議会会員',
+      'club_member': 'クラブ会員',
+      'supporting_partner': '応援パートナー',
+      'mentor': 'メンター',
+      'lecturer': '講師',
+      'communicator': 'コミュニケーター',
+      'secretariat': '事務局',
+      'observer': 'オブザーバー',
+      'committee_advisor': '委員会顧問'
+    };
+    return displayNames[category] || category;
+  }
+
+  // 福岡との繋がり表示名取得
+  private getFukuokaConnectionDisplayName(connection: FukuokaConnection): string {
+    const displayNames = {
+      'resident_worker_student': '福岡在住/在勤/在学',
+      'originally_from_fukuoka': '福岡出身で今は福岡外',
+      'want_to_connect_with_fukuoka': '福岡外だけど福岡と繋がりたい'
+    };
+    return displayNames[connection] || connection;
+  }
+
+  // 表示名から会員区分へマッピング
+  private mapMemberCategoryFromDisplayName(displayName: string): MemberCategory | null {
+    const mapping: Record<string, MemberCategory> = {
+      'ユース選抜会員': 'youth_selected',
+      '企業選抜会員': 'company_selected',
+      '企業会員': 'corporate_member',
+      '評議会会員': 'council_member',
+      'クラブ会員': 'club_member',
+      '応援パートナー': 'supporting_partner',
+      'メンター': 'mentor',
+      '講師': 'lecturer',
+      'コミュニケーター': 'communicator',
+      '事務局': 'secretariat',
+      'オブザーバー': 'observer',
+      '委員会顧問': 'committee_advisor'
+    };
+    return mapping[displayName] || null;
+  }
+
+  // 表示名から福岡との繋がりへマッピング
+  private mapFukuokaConnectionFromDisplayName(displayName: string): FukuokaConnection | null {
+    const mapping: Record<string, FukuokaConnection> = {
+      '福岡在住/在勤/在学': 'resident_worker_student',
+      '福岡出身で今は福岡外': 'originally_from_fukuoka',
+      '福岡外だけど福岡と繋がりたい': 'want_to_connect_with_fukuoka'
+    };
+    return mapping[displayName] || null;
+  }
+
+  // public_membersデータベースへの同期更新
+  private async syncProfileToPublicMembers(
+    regionId: RegionId, 
+    memberId: string, 
+    profileData: ProfileFormData
+  ): Promise<void> {
+    try {
+      // public_membersで該当メンバーを検索
+      const publicMemberResponse = await this.notion.databases.query({
+        database_id: this.databases.publicMembers,
+        filter: this.createCompoundFilter([
+          {
+            property: 'ID',
+            rich_text: { equals: memberId }
+          },
+          this.createRegionFilter(regionId)
+        ].filter(Boolean))
+      }) as NotionDatabase;
+
+      if (publicMemberResponse.results.length > 0) {
+        // 既存レコードを更新
+        await this.notion.pages.update({
+          page_id: publicMemberResponse.results[0].id,
+          properties: {
+            Name: {
+              title: [{ text: { content: profileData.fullName } }]
+            },
+            ProfileImage: profileData.isPublic && profileData.socialLinks.otherUrl ? {
+              url: profileData.socialLinks.otherUrl
+            } : { url: null },
+            Bio: profileData.isPublic ? {
+              rich_text: [{ text: { content: profileData.profileDescription } }]
+            } : { rich_text: [] }
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error syncing profile to public members:', error);
+    }
+  }
+
+  // ハイブリッド登録システム - Notion API 連携メソッド
+
+  // 仮登録をprivate_member_cardsに保存
+  async saveTentativeRegistration(registration: TentativeRegistration): Promise<boolean> {
+    try {
+      await this.notion.pages.create({
+        parent: { database_id: this.databases.privateMemberCards },
+        properties: {
+          ID: {
+            title: [{ text: { content: registration.id } }]
+          },
+          Name: {
+            rich_text: [{ text: { content: registration.tempName } }]
+          },
+          Email: {
+            email: registration.email
+          },
+          RegionID: {
+            select: { name: registration.regionId }
+          },
+          Role: {
+            select: { name: registration.role }
+          },
+          CompanyID: registration.companyId ? {
+            rich_text: [{ text: { content: registration.companyId } }]
+          } : { rich_text: [] },
+          Status: {
+            select: { name: registration.status }
+          },
+          IsFirstLogin: {
+            checkbox: registration.isFirstLogin
+          },
+          TemporaryPassword: {
+            rich_text: [{ text: { content: registration.temporaryPassword } }]
+          },
+          TempPasswordExpiresAt: {
+            date: { start: registration.tempPasswordExpiresAt }
+          },
+          CreatedBy: {
+            rich_text: [{ text: { content: registration.createdBy } }]
+          },
+          CreatedAt: {
+            date: { start: registration.createdAt }
+          }
+        }
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Error saving tentative registration:', error);
+      return false;
+    }
+  }
+
+  // メールアドレスでユーザー検索
+  async findUserByEmail(email: string): Promise<TentativeRegistration | null> {
+    try {
+      const response = await this.notion.databases.query({
+        database_id: this.databases.privateMemberCards,
+        filter: {
+          property: 'Email',
+          email: { equals: email }
+        }
+      }) as NotionDatabase;
+
+      if (response.results.length === 0) {
+        return null;
+      }
+
+      const page = response.results[0];
+      return this.parseRegistrationFromNotion(page);
+    } catch (error) {
+      console.error('Error finding user by email:', error);
+      return null;
+    }
+  }
+
+  // IDでユーザー検索
+  async findUserById(id: string): Promise<TentativeRegistration | null> {
+    try {
+      const response = await this.notion.databases.query({
+        database_id: this.databases.privateMemberCards,
+        filter: {
+          property: 'ID',
+          title: { equals: id }
+        }
+      }) as NotionDatabase;
+
+      if (response.results.length === 0) {
+        return null;
+      }
+
+      const page = response.results[0];
+      return this.parseRegistrationFromNotion(page);
+    } catch (error) {
+      console.error('Error finding user by ID:', error);
+      return null;
+    }
+  }
+
+  // 最終ログイン時刻更新
+  async updateLastLogin(userId: string): Promise<boolean> {
+    try {
+      const user = await this.findUserById(userId);
+      if (!user) return false;
+
+      // Notionページを検索してIDを取得
+      const response = await this.notion.databases.query({
+        database_id: this.databases.privateMemberCards,
+        filter: {
+          property: 'ID',
+          title: { equals: userId }
+        }
+      }) as NotionDatabase;
+
+      if (response.results.length === 0) return false;
+
+      const pageId = response.results[0].id;
+      
+      await this.notion.pages.update({
+        page_id: pageId,
+        properties: {
+          LastLoginAt: {
+            date: { start: new Date().toISOString() }
+          },
+          IsFirstLogin: {
+            checkbox: false
+          }
+        }
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error updating last login:', error);
+      return false;
+    }
+  }
+
+  // プロフィール補完をprivate_member_cardsに保存
+  async saveProfileCompletion(userId: string, profileData: ProfileCompletionData): Promise<boolean> {
+    try {
+      const user = await this.findUserById(userId);
+      if (!user) return false;
+
+      // Notionページを検索してIDを取得
+      const response = await this.notion.databases.query({
+        database_id: this.databases.privateMemberCards,
+        filter: {
+          property: 'ID',
+          title: { equals: userId }
+        }
+      }) as NotionDatabase;
+
+      if (response.results.length === 0) return false;
+
+      const pageId = response.results[0].id;
+      
+      await this.notion.pages.update({
+        page_id: pageId,
+        properties: {
+          FullName: {
+            rich_text: [{ text: { content: profileData.fullName } }]
+          },
+          FullNameKana: {
+            rich_text: [{ text: { content: profileData.fullNameKana } }]
+          },
+          Birthday: profileData.birthday ? {
+            date: { start: profileData.birthday }
+          } : { date: null },
+          CatchPhrase: profileData.catchPhrase ? {
+            rich_text: [{ text: { content: profileData.catchPhrase } }]
+          } : { rich_text: [] },
+          ProfileDescription: {
+            rich_text: [{ text: { content: profileData.profileDescription } }]
+          },
+          NEOMotivation: {
+            rich_text: [{ text: { content: profileData.neoMotivation } }]
+          },
+          BirthPlace: profileData.birthPlace ? {
+            rich_text: [{ text: { content: profileData.birthPlace } }]
+          } : { rich_text: [] },
+          JobTitle: profileData.jobTitle ? {
+            rich_text: [{ text: { content: profileData.jobTitle } }]
+          } : { rich_text: [] },
+          Schools: profileData.schools ? {
+            rich_text: [{ text: { content: profileData.schools } }]
+          } : { rich_text: [] },
+          ProfileImageUrl: profileData.profileImageUrl ? {
+            url: profileData.profileImageUrl
+          } : { url: null },
+          SocialLinksTwitter: profileData.socialLinks?.twitter ? {
+            rich_text: [{ text: { content: profileData.socialLinks.twitter } }]
+          } : { rich_text: [] },
+          SocialLinksInstagram: profileData.socialLinks?.instagram ? {
+            rich_text: [{ text: { content: profileData.socialLinks.instagram } }]
+          } : { rich_text: [] },
+          SocialLinksOtherUrl: profileData.socialLinks?.otherUrl ? {
+            url: profileData.socialLinks.otherUrl
+          } : { url: null },
+          IsCompleted: {
+            checkbox: profileData.isCompleted
+          },
+          CompletedAt: profileData.completedAt ? {
+            date: { start: profileData.completedAt }
+          } : { date: null }
+        }
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error saving profile completion:', error);
+      return false;
+    }
+  }
+
+  // メンバーステータス更新
+  async updateMemberStatus(memberId: string, status: MemberStatus, approvedBy: string): Promise<boolean> {
+    try {
+      const response = await this.notion.databases.query({
+        database_id: this.databases.privateMemberCards,
+        filter: {
+          property: 'ID',
+          title: { equals: memberId }
+        }
+      }) as NotionDatabase;
+
+      if (response.results.length === 0) return false;
+
+      const pageId = response.results[0].id;
+      
+      await this.notion.pages.update({
+        page_id: pageId,
+        properties: {
+          Status: {
+            select: { name: status }
+          },
+          ApprovedBy: {
+            rich_text: [{ text: { content: approvedBy } }]
+          },
+          ApprovedAt: {
+            date: { start: new Date().toISOString() }
+          }
+        }
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error updating member status:', error);
+      return false;
+    }
+  }
+
+  // プライベートデータからパブリックデータへ同期
+  async syncToPublicMembers(memberId: string): Promise<boolean> {
+    try {
+      // private_member_cardsからデータを取得
+      const privateResponse = await this.notion.databases.query({
+        database_id: this.databases.privateMemberCards,
+        filter: {
+          property: 'ID',
+          title: { equals: memberId }
+        }
+      }) as NotionDatabase;
+
+      if (privateResponse.results.length === 0) return false;
+
+      const privatePage = privateResponse.results[0];
+      const props = privatePage.properties as any;
+
+      // public_membersに新規作成または更新
+      const publicFilter = {
+        property: 'ID',
+        title: { equals: memberId }
+      };
+
+      const publicResponse = await this.notion.databases.query({
+        database_id: this.databases.publicMembers,
+        filter: publicFilter
+      }) as NotionDatabase;
+
+      const publicData = {
+        ID: {
+          title: [{ text: { content: memberId } }]
+        },
+        Name: {
+          rich_text: props.FullName?.rich_text || [{ text: { content: props.Name?.title?.[0]?.text?.content || '' } }]
+        },
+        RegionID: {
+          select: { name: props.RegionID?.select?.name || 'FUK' }
+        },
+        CompanyID: {
+          rich_text: props.CompanyID?.rich_text || []
+        },
+        ProfileImage: props.ProfileImageUrl?.url ? {
+          url: props.ProfileImageUrl.url
+        } : { url: null },
+        Bio: {
+          rich_text: props.ProfileDescription?.rich_text || []
+        },
+        Status: {
+          select: { name: 'active' }
+        }
+      };
+
+      if (publicResponse.results.length > 0) {
+        // 既存レコードを更新
+        await this.notion.pages.update({
+          page_id: publicResponse.results[0].id,
+          properties: publicData
+        });
+      } else {
+        // 新規レコードを作成
+        await this.notion.pages.create({
+          parent: { database_id: this.databases.publicMembers },
+          properties: publicData
+        });
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error syncing to public members:', error);
+      return false;
+    }
+  }
+
+  // 管理ダッシュボード統計データ取得
+  async getAdminDashboardStats(): Promise<any> {
+    try {
+      // すべてのメンバーを取得
+      const allMembersResponse = await this.notion.databases.query({
+        database_id: this.databases.privateMemberCards,
+        page_size: 100
+      }) as NotionDatabase;
+
+      const members = allMembersResponse.results;
+      
+      const stats = {
+        totalMembers: members.length,
+        tentativeMembers: 0,
+        activeMembers: 0,
+        pendingApprovals: 0,
+        completionRate: 0,
+        regionStats: {
+          'FUK': { total: 0, tentative: 0, active: 0, completionRate: 0 },
+          'ISK': { total: 0, tentative: 0, active: 0, completionRate: 0 },
+          'NIG': { total: 0, tentative: 0, active: 0, completionRate: 0 },
+          'ALL': { total: 0, tentative: 0, active: 0, completionRate: 0 }
+        },
+        recentRegistrations: [] as any[]
+      };
+
+      // 統計計算
+      for (const member of members) {
+        const props = member.properties as any;
+        const status = props.Status?.select?.name || 'tentative';
+        const regionId = props.RegionID?.select?.name || 'FUK';
+        const isCompleted = props.IsCompleted?.checkbox || false;
+
+        // 全体統計
+        if (status === 'tentative') {
+          stats.tentativeMembers++;
+          if (isCompleted) {
+            stats.pendingApprovals++;
+          }
+        } else if (status === 'active') {
+          stats.activeMembers++;
+        }
+
+        // 地域統計
+        if (stats.regionStats[regionId as keyof typeof stats.regionStats]) {
+          const regionStat = stats.regionStats[regionId as keyof typeof stats.regionStats];
+          regionStat.total++;
+          if (status === 'tentative') regionStat.tentative++;
+          if (status === 'active') regionStat.active++;
+        }
+
+        // 最近の登録（最新5件）
+        if (stats.recentRegistrations.length < 5) {
+          stats.recentRegistrations.push({
+            id: props.ID?.title?.[0]?.text?.content || '',
+            name: props.Name?.title?.[0]?.text?.content || props.FullName?.rich_text?.[0]?.text?.content || '',
+            email: props.Email?.email || '',
+            regionId,
+            status,
+            createdAt: props.CreatedAt?.date?.start || member.created_time
+          });
+        }
+      }
+
+      // 補完率計算
+      const completedMembers = stats.activeMembers + stats.pendingApprovals;
+      stats.completionRate = stats.totalMembers > 0 ? Math.round((completedMembers / stats.totalMembers) * 100) : 0;
+
+      // 地域別補完率計算
+      Object.keys(stats.regionStats).forEach(regionId => {
+        const regionStat = stats.regionStats[regionId as keyof typeof stats.regionStats];
+        if (regionStat.total > 0) {
+          regionStat.completionRate = Math.round((regionStat.active / regionStat.total) * 100);
+        }
+      });
+
+      return stats;
+    } catch (error) {
+      console.error('Error getting admin dashboard stats:', error);
+      return {
+        totalMembers: 0,
+        tentativeMembers: 0,
+        activeMembers: 0,
+        pendingApprovals: 0,
+        completionRate: 0,
+        regionStats: {
+          'FUK': { total: 0, tentative: 0, active: 0, completionRate: 0 },
+          'ISK': { total: 0, tentative: 0, active: 0, completionRate: 0 },
+          'NIG': { total: 0, tentative: 0, active: 0, completionRate: 0 },
+          'ALL': { total: 0, tentative: 0, active: 0, completionRate: 0 }
+        },
+        recentRegistrations: []
+      };
+    }
+  }
+
+  // NotionページからTentativeRegistrationオブジェクトに変換
+  private parseRegistrationFromNotion(page: NotionPage): TentativeRegistration {
+    const props = page.properties as any;
+    
+    return {
+      id: props.ID?.title?.[0]?.text?.content || '',
+      tempName: props.Name?.title?.[0]?.text?.content || '',
+      email: props.Email?.email || '',
+      regionId: props.RegionID?.select?.name || 'FUK',
+      role: props.Role?.select?.name || 'student',
+      companyId: props.CompanyID?.rich_text?.[0]?.text?.content,
+      status: props.Status?.select?.name || 'tentative',
+      temporaryPassword: props.TemporaryPassword?.rich_text?.[0]?.text?.content || '',
+      tempPasswordExpiresAt: props.TempPasswordExpiresAt?.date?.start || '',
+      isFirstLogin: props.IsFirstLogin?.checkbox !== false,
+      createdBy: props.CreatedBy?.rich_text?.[0]?.text?.content || '',
+      createdAt: props.CreatedAt?.date?.start || page.created_time,
+      approvedBy: props.ApprovedBy?.rich_text?.[0]?.text?.content,
+      approvedAt: props.ApprovedAt?.date?.start,
+      lastLoginAt: props.LastLoginAt?.date?.start
+    };
   }
 }

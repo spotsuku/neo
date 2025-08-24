@@ -29,23 +29,35 @@ class NEODigitalPlatform {
   }
 
   async init() {
-    // URL パラメータからユーザー情報と地域情報を取得
+    // セッション確認
+    await this.checkSession();
+    
+    // URL パラメータからユーザー情報と地域情報を取得（デモモード用）
     const urlParams = new URLSearchParams(window.location.search);
     const demoRole = urlParams.get('demo_role') || 'student';
     const demoRegion = urlParams.get('demo_region') || 'FUK';
     const companyId = urlParams.get('company_id') || `company-${demoRegion}-001`;
     const memberId = urlParams.get('member_id') || `member-${demoRegion}-001`;
     
-    // ユーザー情報設定
-    this.currentUser = {
-      role: demoRole,
-      regionId: demoRegion,
-      companyId: companyId,
-      memberId: memberId,
-      accessibleRegions: this.getAccessibleRegions(demoRole, demoRegion)
-    };
+    // セッションがない場合の処理
+    if (!this.currentUser) {
+      // デモモードの場合はデモユーザー情報設定
+      if (demoRole) {
+        this.currentUser = {
+          role: demoRole,
+          regionId: demoRegion,
+          companyId: companyId,
+          memberId: memberId,
+          accessibleRegions: this.getAccessibleRegions(demoRole, demoRegion)
+        };
+      } else {
+        // デモモードでない場合はログインページにリダイレクト
+        this.navigateTo('login');
+        return;
+      }
+    }
     
-    this.currentRegion = demoRegion;
+    this.currentRegion = this.currentUser.regionId;
     
     // APIクライアント設定
     axios.defaults.params = {
@@ -100,6 +112,11 @@ class NEODigitalPlatform {
       if (this.currentUser.role === 'owner' || this.currentUser.role === 'secretariat') {
         await this.loadCrossRegionData();
       }
+
+      // プロフィールデータを初期読み込み
+      if (this.currentUser.memberId) {
+        await this.loadCurrentUserProfile();
+      }
       
     } catch (error) {
       console.error('データ読み込みエラー:', error);
@@ -135,6 +152,18 @@ class NEODigitalPlatform {
   renderApp() {
     const app = document.getElementById('app');
     
+    // ログインが必要なページの場合は、専用レイアウトを使用
+    if (this.currentPage === 'login' || this.currentPage === 'profile-completion') {
+      app.innerHTML = this.renderCurrentPage();
+      
+      // プロフィール補完画面の場合、文字数カウンターを設定
+      if (this.currentPage === 'profile-completion') {
+        this.setupCharacterCounter('profileDescription', 200);
+      }
+      return;
+    }
+    
+    // 通常のアプリケーションレイアウト
     app.innerHTML = `
       <div class="flex h-screen bg-gray-50">
         <!-- 左サイドバー -->
@@ -163,8 +192,13 @@ class NEODigitalPlatform {
                 <p class="text-sm font-medium text-gray-700">
                   ${this.getRoleDisplayName(this.currentUser.role)}
                 </p>
-                <p class="text-xs text-gray-500">デモモード</p>
+                <p class="text-xs text-gray-500">${this.currentUser.email || 'デモモード'}</p>
               </div>
+              <button onclick="app.logout()" 
+                      class="ml-2 text-gray-400 hover:text-gray-600 transition-colors" 
+                      title="ログアウト">
+                <i class="fas fa-sign-out-alt"></i>
+              </button>
             </div>
           </div>
         </div>
@@ -255,6 +289,7 @@ class NEODigitalPlatform {
         { key: 'export', label: 'エクスポート', icon: 'fas fa-download' }
       ],
       secretariat: [
+        { key: 'admin', label: '管理ダッシュボード', icon: 'fas fa-cogs' },
         { key: 'dashboard', label: 'ダッシュボード', icon: 'fas fa-tachometer-alt' },
         { key: 'members', label: 'メンバー管理', icon: 'fas fa-users' },
         { key: 'member-management', label: 'メンバーカルテ', icon: 'fas fa-user-cog' },
@@ -263,6 +298,7 @@ class NEODigitalPlatform {
         { key: 'regional-comparison', label: '地域比較', icon: 'fas fa-globe' }
       ],
       owner: [
+        { key: 'admin', label: '管理ダッシュボード', icon: 'fas fa-cogs' },
         { key: 'audit-logs', label: '監査ログ', icon: 'fas fa-shield-alt' },
         { key: 'cross-region', label: '地域横断比較', icon: 'fas fa-globe-americas' },
         { key: 'system-settings', label: 'システム設定', icon: 'fas fa-cogs' }
@@ -294,6 +330,12 @@ class NEODigitalPlatform {
 
   renderCurrentPage() {
     switch (this.currentPage) {
+      case 'login':
+        return this.renderLoginPage();
+      case 'profile-completion':
+        return this.renderProfileCompletionPage();
+      case 'admin':
+        return this.renderAdminDashboard();
       case 'home':
         return this.renderHomePage();
       case 'classes':
@@ -746,7 +788,516 @@ class NEODigitalPlatform {
   }
 
   renderProfilePage() {
-    return '<div class="p-8 text-center text-gray-500">プロフィールページ（実装予定）</div>';
+    const profile = this.data.currentProfile;
+    const isEditing = this.data.isEditingProfile || false;
+    
+    if (!profile) {
+      return `
+        <div class="text-center py-12">
+          <i class="fas fa-user-slash text-4xl text-gray-400 mb-4"></i>
+          <p class="text-gray-500 mb-4">プロフィールが見つかりません</p>
+          <button onclick="app.loadCurrentUserProfile()" 
+                  class="bg-neo-blue text-white px-4 py-2 rounded-lg hover:bg-neo-dark transition-colors">
+            <i class="fas fa-reload mr-2"></i>プロフィールを読み込む
+          </button>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="space-y-6">
+        <!-- プロフィールヘッダー -->
+        ${this.renderProfileHeader(profile, isEditing)}
+        
+        <!-- プロフィールコンテンツ -->
+        ${isEditing ? this.renderProfileEditForm(profile) : this.renderProfileDisplay(profile)}
+      </div>
+    `;
+  }
+
+  // プロフィールヘッダー
+  renderProfileHeader(profile, isEditing) {
+    const permissions = profile.permissions || {};
+    
+    return `
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div class="p-6">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-6">
+              <!-- プロフィール画像 -->
+              <div class="relative">
+                ${profile.profileImageUrl ? `
+                  <img src="${profile.profileImageUrl}" alt="${profile.fullName}" 
+                       class="w-20 h-20 rounded-full object-cover border-4 border-white shadow-lg">
+                ` : `
+                  <div class="w-20 h-20 rounded-full bg-gradient-to-br from-neo-blue to-neo-light flex items-center justify-center text-white font-bold text-2xl shadow-lg">
+                    ${profile.fullName ? profile.fullName.charAt(0) : '?'}
+                  </div>
+                `}
+                ${permissions.canEdit ? `
+                  <button onclick="app.uploadProfileImage()" 
+                          class="absolute -bottom-1 -right-1 w-8 h-8 bg-white rounded-full border-2 border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors">
+                    <i class="fas fa-camera text-gray-600 text-sm"></i>
+                  </button>
+                ` : ''}
+              </div>
+              
+              <!-- 基本情報 -->
+              <div>
+                <h1 class="text-2xl font-bold text-gray-800">${profile.fullName || '未設定'}</h1>
+                ${profile.fullNameKana ? `<p class="text-sm text-gray-600 mt-1">${profile.fullNameKana}</p>` : ''}
+                ${profile.jobTitle ? `<p class="text-lg text-gray-700 mt-2">${profile.jobTitle}</p>` : ''}
+                ${profile.catchPhrase ? `<p class="text-neo-blue font-medium mt-1">${profile.catchPhrase}</p>` : ''}
+              </div>
+            </div>
+            
+            <!-- 編集ボタン -->
+            ${permissions.canEdit ? `
+              <div class="flex items-center space-x-3">
+                ${isEditing ? `
+                  <button onclick="app.cancelProfileEdit()" 
+                          class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors">
+                    <i class="fas fa-times mr-2"></i>キャンセル
+                  </button>
+                  <button onclick="app.saveProfile()" 
+                          class="bg-neo-blue text-white px-4 py-2 rounded-lg hover:bg-neo-dark transition-colors">
+                    <i class="fas fa-save mr-2"></i>保存
+                  </button>
+                ` : `
+                  <button onclick="app.editProfile()" 
+                          class="bg-neo-blue text-white px-4 py-2 rounded-lg hover:bg-neo-dark transition-colors">
+                    <i class="fas fa-edit mr-2"></i>編集
+                  </button>
+                `}
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // プロフィール表示モード
+  renderProfileDisplay(profile) {
+    return `
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- 左カラム: 基本情報 -->
+        <div class="lg:col-span-1 space-y-6">
+          ${this.renderBasicInfoCard(profile)}
+          ${this.renderSocialLinksCard(profile)}
+          ${this.renderConnectionsCard(profile)}
+        </div>
+        
+        <!-- 右カラム: 自己紹介・動機 -->
+        <div class="lg:col-span-2 space-y-6">
+          ${this.renderProfileDescriptionCard(profile)}
+          ${this.renderNEOMotivationCard(profile)}
+        </div>
+      </div>
+    `;
+  }
+
+  // プロフィール編集フォーム
+  renderProfileEditForm(profile) {
+    return `
+      <form id="profileForm" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- 左カラム: 基本情報入力 -->
+        <div class="lg:col-span-1 space-y-6">
+          ${this.renderBasicInfoForm(profile)}
+          ${this.renderSocialLinksForm(profile)}
+          ${this.renderConnectionsForm(profile)}
+        </div>
+        
+        <!-- 右カラム: 自己紹介・動機入力 -->
+        <div class="lg:col-span-2 space-y-6">
+          ${this.renderProfileDescriptionForm(profile)}
+          ${this.renderNEOMotivationForm(profile)}
+        </div>
+      </form>
+    `;
+  }
+
+  // 基本情報カード（表示）
+  renderBasicInfoCard(profile) {
+    return `
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div class="p-6 border-b border-gray-200">
+          <h3 class="text-lg font-semibold text-gray-800">
+            <i class="fas fa-user mr-2 text-neo-blue"></i>基本情報
+          </h3>
+        </div>
+        <div class="p-6 space-y-4">
+          <div class="grid grid-cols-1 gap-4">
+            <div>
+              <label class="text-sm font-medium text-gray-600">出身地</label>
+              <p class="text-gray-900">${profile.birthPlace || '-'}</p>
+            </div>
+            <div>
+              <label class="text-sm font-medium text-gray-600">出身校</label>
+              <p class="text-gray-900">${profile.schools || '-'}</p>
+            </div>
+            <div>
+              <label class="text-sm font-medium text-gray-600">誕生日</label>
+              <p class="text-gray-900">${profile.birthday ? this.formatBirthday(profile.birthday) : '-'}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // 基本情報フォーム（編集）
+  renderBasicInfoForm(profile) {
+    return `
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div class="p-6 border-b border-gray-200">
+          <h3 class="text-lg font-semibold text-gray-800">
+            <i class="fas fa-user mr-2 text-neo-blue"></i>基本情報
+          </h3>
+        </div>
+        <div class="p-6 space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              氏名 <span class="text-red-500">*</span>
+            </label>
+            <input type="text" name="fullName" value="${profile.fullName || ''}" 
+                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-neo-blue focus:border-neo-blue"
+                   required>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              氏名（カナ） <span class="text-red-500">*</span>
+            </label>
+            <input type="text" name="fullNameKana" value="${profile.fullNameKana || ''}" 
+                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-neo-blue focus:border-neo-blue"
+                   required>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">出身地</label>
+            <input type="text" name="birthPlace" value="${profile.birthPlace || ''}" 
+                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-neo-blue focus:border-neo-blue">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">出身校（高校/大学）</label>
+            <input type="text" name="schools" value="${profile.schools || ''}" 
+                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-neo-blue focus:border-neo-blue">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              誕生日
+              <span class="text-xs text-gray-500 block">みんなでお祝いしたいので教えてください！</span>
+            </label>
+            <input type="date" name="birthday" value="${profile.birthday || ''}" 
+                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-neo-blue focus:border-neo-blue">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">肩書き</label>
+            <input type="text" name="jobTitle" value="${profile.jobTitle || ''}" 
+                   placeholder="例：〇〇大学△△学部×年生 / 〇〇株式会社 課長"
+                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-neo-blue focus:border-neo-blue">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">キャッチコピー</label>
+            <input type="text" name="catchPhrase" value="${profile.catchPhrase || ''}" 
+                   placeholder="例：スポーツで国を創るプロデューサー" maxlength="50"
+                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-neo-blue focus:border-neo-blue">
+            <p class="text-xs text-gray-500 mt-1">50文字以内</p>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // SNSリンクカード（表示）
+  renderSocialLinksCard(profile) {
+    const links = profile.socialLinks || {};
+    const hasLinks = links.twitter || links.instagram || links.otherUrl;
+    
+    return `
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div class="p-6 border-b border-gray-200">
+          <h3 class="text-lg font-semibold text-gray-800">
+            <i class="fas fa-link mr-2 text-neo-blue"></i>SNS / Web
+          </h3>
+        </div>
+        <div class="p-6">
+          ${hasLinks ? `
+            <div class="space-y-3">
+              ${links.twitter ? `
+                <a href="https://twitter.com/${links.twitter.replace('@', '')}" target="_blank" 
+                   class="flex items-center space-x-3 text-blue-600 hover:text-blue-800 transition-colors">
+                  <i class="fab fa-twitter"></i>
+                  <span>${links.twitter}</span>
+                </a>
+              ` : ''}
+              ${links.instagram ? `
+                <a href="https://instagram.com/${links.instagram.replace('@', '')}" target="_blank" 
+                   class="flex items-center space-x-3 text-pink-600 hover:text-pink-800 transition-colors">
+                  <i class="fab fa-instagram"></i>
+                  <span>${links.instagram}</span>
+                </a>
+              ` : ''}
+              ${links.otherUrl ? `
+                <a href="${links.otherUrl}" target="_blank" 
+                   class="flex items-center space-x-3 text-gray-600 hover:text-gray-800 transition-colors">
+                  <i class="fas fa-globe"></i>
+                  <span>その他URL</span>
+                </a>
+              ` : ''}
+            </div>
+          ` : `
+            <p class="text-gray-500 text-center py-4">SNS情報が登録されていません</p>
+          `}
+        </div>
+      </div>
+    `;
+  }
+
+  // SNSリンクフォーム（編集）
+  renderSocialLinksForm(profile) {
+    const links = profile.socialLinks || {};
+    
+    return `
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div class="p-6 border-b border-gray-200">
+          <h3 class="text-lg font-semibold text-gray-800">
+            <i class="fas fa-link mr-2 text-neo-blue"></i>SNS / Web
+          </h3>
+        </div>
+        <div class="p-6 space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              <i class="fab fa-twitter mr-2"></i>X（Twitter）
+            </label>
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">@</span>
+              <input type="text" name="twitter" value="${(links.twitter || '').replace('@', '')}" 
+                     placeholder="username"
+                     class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-neo-blue focus:border-neo-blue">
+            </div>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              <i class="fab fa-instagram mr-2"></i>Instagram
+            </label>
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">@</span>
+              <input type="text" name="instagram" value="${(links.instagram || '').replace('@', '')}" 
+                     placeholder="username"
+                     class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-neo-blue focus:border-neo-blue">
+            </div>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              <i class="fas fa-globe mr-2"></i>その他URL
+            </label>
+            <input type="url" name="otherUrl" value="${links.otherUrl || ''}" 
+                   placeholder="https://example.com"
+                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-neo-blue focus:border-neo-blue">
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // プロフィール文カード（表示）
+  renderProfileDescriptionCard(profile) {
+    return `
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div class="p-6 border-b border-gray-200">
+          <h3 class="text-lg font-semibold text-gray-800">
+            <i class="fas fa-user-edit mr-2 text-neo-blue"></i>プロフィール
+          </h3>
+        </div>
+        <div class="p-6">
+          ${profile.profileDescription ? `
+            <p class="text-gray-700 leading-relaxed whitespace-pre-wrap">${profile.profileDescription}</p>
+          ` : `
+            <p class="text-gray-500 text-center py-8">プロフィールが登録されていません</p>
+          `}
+        </div>
+      </div>
+    `;
+  }
+
+  // プロフィール文フォーム（編集）
+  renderProfileDescriptionForm(profile) {
+    return `
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div class="p-6 border-b border-gray-200">
+          <h3 class="text-lg font-semibold text-gray-800">
+            <i class="fas fa-user-edit mr-2 text-neo-blue"></i>プロフィール
+          </h3>
+        </div>
+        <div class="p-6">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              プロフィール文 <span class="text-red-500">*</span>
+            </label>
+            <textarea name="profileDescription" rows="6" maxlength="200" required
+                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-neo-blue focus:border-neo-blue resize-none"
+                      placeholder="自己紹介を200文字以内で記入してください">${profile.profileDescription || ''}</textarea>
+            <div class="flex justify-between items-center mt-2">
+              <p class="text-xs text-gray-500">200文字以内（必須）</p>
+              <span id="profileDescriptionCount" class="text-xs text-gray-500">
+                ${(profile.profileDescription || '').length}/200
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // NEO参加動機カード（表示）
+  renderNEOMotivationCard(profile) {
+    return `
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div class="p-6 border-b border-gray-200">
+          <h3 class="text-lg font-semibold text-gray-800">
+            <i class="fas fa-lightbulb mr-2 text-neo-blue"></i>NEO参加動機
+          </h3>
+        </div>
+        <div class="p-6">
+          ${profile.neoMotivation ? `
+            <p class="text-gray-700 leading-relaxed whitespace-pre-wrap">${profile.neoMotivation}</p>
+          ` : `
+            <p class="text-gray-500 text-center py-8">NEO参加動機が登録されていません</p>
+          `}
+        </div>
+      </div>
+    `;
+  }
+
+  // NEO参加動機フォーム（編集）
+  renderNEOMotivationForm(profile) {
+    return `
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div class="p-6 border-b border-gray-200">
+          <h3 class="text-lg font-semibold text-gray-800">
+            <i class="fas fa-lightbulb mr-2 text-neo-blue"></i>NEO参加動機
+          </h3>
+        </div>
+        <div class="p-6">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              NEOを活用して経験したいことやチャレンジしたいことを教えてください
+            </label>
+            <textarea name="neoMotivation" rows="8"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-neo-blue focus:border-neo-blue resize-none"
+                      placeholder="NEOでの目標や挑戦したいことを自由に記述してください">${profile.neoMotivation || ''}</textarea>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // 繋がりカード（表示・編集両対応）
+  renderConnectionsCard(profile) {
+    const categories = profile.memberCategories || [];
+    const connections = profile.fukuokaConnections || [];
+    
+    return `
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div class="p-6 border-b border-gray-200">
+          <h3 class="text-lg font-semibold text-gray-800">
+            <i class="fas fa-tags mr-2 text-neo-blue"></i>区分・繋がり
+          </h3>
+        </div>
+        <div class="p-6 space-y-4">
+          <div>
+            <label class="text-sm font-medium text-gray-600 block mb-2">会員区分</label>
+            ${categories.length > 0 ? `
+              <div class="flex flex-wrap gap-2">
+                ${categories.map(cat => `
+                  <span class="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full">
+                    ${this.getMemberCategoryDisplayName(cat)}
+                  </span>
+                `).join('')}
+              </div>
+            ` : `
+              <p class="text-gray-500 text-sm">未設定</p>
+            `}
+          </div>
+          
+          <div>
+            <label class="text-sm font-medium text-gray-600 block mb-2">福岡との繋がり</label>
+            ${connections.length > 0 ? `
+              <div class="flex flex-wrap gap-2">
+                ${connections.map(conn => `
+                  <span class="px-3 py-1 bg-green-100 text-green-800 text-sm rounded-full">
+                    ${this.getFukuokaConnectionDisplayName(conn)}
+                  </span>
+                `).join('')}
+              </div>
+            ` : `
+              <p class="text-gray-500 text-sm">未設定</p>
+            `}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // 繋がりフォーム（編集）
+  renderConnectionsForm(profile) {
+    const categories = profile.memberCategories || [];
+    const connections = profile.fukuokaConnections || [];
+    
+    return `
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div class="p-6 border-b border-gray-200">
+          <h3 class="text-lg font-semibold text-gray-800">
+            <i class="fas fa-tags mr-2 text-neo-blue"></i>区分・繋がり
+          </h3>
+        </div>
+        <div class="p-6 space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">会員区分（複数選択可）</label>
+            <div class="grid grid-cols-1 gap-2">
+              ${this.getMemberCategoryOptions().map(option => `
+                <label class="flex items-center">
+                  <input type="checkbox" name="memberCategories" value="${option.value}" 
+                         ${categories.includes(option.value) ? 'checked' : ''}
+                         class="rounded border-gray-300 text-neo-blue focus:ring-neo-blue mr-2">
+                  <span class="text-sm text-gray-700">${option.label}</span>
+                </label>
+              `).join('')}
+            </div>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">福岡との繋がり（複数選択可）</label>
+            <div class="space-y-2">
+              ${this.getFukuokaConnectionOptions().map(option => `
+                <label class="flex items-center">
+                  <input type="checkbox" name="fukuokaConnections" value="${option.value}" 
+                         ${connections.includes(option.value) ? 'checked' : ''}
+                         class="rounded border-gray-300 text-neo-blue focus:ring-neo-blue mr-2">
+                  <span class="text-sm text-gray-700">${option.label}</span>
+                </label>
+              `).join('')}
+            </div>
+          </div>
+          
+          <div>
+            <label class="flex items-center">
+              <input type="checkbox" name="isPublic" ${profile.isPublic ? 'checked' : ''}
+                     class="rounded border-gray-300 text-neo-blue focus:ring-neo-blue mr-2">
+              <span class="text-sm text-gray-700">プロフィールを公開する</span>
+            </label>
+          </div>
+        </div>
+      </div>
+    `;
   }
 
   renderCommitteesPage() {
@@ -1409,6 +1960,1068 @@ class NEODigitalPlatform {
   async editMemberCard(memberId) {
     // メンバーカルテ編集機能は実装予定
     alert('メンバーカルテ編集機能は実装予定です');
+  }
+
+  // プロフィール関連メソッド
+  async loadCurrentUserProfile() {
+    try {
+      const memberId = this.currentUser.memberId;
+      if (!memberId) {
+        alert('ユーザー情報が不正です');
+        return;
+      }
+
+      const response = await axios.get(`/api/profile/${memberId}`, {
+        params: { region_id: this.currentRegion }
+      });
+
+      if (response.data.success) {
+        this.data.currentProfile = response.data.data;
+        this.data.isEditingProfile = false;
+        this.renderApp();
+      } else {
+        alert('プロフィールの取得に失敗しました');
+      }
+    } catch (error) {
+      console.error('Error loading profile:', error);
+      alert('プロフィールの読み込み中にエラーが発生しました');
+    }
+  }
+
+  editProfile() {
+    this.data.isEditingProfile = true;
+    this.renderApp();
+    
+    // プロフィール文字数カウンター設定
+    this.setupCharacterCounter('profileDescription', 200);
+  }
+
+  cancelProfileEdit() {
+    this.data.isEditingProfile = false;
+    this.renderApp();
+  }
+
+  async saveProfile() {
+    try {
+      const form = document.getElementById('profileForm');
+      if (!form) return;
+
+      // フォームデータ収集
+      const formData = new FormData(form);
+      const profileData = this.collectProfileFormData(formData);
+
+      // クライアントサイドバリデーション
+      const validationErrors = this.validateProfileForm(profileData);
+      if (validationErrors.length > 0) {
+        this.showValidationErrors(validationErrors);
+        return;
+      }
+
+      const memberId = this.currentUser.memberId;
+      const response = await axios.put(`/api/profile/${memberId}`, profileData, {
+        params: { region_id: this.currentRegion }
+      });
+
+      if (response.data.success) {
+        alert('プロフィールを更新しました');
+        this.data.isEditingProfile = false;
+        await this.loadCurrentUserProfile();
+      } else {
+        if (response.data.validationErrors) {
+          this.showValidationErrors(response.data.validationErrors);
+        } else {
+          alert('プロフィールの更新に失敗しました');
+        }
+      }
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      alert('プロフィールの保存中にエラーが発生しました');
+    }
+  }
+
+  collectProfileFormData(formData) {
+    const memberCategories = [];
+    const fukuokaConnections = [];
+
+    // チェックボックスの値を収集
+    formData.getAll('memberCategories').forEach(value => {
+      memberCategories.push(value);
+    });
+    
+    formData.getAll('fukuokaConnections').forEach(value => {
+      fukuokaConnections.push(value);
+    });
+
+    // SNSハンドルに@を付加
+    const twitter = formData.get('twitter');
+    const instagram = formData.get('instagram');
+
+    return {
+      fullName: formData.get('fullName'),
+      fullNameKana: formData.get('fullNameKana'),
+      birthPlace: formData.get('birthPlace'),
+      schools: formData.get('schools'),
+      birthday: formData.get('birthday'),
+      jobTitle: formData.get('jobTitle'),
+      catchPhrase: formData.get('catchPhrase'),
+      profileDescription: formData.get('profileDescription'),
+      neoMotivation: formData.get('neoMotivation'),
+      socialLinks: {
+        twitter: twitter ? `@${twitter}` : '',
+        instagram: instagram ? `@${instagram}` : '',
+        otherUrl: formData.get('otherUrl')
+      },
+      memberCategories,
+      fukuokaConnections,
+      isPublic: formData.get('isPublic') === 'on'
+    };
+  }
+
+  validateProfileForm(profileData) {
+    const errors = [];
+
+    // 必須項目チェック
+    if (!profileData.fullName || profileData.fullName.trim().length === 0) {
+      errors.push({ field: 'fullName', message: '氏名は必須です' });
+    }
+
+    if (!profileData.fullNameKana || profileData.fullNameKana.trim().length === 0) {
+      errors.push({ field: 'fullNameKana', message: '氏名（カナ）は必須です' });
+    }
+
+    if (!profileData.profileDescription || profileData.profileDescription.trim().length === 0) {
+      errors.push({ field: 'profileDescription', message: 'プロフィール文は必須です' });
+    }
+
+    // 文字数制限チェック
+    if (profileData.profileDescription && profileData.profileDescription.length > 200) {
+      errors.push({ field: 'profileDescription', message: 'プロフィール文は200文字以内で入力してください' });
+    }
+
+    if (profileData.catchPhrase && profileData.catchPhrase.length > 50) {
+      errors.push({ field: 'catchPhrase', message: 'キャッチコピーは50文字以内で入力してください' });
+    }
+
+    // 日付フォーマットチェック
+    if (profileData.birthday && !this.isValidDateFormat(profileData.birthday)) {
+      errors.push({ field: 'birthday', message: '誕生日はYYYY-MM-DD形式で入力してください' });
+    }
+
+    // SNSハンドルチェック
+    if (profileData.socialLinks.twitter && !this.isValidSNSHandle(profileData.socialLinks.twitter)) {
+      errors.push({ field: 'twitter', message: 'Twitterハンドルは@から始まる文字列で入力してください' });
+    }
+
+    if (profileData.socialLinks.instagram && !this.isValidSNSHandle(profileData.socialLinks.instagram)) {
+      errors.push({ field: 'instagram', message: 'Instagramハンドルは@から始まる文字列で入力してください' });
+    }
+
+    // URLチェック
+    if (profileData.socialLinks.otherUrl && !this.isValidUrl(profileData.socialLinks.otherUrl)) {
+      errors.push({ field: 'otherUrl', message: '有効なURLを入力してください' });
+    }
+
+    return errors;
+  }
+
+  showValidationErrors(errors) {
+    const errorMessages = errors.map(error => error.message).join('\n');
+    alert('入力エラー:\n\n' + errorMessages);
+  }
+
+  setupCharacterCounter(textareaName, maxLength) {
+    const textarea = document.querySelector(`textarea[name="${textareaName}"]`);
+    const counter = document.getElementById(`${textareaName}Count`);
+    
+    if (textarea && counter) {
+      const updateCounter = () => {
+        const currentLength = textarea.value.length;
+        counter.textContent = `${currentLength}/${maxLength}`;
+        
+        if (currentLength > maxLength) {
+          counter.classList.add('text-red-500');
+          counter.classList.remove('text-gray-500');
+        } else {
+          counter.classList.add('text-gray-500');
+          counter.classList.remove('text-red-500');
+        }
+      };
+
+      textarea.addEventListener('input', updateCounter);
+      updateCounter(); // 初期表示
+    }
+  }
+
+  async uploadProfileImage() {
+    // 簡易実装：ファイル選択ダイアログを表示
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    
+    input.onchange = async (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      try {
+        const memberId = this.currentUser.memberId;
+        const response = await axios.post(`/api/profile/${memberId}/upload-image`, {}, {
+          params: { region_id: this.currentRegion }
+        });
+
+        if (response.data.success) {
+          alert('画像をアップロードしました');
+          // プロフィールを再読み込み
+          await this.loadCurrentUserProfile();
+        } else {
+          alert('画像のアップロードに失敗しました');
+        }
+      } catch (error) {
+        console.error('Error uploading image:', error);
+        alert('画像のアップロード中にエラーが発生しました');
+      }
+    };
+
+    input.click();
+  }
+
+  // ヘルパーメソッド
+  formatBirthday(birthday) {
+    if (!birthday) return '-';
+    const date = new Date(birthday);
+    return `${date.getMonth() + 1}月${date.getDate()}日`;
+  }
+
+  isValidDateFormat(dateString) {
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(dateString)) return false;
+    
+    const date = new Date(dateString);
+    const [year, month, day] = dateString.split('-').map(Number);
+    
+    return date.getFullYear() === year &&
+           date.getMonth() === month - 1 &&
+           date.getDate() === day;
+  }
+
+  isValidSNSHandle(handle) {
+    return /^@[a-zA-Z0-9_]+$/.test(handle);
+  }
+
+  isValidUrl(url) {
+    try {
+      const urlObj = new URL(url);
+      return urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  }
+
+  getMemberCategoryOptions() {
+    return [
+      { value: 'youth_selected', label: 'ユース選抜会員' },
+      { value: 'company_selected', label: '企業選抜会員' },
+      { value: 'corporate_member', label: '企業会員' },
+      { value: 'council_member', label: '評議会会員' },
+      { value: 'club_member', label: 'クラブ会員' },
+      { value: 'supporting_partner', label: '応援パートナー' },
+      { value: 'mentor', label: 'メンター' },
+      { value: 'lecturer', label: '講師' },
+      { value: 'communicator', label: 'コミュニケーター' },
+      { value: 'secretariat', label: '事務局' },
+      { value: 'observer', label: 'オブザーバー' },
+      { value: 'committee_advisor', label: '委員会顧問' }
+    ];
+  }
+
+  getFukuokaConnectionOptions() {
+    return [
+      { value: 'resident_worker_student', label: '福岡在住/在勤/在学' },
+      { value: 'originally_from_fukuoka', label: '福岡出身で今は福岡外' },
+      { value: 'want_to_connect_with_fukuoka', label: '福岡外だけど福岡と繋がりたい' }
+    ];
+  }
+
+  getMemberCategoryDisplayName(category) {
+    const options = this.getMemberCategoryOptions();
+    const option = options.find(opt => opt.value === category);
+    return option ? option.label : category;
+  }
+
+  getFukuokaConnectionDisplayName(connection) {
+    const options = this.getFukuokaConnectionOptions();
+    const option = options.find(opt => opt.value === connection);
+    return option ? option.label : connection;
+  }
+
+  // ハイブリッド登録システム関連メソッド
+
+  // セッション確認
+  async checkSession() {
+    try {
+      const token = localStorage.getItem('sessionToken');
+      if (!token) return;
+
+      const response = await axios.get('/api/auth/session', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.data.success) {
+        this.currentUser = response.data.user;
+        this.currentUser.accessibleRegions = this.getAccessibleRegions(
+          response.data.user.role, 
+          response.data.user.regionId
+        );
+        
+        // 初回ログインの場合、プロフィール補完画面にリダイレクト
+        if (response.data.user.status === 'tentative' && response.data.user.isFirstLogin) {
+          this.navigateTo('profile-completion');
+        }
+      } else {
+        localStorage.removeItem('sessionToken');
+      }
+    } catch (error) {
+      console.error('Session check error:', error);
+      localStorage.removeItem('sessionToken');
+    }
+  }
+
+  // ログイン処理
+  async login() {
+    const email = document.getElementById('email')?.value;
+    const password = document.getElementById('password')?.value;
+
+    if (!email || !password) {
+      alert('メールアドレスとパスワードを入力してください');
+      return;
+    }
+
+    try {
+      const response = await axios.post('/api/auth/login', {
+        email,
+        password
+      });
+
+      if (response.data.success) {
+        localStorage.setItem('sessionToken', response.data.sessionToken);
+        this.currentUser = response.data.user;
+        this.currentUser.accessibleRegions = this.getAccessibleRegions(
+          response.data.user.role, 
+          response.data.user.regionId
+        );
+
+        // リダイレクト先に移動
+        const redirectUrl = response.data.redirectUrl;
+        if (redirectUrl === '/profile-completion') {
+          this.navigateTo('profile-completion');
+        } else {
+          this.navigateTo('dashboard');
+        }
+      } else {
+        alert('ログインに失敗しました: ' + response.data.error);
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      alert('ログイン中にエラーが発生しました');
+    }
+  }
+
+  // ログアウト処理
+  async logout() {
+    try {
+      const token = localStorage.getItem('sessionToken');
+      if (token) {
+        await axios.post('/api/auth/logout', {}, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      localStorage.removeItem('sessionToken');
+      this.currentUser = null;
+      this.navigateTo('login');
+    }
+  }
+
+  // 事務局用メンバー管理ダッシュボード
+  async renderAdminDashboard() {
+    try {
+      const token = localStorage.getItem('sessionToken');
+      const response = await axios.get('/api/admin/dashboard-stats', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.data.success) {
+        const stats = response.data.data;
+        
+        return `
+          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="mb-8">
+              <h1 class="text-3xl font-bold text-gray-900">事務局管理ダッシュボード</h1>
+              <p class="mt-2 text-gray-600">ハイブリッド登録システムの管理と承認</p>
+            </div>
+
+            ${this.renderAdminStatsCards(stats)}
+            ${this.renderAdminActions()}
+            ${this.renderTentativeRegistrationsList()}
+            ${this.renderPendingApprovalsList()}
+          </div>
+        `;
+      } else {
+        return '<div class="text-red-500">統計データの取得に失敗しました</div>';
+      }
+    } catch (error) {
+      console.error('Error loading admin dashboard:', error);
+      return '<div class="text-red-500">管理ダッシュボードの読み込み中にエラーが発生しました</div>';
+    }
+  }
+
+  renderAdminStatsCards(stats) {
+    return `
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div class="flex items-center">
+            <div class="flex-shrink-0">
+              <i class="fas fa-users text-2xl text-blue-600"></i>
+            </div>
+            <div class="ml-4">
+              <h3 class="text-sm font-medium text-gray-500">総メンバー数</h3>
+              <p class="text-2xl font-bold text-gray-900">${stats.totalMembers}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div class="flex items-center">
+            <div class="flex-shrink-0">
+              <i class="fas fa-user-clock text-2xl text-yellow-600"></i>
+            </div>
+            <div class="ml-4">
+              <h3 class="text-sm font-medium text-gray-500">仮登録</h3>
+              <p class="text-2xl font-bold text-gray-900">${stats.tentativeMembers}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div class="flex items-center">
+            <div class="flex-shrink-0">
+              <i class="fas fa-user-check text-2xl text-green-600"></i>
+            </div>
+            <div class="ml-4">
+              <h3 class="text-sm font-medium text-gray-500">有効メンバー</h3>
+              <p class="text-2xl font-bold text-gray-900">${stats.activeMembers}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div class="flex items-center">
+            <div class="flex-shrink-0">
+              <i class="fas fa-hourglass-half text-2xl text-orange-600"></i>
+            </div>
+            <div class="ml-4">
+              <h3 class="text-sm font-medium text-gray-500">承認待ち</h3>
+              <p class="text-2xl font-bold text-gray-900">${stats.pendingApprovals}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  renderAdminActions() {
+    return `
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">管理アクション</h2>
+        <div class="flex flex-wrap gap-4">
+          <button onclick="app.showTentativeRegistrationForm()" 
+                  class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+            <i class="fas fa-user-plus mr-2"></i>仮登録作成
+          </button>
+          <button onclick="app.showBulkRegistrationForm()" 
+                  class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+            <i class="fas fa-upload mr-2"></i>CSV一括登録
+          </button>
+          <button onclick="app.exportMemberData()" 
+                  class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors">
+            <i class="fas fa-download mr-2"></i>データエクスポート
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  renderTentativeRegistrationsList() {
+    return `
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-8">
+        <div class="p-6 border-b border-gray-200">
+          <h2 class="text-lg font-semibold text-gray-900">仮登録一覧</h2>
+        </div>
+        <div class="p-6">
+          <div id="tentativeRegistrationsList">
+            <p class="text-gray-500 text-center py-8">読み込み中...</p>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  renderPendingApprovalsList() {
+    return `
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div class="p-6 border-b border-gray-200">
+          <h2 class="text-lg font-semibold text-gray-900">承認待ちプロフィール</h2>
+        </div>
+        <div class="p-6">
+          <div id="pendingApprovalsList">
+            <p class="text-gray-500 text-center py-8">読み込み中...</p>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // 仮登録フォーム表示
+  showTentativeRegistrationForm() {
+    const modal = `
+      <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onclick="this.remove()">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full m-4" onclick="event.stopPropagation()">
+          <div class="p-6 border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-900">仮登録作成</h3>
+          </div>
+          <form id="tentativeRegistrationForm" class="p-6 space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">氏名（仮）</label>
+              <input type="text" name="tempName" required 
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">メールアドレス</label>
+              <input type="email" name="email" required 
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">地域</label>
+              <select name="regionId" required 
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="FUK">福岡</option>
+                <option value="ISK">石川</option>
+                <option value="NIG">新潟</option>
+              </select>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">ロール</label>
+              <select name="role" required 
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="student">学生</option>
+                <option value="company_admin">企業管理者</option>
+                <option value="secretariat">事務局</option>
+              </select>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">企業ID（企業管理者の場合）</label>
+              <input type="text" name="companyId" 
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+          </form>
+          
+          <div class="p-6 border-t border-gray-200 flex justify-end space-x-3">
+            <button onclick="this.closest('.fixed').remove()" 
+                    class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors">
+              キャンセル
+            </button>
+            <button onclick="app.submitTentativeRegistration()" 
+                    class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+              作成
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modal);
+  }
+
+  // 仮登録作成実行
+  async submitTentativeRegistration() {
+    try {
+      const form = document.getElementById('tentativeRegistrationForm');
+      const formData = new FormData(form);
+      
+      const registrationData = {
+        tempName: formData.get('tempName'),
+        email: formData.get('email'),
+        regionId: formData.get('regionId'),
+        role: formData.get('role'),
+        companyId: formData.get('companyId') || undefined
+      };
+
+      const token = localStorage.getItem('sessionToken');
+      const response = await axios.post('/api/admin/tentative-registration', registrationData, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.data.success) {
+        alert('仮登録を作成し、メール通知を送信しました');
+        document.querySelector('.fixed').remove();
+        this.renderApp(); // ダッシュボードを再読み込み
+      } else {
+        alert('仮登録の作成に失敗しました: ' + response.data.error);
+      }
+    } catch (error) {
+      console.error('Error creating tentative registration:', error);
+      alert('仮登録の作成中にエラーが発生しました');
+    }
+  }
+
+  // CSV一括登録フォーム表示
+  showBulkRegistrationForm() {
+    const modal = `
+      <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onclick="this.remove()">
+        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full m-4 max-h-96 overflow-y-auto" onclick="event.stopPropagation()">
+          <div class="p-6 border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-900">CSV一括登録</h3>
+            <p class="text-sm text-gray-600 mt-1">CSVファイルから複数のメンバーを一括で仮登録できます</p>
+          </div>
+          
+          <div class="p-6">
+            <div class="mb-4">
+              <h4 class="font-medium text-gray-900 mb-2">CSVフォーマット</h4>
+              <div class="bg-gray-50 p-3 rounded text-sm font-mono">
+                tempName,email,regionId,role,companyId<br>
+                田中太郎,tanaka@example.com,FUK,student,<br>
+                佐藤花子,sato@example.com,ISK,company_admin,company-isk-001<br>
+                山田次郎,yamada@example.com,NIG,secretariat,
+              </div>
+              <p class="text-xs text-gray-500 mt-2">
+                ※ companyIdは企業管理者の場合のみ必要です<br>
+                ※ regionId: FUK（福岡）、ISK（石川）、NIG（新潟）<br>
+                ※ role: student（学生）、company_admin（企業管理者）、secretariat（事務局）
+              </p>
+            </div>
+
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-2">CSVファイル選択</label>
+              <input type="file" id="csvFileInput" accept=".csv,.txt" 
+                     class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+            </div>
+
+            <div id="csvPreview" class="hidden mb-4">
+              <h4 class="font-medium text-gray-900 mb-2">プレビュー</h4>
+              <div id="csvPreviewContent" class="bg-gray-50 p-3 rounded text-sm max-h-32 overflow-y-auto"></div>
+            </div>
+          </div>
+          
+          <div class="p-6 border-t border-gray-200 flex justify-end space-x-3">
+            <button onclick="this.closest('.fixed').remove()" 
+                    class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors">
+              キャンセル
+            </button>
+            <button onclick="app.submitBulkRegistration()" 
+                    class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+              一括登録実行
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modal);
+    
+    // ファイル選択時のプレビュー機能
+    document.getElementById('csvFileInput').addEventListener('change', this.previewCsvFile.bind(this));
+  }
+
+  // CSVファイルプレビュー
+  async previewCsvFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const lines = text.trim().split('\n');
+      const preview = lines.slice(0, 6).join('\n'); // 最初の6行をプレビュー
+
+      document.getElementById('csvPreview').classList.remove('hidden');
+      document.getElementById('csvPreviewContent').textContent = preview + (lines.length > 6 ? '\n...' : '');
+    } catch (error) {
+      console.error('Error reading CSV file:', error);
+      alert('CSVファイルの読み込みに失敗しました');
+    }
+  }
+
+  // CSV一括登録実行
+  async submitBulkRegistration() {
+    try {
+      const fileInput = document.getElementById('csvFileInput');
+      const file = fileInput.files[0];
+      
+      if (!file) {
+        alert('CSVファイルを選択してください');
+        return;
+      }
+
+      const text = await file.text();
+      const csvData = this.parseCsvData(text);
+      
+      if (csvData.length === 0) {
+        alert('有効なCSVデータが見つかりません');
+        return;
+      }
+
+      const token = localStorage.getItem('sessionToken');
+      const response = await axios.post('/api/admin/bulk-registration', { csvData }, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.data.success) {
+        const result = response.data.data;
+        let message = `一括登録完了\n成功: ${result.successCount}件\nエラー: ${result.errorCount}件`;
+        
+        if (result.errors.length > 0) {
+          message += '\n\nエラー詳細:';
+          result.errors.slice(0, 5).forEach(error => {
+            message += `\n行${error.row}: ${error.error}`;
+          });
+          if (result.errors.length > 5) {
+            message += `\nほか${result.errors.length - 5}件のエラーがあります`;
+          }
+        }
+        
+        alert(message);
+        document.querySelector('.fixed').remove();
+        this.renderApp(); // ダッシュボードを再読み込み
+      } else {
+        alert('一括登録に失敗しました: ' + response.data.error);
+      }
+    } catch (error) {
+      console.error('Error submitting bulk registration:', error);
+      alert('一括登録中にエラーが発生しました');
+    }
+  }
+
+  // CSV データパース
+  parseCsvData(text) {
+    try {
+      const lines = text.trim().split('\n');
+      const header = lines[0].split(',').map(h => h.trim());
+      const data = [];
+
+      // ヘッダーチェック
+      const expectedHeaders = ['tempName', 'email', 'regionId', 'role', 'companyId'];
+      const isValidHeader = expectedHeaders.every(h => header.includes(h));
+      
+      if (!isValidHeader) {
+        throw new Error('CSVヘッダーが正しくありません。期待するヘッダー: ' + expectedHeaders.join(', '));
+      }
+
+      // データ行処理
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(',').map(v => v.trim());
+        if (values.length < 4) continue; // 最低4カラム必要
+
+        const row = {};
+        header.forEach((h, index) => {
+          row[h] = values[index] || '';
+        });
+
+        // 必須項目チェック
+        if (row.tempName && row.email && row.regionId && row.role) {
+          // companyIdが空の場合はundefinedに変換
+          if (!row.companyId) {
+            row.companyId = undefined;
+          }
+          data.push(row);
+        }
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error parsing CSV:', error);
+      throw error;
+    }
+  }
+
+  // データエクスポート機能
+  async exportMemberData() {
+    try {
+      const token = localStorage.getItem('sessionToken');
+      const response = await axios.get('/api/admin/dashboard-stats', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.data.success) {
+        const stats = response.data.data;
+        
+        // CSVデータ生成
+        const csvContent = this.generateStatsCSV(stats);
+        
+        // ファイルダウンロード
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `neo-stats-${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        alert('統計データをエクスポートしました');
+      } else {
+        alert('データエクスポートに失敗しました');
+      }
+    } catch (error) {
+      console.error('Error exporting data:', error);
+      alert('データエクスポート中にエラーが発生しました');
+    }
+  }
+
+  // 統計データをCSV形式に変換
+  generateStatsCSV(stats) {
+    let csv = 'NEO統合システム統計データ\n';
+    csv += `生成日時,${new Date().toLocaleString('ja-JP')}\n\n`;
+    
+    csv += '全体統計\n';
+    csv += 'メトリクス,値\n';
+    csv += `総メンバー数,${stats.totalMembers}\n`;
+    csv += `仮登録メンバー数,${stats.tentativeMembers}\n`;
+    csv += `有効メンバー数,${stats.activeMembers}\n`;
+    csv += `承認待ち数,${stats.pendingApprovals}\n`;
+    csv += `補完率,${stats.completionRate}%\n\n`;
+    
+    csv += '地域別統計\n';
+    csv += '地域,総数,仮登録,有効,補完率\n';
+    Object.entries(stats.regionStats).forEach(([regionId, stat]) => {
+      if (regionId !== 'ALL') {
+        csv += `${this.regionNames[regionId] || regionId},${stat.total},${stat.tentative},${stat.active},${stat.completionRate}%\n`;
+      }
+    });
+    
+    csv += '\n最近の登録\n';
+    csv += 'ID,名前,メール,地域,ステータス,作成日時\n';
+    stats.recentRegistrations.forEach(reg => {
+      csv += `${reg.id},${reg.name},${reg.email},${this.regionNames[reg.regionId] || reg.regionId},${reg.status},${new Date(reg.createdAt).toLocaleString('ja-JP')}\n`;
+    });
+    
+    return csv;
+  }
+
+  // プロフィール補完画面
+  renderProfileCompletionPage() {
+    return `
+      <div class="min-h-screen bg-gray-50 py-12">
+        <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
+            <div class="text-center mb-8">
+              <h1 class="text-3xl font-bold text-gray-900">プロフィール補完</h1>
+              <p class="mt-2 text-gray-600">初回ログインのため、プロフィール情報を補完してください</p>
+            </div>
+
+            <form id="profileCompletionForm" class="space-y-6">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">正式氏名 <span class="text-red-500">*</span></label>
+                  <input type="text" name="fullName" required 
+                         class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">氏名カナ <span class="text-red-500">*</span></label>
+                  <input type="text" name="fullNameKana" required 
+                         class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">誕生日 <span class="text-red-500">*</span></label>
+                <input type="date" name="birthday" required 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">キャッチコピー <span class="text-red-500">*</span></label>
+                <input type="text" name="catchPhrase" required maxlength="50"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">プロフィール説明（200文字以内） <span class="text-red-500">*</span></label>
+                <textarea name="profileDescription" required rows="4" maxlength="200"
+                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                <p class="mt-1 text-sm text-gray-500">
+                  <span id="profileDescriptionCount">0/200</span>
+                </p>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">NEO参加動機 <span class="text-red-500">*</span></label>
+                <textarea name="neoMotivation" required rows="3"
+                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">出身地</label>
+                  <input type="text" name="birthPlace" 
+                         class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">肩書き</label>
+                  <input type="text" name="jobTitle" 
+                         class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">出身校</label>
+                <input type="text" name="schools" 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+              </div>
+            </form>
+
+            <div class="mt-8 flex justify-end space-x-4">
+              <button onclick="app.logout()" 
+                      class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition-colors">
+                ログアウト
+              </button>
+              <button onclick="app.submitProfileCompletion()" 
+                      class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                プロフィール完成
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // プロフィール補完実行
+  async submitProfileCompletion() {
+    try {
+      const form = document.getElementById('profileCompletionForm');
+      const formData = new FormData(form);
+      
+      const profileData = {
+        fullName: formData.get('fullName'),
+        fullNameKana: formData.get('fullNameKana'),
+        birthday: formData.get('birthday'),
+        catchPhrase: formData.get('catchPhrase'),
+        profileDescription: formData.get('profileDescription'),
+        neoMotivation: formData.get('neoMotivation'),
+        birthPlace: formData.get('birthPlace'),
+        jobTitle: formData.get('jobTitle'),
+        schools: formData.get('schools'),
+        isCompleted: true,
+        completedAt: new Date().toISOString()
+      };
+
+      const token = localStorage.getItem('sessionToken');
+      const response = await axios.post('/api/profile-completion', profileData, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.data.success) {
+        alert('プロフィール補完が完了しました。事務局の承認をお待ちください。');
+        this.logout(); // セッションをクリアしてログアウト
+      } else {
+        alert('プロフィール補完に失敗しました: ' + response.data.error);
+      }
+    } catch (error) {
+      console.error('Error submitting profile completion:', error);
+      alert('プロフィール補完中にエラーが発生しました');
+    }
+  }
+
+  // ログイン画面の表示
+  renderLoginPage() {
+    return `
+      <div class="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+        <div class="sm:mx-auto sm:w-full sm:max-w-md">
+          <h2 class="mt-6 text-center text-3xl font-bold text-gray-900">
+            NEO統合システム
+          </h2>
+          <p class="mt-2 text-center text-sm text-gray-600">
+            ログインしてください
+          </p>
+        </div>
+
+        <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+          <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+            <form id="loginForm" class="space-y-6">
+              <div>
+                <label for="email" class="block text-sm font-medium text-gray-700">
+                  メールアドレス
+                </label>
+                <div class="mt-1">
+                  <input id="email" name="email" type="email" required 
+                         class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+              </div>
+
+              <div>
+                <label for="password" class="block text-sm font-medium text-gray-700">
+                  パスワード
+                </label>
+                <div class="mt-1">
+                  <input id="password" name="password" type="password" required 
+                         class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+              </div>
+
+              <div>
+                <button type="button" onclick="app.login()" 
+                        class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                  ログイン
+                </button>
+              </div>
+            </form>
+
+            <div class="mt-6">
+              <div class="relative">
+                <div class="absolute inset-0 flex items-center">
+                  <div class="w-full border-t border-gray-300" />
+                </div>
+                <div class="relative flex justify-center text-sm">
+                  <span class="px-2 bg-white text-gray-500">デモモード</span>
+                </div>
+              </div>
+
+              <div class="mt-6 grid grid-cols-2 gap-3">
+                <button onclick="window.location.href='/?demo_role=secretariat&demo_region=FUK'" 
+                        class="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                  事務局デモ
+                </button>
+                <button onclick="window.location.href='/?demo_role=student&demo_region=FUK'" 
+                        class="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                  学生デモ
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
   }
 }
 

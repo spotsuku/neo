@@ -352,6 +352,166 @@ export class AuthService {
     return user.memberId === targetMemberId;
   }
 
+  // プロフィール権限チェック
+  static getProfilePermissions(user: User, targetMemberId: string, targetCompanyId?: string): any {
+    const isOwner = user.memberId === targetMemberId;
+    
+    switch (user.role) {
+      case 'student':
+        return {
+          canView: isOwner,
+          canEdit: isOwner,
+          isOwner,
+          accessLevel: isOwner ? 'owner' : 'none'
+        };
+      
+      case 'company_admin':
+        const isSameCompany = user.companyId === targetCompanyId;
+        return {
+          canView: isOwner || isSameCompany,
+          canEdit: isOwner,
+          isOwner,
+          accessLevel: isOwner ? 'owner' : isSameCompany ? 'company' : 'none'
+        };
+      
+      case 'secretariat':
+        return {
+          canView: true,
+          canEdit: true,
+          isOwner,
+          accessLevel: 'secretariat'
+        };
+      
+      case 'owner':
+        return {
+          canView: true,
+          canEdit: true,
+          isOwner,
+          accessLevel: 'secretariat'
+        };
+      
+      default:
+        return {
+          canView: false,
+          canEdit: false,
+          isOwner: false,
+          accessLevel: 'none'
+        };
+    }
+  }
+
+  // プロフィールバリデーション
+  static validateProfileData(profileData: any): any[] {
+    const errors: any[] = [];
+
+    // 必須項目チェック
+    if (!profileData.fullName || profileData.fullName.trim().length === 0) {
+      errors.push({
+        field: 'fullName',
+        message: '氏名は必須です',
+        code: 'REQUIRED'
+      });
+    }
+
+    if (!profileData.fullNameKana || profileData.fullNameKana.trim().length === 0) {
+      errors.push({
+        field: 'fullNameKana',
+        message: '氏名（カナ）は必須です',
+        code: 'REQUIRED'
+      });
+    }
+
+    if (!profileData.profileDescription || profileData.profileDescription.trim().length === 0) {
+      errors.push({
+        field: 'profileDescription',
+        message: 'プロフィール文は必須です',
+        code: 'REQUIRED'
+      });
+    }
+
+    // 文字数制限チェック
+    if (profileData.profileDescription && profileData.profileDescription.length > 200) {
+      errors.push({
+        field: 'profileDescription',
+        message: 'プロフィール文は200文字以内で入力してください',
+        code: 'MAX_LENGTH'
+      });
+    }
+
+    if (profileData.catchPhrase && profileData.catchPhrase.length > 50) {
+      errors.push({
+        field: 'catchPhrase',
+        message: 'キャッチコピーは50文字以内で入力してください',
+        code: 'MAX_LENGTH'
+      });
+    }
+
+    // 誕生日フォーマットチェック
+    if (profileData.birthday && !this.isValidDateFormat(profileData.birthday)) {
+      errors.push({
+        field: 'birthday',
+        message: '誕生日はYYYY-MM-DD形式で入力してください',
+        code: 'INVALID_FORMAT'
+      });
+    }
+
+    // SNSハンドルフォーマットチェック
+    if (profileData.socialLinks?.twitter && !this.isValidSNSHandle(profileData.socialLinks.twitter)) {
+      errors.push({
+        field: 'socialLinks.twitter',
+        message: 'Twitterハンドルは@から始まる文字列で入力してください',
+        code: 'INVALID_FORMAT'
+      });
+    }
+
+    if (profileData.socialLinks?.instagram && !this.isValidSNSHandle(profileData.socialLinks.instagram)) {
+      errors.push({
+        field: 'socialLinks.instagram',
+        message: 'Instagramハンドルは@から始まる文字列で入力してください',
+        code: 'INVALID_FORMAT'
+      });
+    }
+
+    // URLフォーマットチェック
+    if (profileData.socialLinks?.otherUrl && !this.isValidUrl(profileData.socialLinks.otherUrl)) {
+      errors.push({
+        field: 'socialLinks.otherUrl',
+        message: '有効なURLを入力してください（http://またはhttps://から始まる）',
+        code: 'INVALID_FORMAT'
+      });
+    }
+
+    return errors;
+  }
+
+  // 日付フォーマット検証
+  private static isValidDateFormat(dateString: string): boolean {
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(dateString)) return false;
+    
+    const date = new Date(dateString);
+    const [year, month, day] = dateString.split('-').map(Number);
+    
+    return date.getFullYear() === year &&
+           date.getMonth() === month - 1 &&
+           date.getDate() === day;
+  }
+
+  // SNSハンドル検証
+  private static isValidSNSHandle(handle: string): boolean {
+    return /^@[a-zA-Z0-9_]+$/.test(handle);
+  }
+
+  // URL検証
+  private static isValidUrl(url: string): boolean {
+    try {
+      const urlObj = new URL(url);
+      return urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  }
+
   // 監査ログ記録（本番環境では外部ログサービスに送信）
   static async logAuditEvent(
     user: User,

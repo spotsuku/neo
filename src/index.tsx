@@ -3,7 +3,22 @@ import { cors } from 'hono/cors'
 import { serveStatic } from 'hono/cloudflare-workers'
 import { NotionService } from './services/notion'
 import { AuthService } from './services/auth'
-import type { User, UserRole, RegionId } from './types'
+import { 
+  authenticateUser, 
+  createTentativeRegistration, 
+  completeProfile, 
+  approveProfile, 
+  processBulkRegistration, 
+  getAdminDashboardStats 
+} from './services/registration'
+import { 
+  createSession, 
+  getSession, 
+  deleteSession, 
+  getUserInfoFromSession,
+  getRedirectUrl 
+} from './services/session'
+import type { User, UserRole, RegionId, TentativeRegistration, BulkRegistrationData, ProfileCompletionData, ProfileApprovalRequest } from './types'
 
 type Bindings = {
   NOTION_API_KEY: string;
@@ -94,6 +109,239 @@ function createNotionService(env: Bindings): NotionService {
     SYLLABUS_AND_DOCS_DB: env.SYLLABUS_AND_DOCS_DB
   });
 }
+
+// ハイブリッド登録システム API Routes
+
+// ログイン
+app.post('/api/auth/login', async (c) => {
+  try {
+    const { email, password } = await c.req.json();
+    
+    if (!email || !password) {
+      return c.json({ error: 'メールアドレスとパスワードは必須です' }, 400);
+    }
+    
+    const userSession = await authenticateUser(email, password);
+    if (!userSession) {
+      return c.json({ error: 'メールアドレスまたはパスワードが正しくありません' }, 401);
+    }
+    
+    // セッション作成
+    const sessionToken = createSession(userSession);
+    
+    // リダイレクト先決定
+    const redirectUrl = getRedirectUrl(userSession);
+    
+    return c.json({
+      success: true,
+      sessionToken,
+      user: {
+        userId: userSession.userId,
+        email: userSession.email,
+        role: userSession.role,
+        regionId: userSession.regionId,
+        status: userSession.status,
+        isFirstLogin: userSession.isFirstLogin
+      },
+      redirectUrl
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    return c.json({ error: 'ログイン処理中にエラーが発生しました' }, 500);
+  }
+});
+
+// ログアウト
+app.post('/api/auth/logout', async (c) => {
+  try {
+    const authHeader = c.req.header('Authorization');
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const sessionToken = authHeader.substring(7);
+      deleteSession(sessionToken);
+    }
+    
+    return c.json({ success: true, message: 'ログアウトしました' });
+  } catch (error) {
+    console.error('Logout error:', error);
+    return c.json({ error: 'ログアウト処理中にエラーが発生しました' }, 500);
+  }
+});
+
+// セッション検証
+app.get('/api/auth/session', async (c) => {
+  try {
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return c.json({ error: 'セッショントークンが必要です' }, 401);
+    }
+    
+    const sessionToken = authHeader.substring(7);
+    const userInfo = getUserInfoFromSession(sessionToken);
+    
+    if (!userInfo) {
+      return c.json({ error: 'セッションが無効または期限切れです' }, 401);
+    }
+    
+    return c.json({
+      success: true,
+      user: userInfo
+    });
+  } catch (error) {
+    console.error('Session validation error:', error);
+    return c.json({ error: 'セッション検証中にエラーが発生しました' }, 500);
+  }
+});
+
+// 事務局用：仮登録作成
+app.post('/api/admin/tentative-registration', async (c) => {
+  try {
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return c.json({ error: '認証が必要です' }, 401);
+    }
+    
+    const sessionToken = authHeader.substring(7);
+    const userInfo = getUserInfoFromSession(sessionToken);
+    
+    if (!userInfo || (userInfo.role !== 'secretariat' && userInfo.role !== 'owner')) {
+      return c.json({ error: 'この機能は事務局のみ利用可能です' }, 403);
+    }
+    
+    const registrationData: BulkRegistrationData = await c.req.json();
+    const registration = await createTentativeRegistration(registrationData, userInfo.userId);
+    
+    return c.json({
+      success: true,
+      data: registration,
+      message: '仮登録を作成し、メール通知を送信しました'
+    });
+  } catch (error) {
+    console.error('Tentative registration error:', error);
+    return c.json({ error: '仮登録作成中にエラーが発生しました' }, 500);
+  }
+});
+
+// 事務局用：CSV一括登録
+app.post('/api/admin/bulk-registration', async (c) => {
+  try {
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return c.json({ error: '認証が必要です' }, 401);
+    }
+    
+    const sessionToken = authHeader.substring(7);
+    const userInfo = getUserInfoFromSession(sessionToken);
+    
+    if (!userInfo || (userInfo.role !== 'secretariat' && userInfo.role !== 'owner')) {
+      return c.json({ error: 'この機能は事務局のみ利用可能です' }, 403);
+    }
+    
+    const { csvData }: { csvData: BulkRegistrationData[] } = await c.req.json();
+    const result = await processBulkRegistration(csvData, userInfo.userId);
+    
+    return c.json({
+      success: true,
+      data: result,
+      message: `${result.successCount}件の仮登録を作成しました（エラー：${result.errorCount}件）`
+    });
+  } catch (error) {
+    console.error('Bulk registration error:', error);
+    return c.json({ error: '一括登録処理中にエラーが発生しました' }, 500);
+  }
+});
+
+// プロフィール補完（初回ログイン後）
+app.post('/api/profile-completion', async (c) => {
+  try {
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return c.json({ error: '認証が必要です' }, 401);
+    }
+    
+    const sessionToken = authHeader.substring(7);
+    const userInfo = getUserInfoFromSession(sessionToken);
+    
+    if (!userInfo || userInfo.status !== 'tentative') {
+      return c.json({ error: 'プロフィール補完は仮登録状態のユーザーのみ利用可能です' }, 403);
+    }
+    
+    const profileData: ProfileCompletionData = await c.req.json();
+    const success = await completeProfile(userInfo.userId, profileData);
+    
+    if (!success) {
+      return c.json({ error: 'プロフィール補完に失敗しました' }, 400);
+    }
+    
+    return c.json({
+      success: true,
+      message: 'プロフィール補完が完了しました。事務局の承認をお待ちください。'
+    });
+  } catch (error) {
+    console.error('Profile completion error:', error);
+    return c.json({ error: 'プロフィール補完中にエラーが発生しました' }, 500);
+  }
+});
+
+// 事務局用：プロフィール承認
+app.post('/api/admin/approve-profile', async (c) => {
+  try {
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return c.json({ error: '認証が必要です' }, 401);
+    }
+    
+    const sessionToken = authHeader.substring(7);
+    const userInfo = getUserInfoFromSession(sessionToken);
+    
+    if (!userInfo || (userInfo.role !== 'secretariat' && userInfo.role !== 'owner')) {
+      return c.json({ error: 'この機能は事務局のみ利用可能です' }, 403);
+    }
+    
+    const approvalRequest: ProfileApprovalRequest = await c.req.json();
+    approvalRequest.approvedBy = userInfo.userId;
+    
+    const success = await approveProfile(approvalRequest);
+    
+    if (!success) {
+      return c.json({ error: 'プロフィール承認に失敗しました' }, 400);
+    }
+    
+    return c.json({
+      success: true,
+      message: approvalRequest.status === 'approve' ? 'プロフィールを承認しました' : 'プロフィールを却下しました'
+    });
+  } catch (error) {
+    console.error('Profile approval error:', error);
+    return c.json({ error: 'プロフィール承認中にエラーが発生しました' }, 500);
+  }
+});
+
+// 事務局用：管理ダッシュボード統計
+app.get('/api/admin/dashboard-stats', async (c) => {
+  try {
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return c.json({ error: '認証が必要です' }, 401);
+    }
+    
+    const sessionToken = authHeader.substring(7);
+    const userInfo = getUserInfoFromSession(sessionToken);
+    
+    if (!userInfo || (userInfo.role !== 'secretariat' && userInfo.role !== 'owner')) {
+      return c.json({ error: 'この機能は事務局のみ利用可能です' }, 403);
+    }
+    
+    const stats = await getAdminDashboardStats();
+    
+    return c.json({
+      success: true,
+      data: stats
+    });
+  } catch (error) {
+    console.error('Dashboard stats error:', error);
+    return c.json({ error: '統計データ取得中にエラーが発生しました' }, 500);
+  }
+});
 
 // API Routes
 
@@ -566,6 +814,140 @@ app.get('/api/survey-analytics', authMiddleware, async (c) => {
     });
   } catch (error) {
     console.error('Error in /api/survey-analytics:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+// メンバープロフィール取得
+app.get('/api/profile/:memberId', authMiddleware, async (c) => {
+  try {
+    const { env } = c;
+    const user = c.get('user') as User;
+    const currentRegion = c.get('currentRegion') as RegionId;
+    const memberId = c.req.param('memberId');
+    
+    const notionService = createNotionService(env);
+    
+    // 対象メンバーの基本情報を取得（権限チェック用）
+    const targetMember = await notionService.getMemberById(currentRegion, memberId);
+    if (!targetMember) {
+      return c.json({ error: 'Member not found' }, 404);
+    }
+    
+    // 権限チェック
+    const permissions = AuthService.getProfilePermissions(user, memberId, targetMember.companyId);
+    if (!permissions.canView) {
+      return c.json({ error: 'Access denied to profile' }, 403);
+    }
+    
+    // プロフィール取得
+    const profile = await notionService.getMemberProfile(currentRegion, memberId);
+    if (!profile) {
+      return c.json({ error: 'Profile not found' }, 404);
+    }
+    
+    // 権限に応じてデータをフィルタリング
+    const responseData = {
+      ...profile,
+      permissions
+    };
+    
+    // 会社管理者の場合、個人的な情報を制限
+    if (permissions.accessLevel === 'company' && !permissions.isOwner) {
+      responseData.socialLinks = { twitter: '', instagram: '', otherUrl: '' };
+      responseData.neoMotivation = '';
+      responseData.birthday = '';
+    }
+    
+    return c.json({
+      success: true,
+      data: responseData,
+      regionId: currentRegion
+    });
+  } catch (error) {
+    console.error('Error in /api/profile:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+// メンバープロフィール更新
+app.put('/api/profile/:memberId', authMiddleware, async (c) => {
+  try {
+    const { env } = c;
+    const user = c.get('user') as User;
+    const currentRegion = c.get('currentRegion') as RegionId;
+    const memberId = c.req.param('memberId');
+    
+    // 権限チェック
+    const permissions = AuthService.getProfilePermissions(user, memberId);
+    if (!permissions.canEdit) {
+      return c.json({ error: 'Access denied to edit profile' }, 403);
+    }
+    
+    const profileData = await c.req.json();
+    
+    // バリデーション
+    const validationErrors = AuthService.validateProfileData(profileData);
+    if (validationErrors.length > 0) {
+      return c.json({
+        success: false,
+        error: 'Validation failed',
+        validationErrors
+      }, 400);
+    }
+    
+    const notionService = createNotionService(env);
+    const success = await notionService.updateMemberProfile(currentRegion, memberId, profileData);
+    
+    if (!success) {
+      return c.json({ error: 'Failed to update profile' }, 500);
+    }
+    
+    // 監査ログ記録
+    await AuthService.logAuditEvent(user, 'UPDATE', 'PROFILE', memberId, {
+      updatedFields: Object.keys(profileData)
+    });
+    
+    return c.json({
+      success: true,
+      message: 'Profile updated successfully',
+      regionId: currentRegion
+    });
+  } catch (error) {
+    console.error('Error in /api/profile update:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+// プロフィール画像アップロード
+app.post('/api/profile/:memberId/upload-image', authMiddleware, async (c) => {
+  try {
+    const { env } = c;
+    const user = c.get('user') as User;
+    const currentRegion = c.get('currentRegion') as RegionId;
+    const memberId = c.req.param('memberId');
+    
+    // 権限チェック
+    const permissions = AuthService.getProfilePermissions(user, memberId);
+    if (!permissions.canEdit) {
+      return c.json({ error: 'Access denied to upload image' }, 403);
+    }
+    
+    // 実際の実装では、画像をCloudflare R2やS3にアップロード
+    // ここでは簡易実装として、画像URLを返す
+    const imageUrl = `https://example.com/profiles/${memberId}/profile-image.jpg`;
+    
+    // 監査ログ記録
+    await AuthService.logAuditEvent(user, 'UPLOAD', 'PROFILE_IMAGE', memberId);
+    
+    return c.json({
+      success: true,
+      imageUrl,
+      message: 'Image uploaded successfully',
+      regionId: currentRegion
+    });
+  } catch (error) {
+    console.error('Error in /api/profile image upload:', error);
     return c.json({ error: 'Internal server error' }, 500);
   }
 });
