@@ -1,4 +1,4 @@
-/* NEO福岡 企業マイページ カスタムスタイル */
+/* NEO デジタルプラットフォーム マルチテナント対応スタイル */
 
 /* 全体レイアウト */
 .min-h-screen {
@@ -186,6 +186,141 @@
   }
 }
 
+/* NEOブランドカラー */
+:root {
+  --neo-blue: #1e40af;
+  --neo-light: #3b82f6;
+  --neo-dark: #1e3a8a;
+  --neo-accent: #60a5fa;
+}
+
+/* 地域スイッチャー */
+.region-switcher {
+  position: relative;
+}
+
+.region-switcher select {
+  background-image: url("data:image/svg+xml;charset=UTF-8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6,9 12,15 18,9'></polyline></svg>");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  background-size: 1rem;
+}
+
+/* ロール別カラーリング */
+.role-company_admin {
+  --role-color: #059669;
+}
+
+.role-student {
+  --role-color: #3b82f6;
+}
+
+.role-secretariat {
+  --role-color: #8b5cf6;
+}
+
+.role-owner {
+  --role-color: #dc2626;
+}
+
+/* 統計カード拡張 */
+.stat-card {
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+/* グラデーション背景 */
+.gradient-header {
+  background: linear-gradient(135deg, var(--neo-blue) 0%, var(--neo-light) 100%);
+}
+
+/* ヒーロージャーニー進捗バー改良 */
+.hero-progress-enhanced {
+  background: linear-gradient(90deg, #ef4444 0%, #f97316 20%, #eab308 40%, #22c55e 60%, #3b82f6 80%, #8b5cf6 100%);
+}
+
+/* 地域比較チャート */
+.region-comparison-card {
+  border-left: 4px solid var(--neo-blue);
+  transition: border-color 0.3s ease;
+}
+
+.region-comparison-card:hover {
+  border-left-color: var(--neo-light);
+}
+
+/* マルチテナント対応アニメーション */
+.region-switch-animation {
+  animation: regionSwitchFade 0.5s ease-in-out;
+}
+
+@keyframes regionSwitchFade {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 優先度バッジ */
+.priority-high {
+  background-color: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.priority-medium {
+  background-color: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.priority-low {
+  background-color: #f3f4f6;
+  color: #374151;
+  border: 1px solid #e5e7eb;
+}
+
+/* カテゴリ別カラーリング */
+.category-important {
+  border-left-color: #dc2626;
+}
+
+.category-event {
+  border-left-color: #2563eb;
+}
+
+.category-operation {
+  border-left-color: #7c3aed;
+}
+
+.category-general {
+  border-left-color: #059669;
+}
+
+/* データ保護関連 */
+.masked-data {
+  background-color: #f9fafb;
+  color: #6b7280;
+  border: 1px dashed #d1d5db;
+  border-radius: 0.375rem;
+  padding: 0.5rem;
+  text-align: center;
+  font-style: italic;
+}
+
+.statistics-only::before {
+  content: "📊 ";
+  margin-right: 0.25rem;
+}
+
 /* 印刷用スタイル */
 @media print {
   .no-print {
@@ -199,5 +334,10 @@
   .card-shadow {
     box-shadow: none;
     border: 1px solid #e5e7eb;
+  }
+  
+  .gradient-header {
+    background: #1e40af !important;
+    -webkit-print-color-adjust: exact;
   }
 }
