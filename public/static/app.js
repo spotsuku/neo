@@ -1353,11 +1353,23 @@ class NEODigitalPlatform {
                 ${this.regionNames[this.currentRegion]}地域の受講生 ${members.length}名
               </p>
             </div>
+            
+            <!-- 管理者用アクションボタン -->
             ${showClassAssignments ? `
-              <button onclick="app.loadClassAssignments()" 
-                      class="bg-neo-blue text-white px-4 py-2 rounded-lg hover:bg-neo-dark transition-colors">
-                <i class="fas fa-layer-group mr-2"></i>クラス編成表示
-              </button>
+              <div class="flex items-center space-x-3">
+                <button onclick="app.showEnhancedCSVImportForm()" 
+                        class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                  <i class="fas fa-upload mr-2"></i>CSVインポート
+                </button>
+                <button onclick="app.downloadSampleCSV()" 
+                        class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors">
+                  <i class="fas fa-download mr-2"></i>サンプルCSV
+                </button>
+                <button onclick="app.loadClassAssignments()" 
+                        class="bg-neo-blue text-white px-4 py-2 rounded-lg hover:bg-neo-dark transition-colors">
+                  <i class="fas fa-layer-group mr-2"></i>クラス編成表示
+                </button>
+              </div>
             ` : ''}
           </div>
         </div>
@@ -1388,6 +1400,9 @@ class NEODigitalPlatform {
             </select>
           </div>
         </div>
+
+        <!-- 管理者向け機能セクション -->
+        ${showClassAssignments ? this.renderMembersPageAdminSection() : ''}
 
         <!-- メンバーグリッド -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="membersGrid">
@@ -3166,6 +3181,164 @@ class NEODigitalPlatform {
         </div>
       </div>
     `;
+  }
+
+  // 受講生一覧ページ専用管理者セクション
+  renderMembersPageAdminSection() {
+    return `
+      <div class="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border border-green-200">
+        <div class="p-4 border-b border-green-200">
+          <h4 class="text-lg font-semibold text-green-900">
+            <i class="fas fa-users-cog mr-2"></i>メンバー管理機能
+          </h4>
+          <p class="text-sm text-green-700 mt-1">受講生の一括管理・インポート・エクスポート機能</p>
+        </div>
+        
+        <div class="p-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- CSVインポート -->
+            <div class="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-sm transition-shadow">
+              <div class="text-center">
+                <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <i class="fas fa-upload text-green-600 text-xl"></i>
+                </div>
+                <h5 class="font-medium text-gray-900 mb-2">CSVインポート</h5>
+                <p class="text-xs text-gray-500 mb-3">複数メンバー一括登録</p>
+                <button onclick="app.showEnhancedCSVImportForm()" 
+                        class="w-full bg-green-600 text-white px-3 py-2 rounded-md hover:bg-green-700 transition-colors text-sm">
+                  詳細インポート
+                </button>
+              </div>
+            </div>
+
+            <!-- 簡易インポート -->
+            <div class="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-sm transition-shadow">
+              <div class="text-center">
+                <div class="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <i class="fas fa-file-upload text-amber-600 text-xl"></i>
+                </div>
+                <h5 class="font-medium text-gray-900 mb-2">簡易インポート</h5>
+                <p class="text-xs text-gray-500 mb-3">シンプルCSV取り込み</p>
+                <button onclick="app.showBulkRegistrationForm()" 
+                        class="w-full bg-amber-600 text-white px-3 py-2 rounded-md hover:bg-amber-700 transition-colors text-sm">
+                  一括登録
+                </button>
+              </div>
+            </div>
+
+            <!-- サンプル・テンプレート -->
+            <div class="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-sm transition-shadow">
+              <div class="text-center">
+                <div class="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <i class="fas fa-download text-indigo-600 text-xl"></i>
+                </div>
+                <h5 class="font-medium text-gray-900 mb-2">テンプレート</h5>
+                <p class="text-xs text-gray-500 mb-3">CSVフォーマット取得</p>
+                <button onclick="app.downloadSampleCSV()" 
+                        class="w-full bg-indigo-600 text-white px-3 py-2 rounded-md hover:bg-indigo-700 transition-colors text-sm">
+                  サンプルDL
+                </button>
+              </div>
+            </div>
+
+            <!-- データ管理 -->
+            <div class="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-sm transition-shadow">
+              <div class="text-center">
+                <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <i class="fas fa-database text-purple-600 text-xl"></i>
+                </div>
+                <h5 class="font-medium text-gray-900 mb-2">データ管理</h5>
+                <p class="text-xs text-gray-500 mb-3">エクスポート・統計</p>
+                <button onclick="app.exportMemberData()" 
+                        class="w-full bg-purple-600 text-white px-3 py-2 rounded-md hover:bg-purple-700 transition-colors text-sm">
+                  データ出力
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- クイックアクション -->
+          <div class="mt-4 bg-white rounded-lg border border-gray-200 p-4">
+            <h5 class="font-medium text-gray-900 mb-3">
+              <i class="fas fa-bolt mr-2 text-yellow-500"></i>クイックアクション
+            </h5>
+            <div class="flex flex-wrap gap-2">
+              <button onclick="app.showTentativeRegistrationForm()" 
+                      class="bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700 transition-colors text-sm">
+                <i class="fas fa-user-plus mr-1"></i>個別仮登録
+              </button>
+              <button onclick="app.changePage('admin')" 
+                      class="bg-gray-600 text-white px-3 py-1.5 rounded-md hover:bg-gray-700 transition-colors text-sm">
+                <i class="fas fa-cogs mr-1"></i>管理ダッシュボード
+              </button>
+              <button onclick="app.loadClassAssignments()" 
+                      class="bg-neo-blue text-white px-3 py-1.5 rounded-md hover:bg-neo-dark transition-colors text-sm">
+                <i class="fas fa-layer-group mr-1"></i>クラス編成
+              </button>
+              <button onclick="app.refreshMembersList()" 
+                      class="bg-gray-500 text-white px-3 py-1.5 rounded-md hover:bg-gray-600 transition-colors text-sm">
+                <i class="fas fa-sync mr-1"></i>一覧更新
+              </button>
+            </div>
+          </div>
+          
+          <!-- 統計サマリー -->
+          <div class="mt-4 bg-white rounded-lg border border-gray-200 p-4">
+            <h5 class="font-medium text-gray-900 mb-3">
+              <i class="fas fa-chart-pie mr-2 text-blue-500"></i>メンバー統計
+            </h5>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+              <div>
+                <div class="text-xl font-bold text-blue-600" id="total-members">${this.data.members?.length || 0}</div>
+                <div class="text-xs text-gray-500">総メンバー数</div>
+              </div>
+              <div>
+                <div class="text-xl font-bold text-green-600" id="company-selected">
+                  ${this.data.members?.filter(m => m.selectionType === 'company_selected').length || 0}
+                </div>
+                <div class="text-xs text-gray-500">企業推薦</div>
+              </div>
+              <div>
+                <div class="text-xl font-bold text-purple-600" id="youth-selected">
+                  ${this.data.members?.filter(m => m.selectionType === 'youth_selected').length || 0}
+                </div>
+                <div class="text-xs text-gray-500">ユース選抜</div>
+              </div>
+              <div>
+                <div class="text-xl font-bold text-orange-600" id="avg-hero-step">
+                  ${this.data.members?.length ? 
+                    Math.round(this.data.members.reduce((sum, m) => sum + (m.heroStep || 0), 0) / this.data.members.length * 10) / 10
+                    : 0}
+                </div>
+                <div class="text-xs text-gray-500">平均ステップ</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // メンバー一覧更新
+  async refreshMembersList() {
+    try {
+      await this.loadData(); // 全データを再読み込み
+      this.renderApp(); // アプリを再レンダリング
+      
+      // 成功メッセージ
+      const successDiv = document.createElement('div');
+      successDiv.className = 'fixed top-4 right-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded z-50';
+      successDiv.innerHTML = '<i class="fas fa-check mr-2"></i>メンバー一覧を更新しました';
+      document.body.appendChild(successDiv);
+      
+      setTimeout(() => {
+        successDiv.remove();
+      }, 3000);
+      
+    } catch (error) {
+      console.error('Error refreshing members list:', error);
+      alert('メンバー一覧の更新中にエラーが発生しました');
+    }
   }
 
   // 管理者統計読み込み
