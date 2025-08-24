@@ -12,13 +12,22 @@ import {
   getAdminDashboardStats 
 } from './services/registration'
 import { 
+  validateCSVFile, 
+  parseCSVText, 
+  processCSVImport, 
+  createCSVImportSession, 
+  generateSampleCSV,
+  DEFAULT_CSV_FORMAT,
+  DEFAULT_CSV_IMPORT_CONFIG 
+} from './services/csvImport'
+import { 
   createSession, 
   getSession, 
   deleteSession, 
   getUserInfoFromSession,
   getRedirectUrl 
 } from './services/session'
-import type { User, UserRole, RegionId, TentativeRegistration, BulkRegistrationData, ProfileCompletionData, ProfileApprovalRequest } from './types'
+import type { User, UserRole, RegionId, TentativeRegistration, BulkRegistrationData, ProfileCompletionData, ProfileApprovalRequest, CSVFileInfo, CSVParseResult } from './types'
 
 type Bindings = {
   NOTION_API_KEY: string;
@@ -221,7 +230,7 @@ app.post('/api/admin/tentative-registration', async (c) => {
   }
 });
 
-// 事務局用：CSV一括登録
+// 事務局用：CSV一括登録（従来版）
 app.post('/api/admin/bulk-registration', async (c) => {
   try {
     const authHeader = c.req.header('Authorization');
@@ -247,6 +256,191 @@ app.post('/api/admin/bulk-registration', async (c) => {
   } catch (error) {
     console.error('Bulk registration error:', error);
     return c.json({ error: '一括登録処理中にエラーが発生しました' }, 500);
+  }
+});
+
+// 事務局用：CSVファイルアップロード & パース
+app.post('/api/admin/csv-import/parse', async (c) => {
+  try {
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return c.json({ error: '認証が必要です' }, 401);
+    }
+    
+    const sessionToken = authHeader.substring(7);
+    const userInfo = getUserInfoFromSession(sessionToken);
+    
+    if (!userInfo || (userInfo.role !== 'secretariat' && userInfo.role !== 'owner')) {
+      return c.json({ error: 'この機能は事務局のみ利用可能です' }, 403);
+    }
+    
+    // CSVテキストを受信
+    const { csvText, filename, fileSize } = await c.req.json();
+    
+    if (!csvText || !filename) {
+      return c.json({ error: 'CSVデータまたはファイル名が指定されていません' }, 400);
+    }
+    
+    // CSVファイル情報作成
+    const fileInfo: CSVFileInfo = {
+      filename,
+      size: fileSize || csvText.length,
+      lastModified: Date.now(),
+      mimeType: 'text/csv'
+    };
+    
+    // ファイルバリデーション（模擬）
+    const mockFile = new File([csvText], filename, { type: 'text/csv' });
+    const fileValidation = validateCSVFile(mockFile);
+    
+    if (!fileValidation.isValid) {
+      return c.json({ 
+        error: 'CSVファイルが無効です',
+        details: fileValidation.errors 
+      }, 400);
+    }
+    
+    // CSVパース
+    const parseResult = parseCSVText(csvText);
+    
+    // インポートセッション作成
+    const session = createCSVImportSession(fileInfo, userInfo.userId);
+    session.parseResult = parseResult;
+    session.status = 'parsed';
+    
+    // TODO: セッションを一時保存（Cloudflare KV等を使用）
+    
+    return c.json({
+      success: true,
+      sessionId: session.sessionId,
+      parseResult,
+      message: `CSVファイルを解析しました（有効行：${parseResult.summary.validCount}件、エラー行：${parseResult.summary.errorCount}件）`
+    });
+  } catch (error) {
+    console.error('CSV parse error:', error);
+    return c.json({ error: 'CSVファイル解析中にエラーが発生しました' }, 500);
+  }
+});
+
+// 事務局用：CSVインポート実行
+app.post('/api/admin/csv-import/execute', async (c) => {
+  try {
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return c.json({ error: '認証が必要です' }, 401);
+    }
+    
+    const sessionToken = authHeader.substring(7);
+    const userInfo = getUserInfoFromSession(sessionToken);
+    
+    if (!userInfo || (userInfo.role !== 'secretariat' && userInfo.role !== 'owner')) {
+      return c.json({ error: 'この機能は事務局のみ利用可能です' }, 403);
+    }
+    
+    const { sessionId, config } = await c.req.json();
+    
+    if (!sessionId) {
+      return c.json({ error: 'セッションIDが必要です' }, 400);
+    }
+    
+    // TODO: セッションデータを取得（Cloudflare KV等から）
+    // 現在はサンプルデータを使用
+    const sampleParseResult: CSVParseResult = {
+      isValid: true,
+      totalRows: 1,
+      validRows: [
+        {
+          row: 2,
+          data: {
+            email: 'demo@example.com',
+            name: 'デモユーザー',
+            name_kana: 'デモユーザー',
+            region_id: 'FUK',
+            role: 'student'
+          },
+          isValid: true,
+          errors: [],
+          warnings: []
+        }
+      ],
+      invalidRows: [],
+      headers: ['email', 'name', 'name_kana', 'region_id', 'role'],
+      summary: {
+        totalCount: 1,
+        validCount: 1,
+        errorCount: 0,
+        warningCount: 0
+      },
+      globalErrors: []
+    };
+    
+    // インポート処理実行
+    const importConfig = config || DEFAULT_CSV_IMPORT_CONFIG;
+    const importResult = await processCSVImport(sampleParseResult, importConfig, userInfo.userId);
+    
+    return c.json({
+      success: true,
+      importResult,
+      message: `インポートが完了しました（成功：${importResult.importSummary.successfulImports}件、失敗：${importResult.importSummary.failedImports}件）`
+    });
+  } catch (error) {
+    console.error('CSV import execution error:', error);
+    return c.json({ error: 'CSVインポート実行中にエラーが発生しました' }, 500);
+  }
+});
+
+// 事務局用：CSVサンプルファイル生成
+app.get('/api/admin/csv-import/sample', async (c) => {
+  try {
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return c.json({ error: '認証が必要です' }, 401);
+    }
+    
+    const sessionToken = authHeader.substring(7);
+    const userInfo = getUserInfoFromSession(sessionToken);
+    
+    if (!userInfo || (userInfo.role !== 'secretariat' && userInfo.role !== 'owner')) {
+      return c.json({ error: 'この機能は事務局のみ利用可能です' }, 403);
+    }
+    
+    const sampleCsv = generateSampleCSV();
+    
+    return new Response(sampleCsv, {
+      headers: {
+        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Disposition': 'attachment; filename="neo-member-import-sample.csv"'
+      }
+    });
+  } catch (error) {
+    console.error('Sample CSV generation error:', error);
+    return c.json({ error: 'サンプルCSVファイル生成中にエラーが発生しました' }, 500);
+  }
+});
+
+// 事務局用：CSVフォーマット情報取得
+app.get('/api/admin/csv-import/format', async (c) => {
+  try {
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return c.json({ error: '認証が必要です' }, 401);
+    }
+    
+    const sessionToken = authHeader.substring(7);
+    const userInfo = getUserInfoFromSession(sessionToken);
+    
+    if (!userInfo || (userInfo.role !== 'secretariat' && userInfo.role !== 'owner')) {
+      return c.json({ error: 'この機能は事務局のみ利用可能です' }, 403);
+    }
+    
+    return c.json({
+      success: true,
+      format: DEFAULT_CSV_FORMAT,
+      config: DEFAULT_CSV_IMPORT_CONFIG
+    });
+  } catch (error) {
+    console.error('CSV format info error:', error);
+    return c.json({ error: 'CSVフォーマット情報取得中にエラーが発生しました' }, 500);
   }
 });
 

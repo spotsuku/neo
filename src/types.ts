@@ -721,3 +721,125 @@ export interface ProfileApprovalRequest {
   approvalMessage?: string;
   approvedBy: string;
 }
+
+// CSVインポート関連型定義
+
+// CSVファイル情報
+export interface CSVFileInfo {
+  filename: string;
+  size: number;
+  lastModified: number;
+  mimeType: string;
+}
+
+// CSVファイルバリデーション結果
+export interface CSVFileValidationResult {
+  isValid: boolean;
+  errors: string[];
+  warnings: string[];
+  fileInfo?: CSVFileInfo;
+}
+
+// CSV行データ
+export interface CSVRowData {
+  row: number;
+  data: Record<string, string>;
+  isValid: boolean;
+  errors: string[];
+  warnings: string[];
+}
+
+// CSVカラム定義
+export interface CSVColumnDefinition {
+  name: string;
+  displayName: string;
+  required: boolean;
+  type: 'string' | 'email' | 'region' | 'role' | 'date' | 'phone';
+  validation?: (value: string) => string | null; // null = valid, string = error message
+  example?: string;
+}
+
+// CSVパース結果
+export interface CSVParseResult {
+  isValid: boolean;
+  totalRows: number;
+  validRows: CSVRowData[];
+  invalidRows: CSVRowData[];
+  headers: string[];
+  summary: {
+    totalCount: number;
+    validCount: number;
+    errorCount: number;
+    warningCount: number;
+  };
+  globalErrors: string[]; // ファイル全体のエラー
+}
+
+// CSV一括インポート処理結果
+export interface CSVImportResult {
+  status: 'completed' | 'partial' | 'failed';
+  processedAt: string;
+  processingTimeMs: number;
+  fileInfo: CSVFileInfo;
+  parseResult: CSVParseResult;
+  importSummary: {
+    totalRows: number;
+    successfulImports: number;
+    failedImports: number;
+    skippedRows: number;
+    duplicateEmails: number;
+  };
+  createdUsers: string[]; // 作成されたユーザーIDリスト
+  failedRows: Array<{
+    row: number;
+    data: Record<string, string>;
+    error: string;
+    category: 'validation' | 'duplicate' | 'system' | 'database';
+  }>;
+  downloadUrls: {
+    successReport: string; // 成功レポートCSVのURL
+    errorReport: string;   // エラーレポートCSVのURL
+  };
+}
+
+// CSV形式設定
+export interface CSVFormatConfig {
+  requiredColumns: CSVColumnDefinition[];
+  optionalColumns: CSVColumnDefinition[];
+  maxFileSize: number; // バイト
+  allowedMimeTypes: string[];
+  encoding: string;
+  delimiter: string;
+  hasHeader: boolean;
+}
+
+// CSVインポート設定
+export interface CSVImportConfig {
+  format: CSVFormatConfig;
+  processingOptions: {
+    batchSize: number;
+    skipDuplicateEmails: boolean;
+    sendNotificationEmails: boolean;
+    autoGeneratePasswords: boolean;
+    passwordExpiryDays: number;
+    defaultStatus: MemberStatus;
+  };
+  validation: {
+    strictMode: boolean; // true = エラーがあれば全体を停止
+    maxErrorCount: number; // 最大許容エラー数
+    requireAllColumns: boolean; // 全ての必須カラムの存在を要求
+  };
+}
+
+// CSVインポートセッション（プレビュー用）
+export interface CSVImportSession {
+  sessionId: string;
+  uploadedBy: string;
+  uploadedAt: string;
+  expiresAt: string;
+  status: 'uploaded' | 'parsed' | 'previewed' | 'processed' | 'expired';
+  fileInfo: CSVFileInfo;
+  parseResult?: CSVParseResult;
+  importResult?: CSVImportResult;
+  config: CSVImportConfig;
+}

@@ -2445,9 +2445,17 @@ class NEODigitalPlatform {
                   class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
             <i class="fas fa-user-plus mr-2"></i>仮登録作成
           </button>
-          <button onclick="app.showBulkRegistrationForm()" 
+          <button onclick="app.showEnhancedCSVImportForm()" 
                   class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
-            <i class="fas fa-upload mr-2"></i>CSV一括登録
+            <i class="fas fa-upload mr-2"></i>CSVインポート（詳細）
+          </button>
+          <button onclick="app.showBulkRegistrationForm()" 
+                  class="bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 transition-colors">
+            <i class="fas fa-file-upload mr-2"></i>CSV一括登録（簡易）
+          </button>
+          <button onclick="app.downloadSampleCSV()" 
+                  class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors">
+            <i class="fas fa-download mr-2"></i>サンプルCSV
           </button>
           <button onclick="app.exportMemberData()" 
                   class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors">
@@ -3022,6 +3030,526 @@ class NEODigitalPlatform {
         </div>
       </div>
     `;
+  }
+
+  // =========================================
+  // 詳細CSVインポート機能
+  // =========================================
+
+  // 詳細CSVインポートフォーム表示
+  showEnhancedCSVImportForm() {
+    const modal = `
+      <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onclick="this.remove()">
+        <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full m-4 max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+          <div class="p-6 border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-900">CSVインポート（詳細処理）</h3>
+            <p class="text-sm text-gray-600 mt-1">ファイルバリデーション、プレビュー、エラー処理機能付きCSVインポート</p>
+          </div>
+          
+          <div class="p-6">
+            <!-- ステップインジケーター -->
+            <div class="flex justify-between mb-6">
+              <div class="flex items-center">
+                <div id="step1-indicator" class="flex items-center justify-center w-8 h-8 bg-blue-600 text-white rounded-full text-sm font-medium">1</div>
+                <span class="ml-2 text-sm font-medium text-gray-900">ファイル選択</span>
+              </div>
+              <div class="flex items-center">
+                <div id="step2-indicator" class="flex items-center justify-center w-8 h-8 bg-gray-300 text-gray-500 rounded-full text-sm font-medium">2</div>
+                <span class="ml-2 text-sm text-gray-500">プレビュー</span>
+              </div>
+              <div class="flex items-center">
+                <div id="step3-indicator" class="flex items-center justify-center w-8 h-8 bg-gray-300 text-gray-500 rounded-full text-sm font-medium">3</div>
+                <span class="ml-2 text-sm text-gray-500">インポート実行</span>
+              </div>
+            </div>
+
+            <!-- ステップ1: ファイル選択 -->
+            <div id="csv-step1" class="space-y-4">
+              <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 class="font-medium text-blue-900 mb-2">CSVフォーマット要件</h4>
+                <div class="text-sm text-blue-800 space-y-1">
+                  <p><strong>必須カラム:</strong> email, name, name_kana, region_id, role</p>
+                  <p><strong>オプション:</strong> company_id, phone, notes</p>
+                  <p><strong>ファイル制限:</strong> 最大10MB、.csv拡張子のみ</p>
+                  <p><strong>地域ID:</strong> FUK（福岡）, ISK（石川）, NIG（新潟）</p>
+                  <p><strong>ロール:</strong> student, company_admin, secretariat, owner</p>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">CSVファイル選択</label>
+                <div class="flex items-center justify-center w-full">
+                  <label for="enhanced-csv-input" class="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                    <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                      <i class="fas fa-cloud-upload-alt text-3xl text-gray-400 mb-2"></i>
+                      <p class="mb-2 text-sm text-gray-500">
+                        <span class="font-semibold">クリックしてファイルを選択</span> またはドラッグ&ドロップ
+                      </p>
+                      <p class="text-xs text-gray-500">CSV files only (最大10MB)</p>
+                    </div>
+                    <input id="enhanced-csv-input" type="file" accept=".csv" class="hidden">
+                  </label>
+                </div>
+                <div id="file-info" class="mt-2 hidden">
+                  <div class="text-sm text-gray-600 bg-gray-100 p-2 rounded">
+                    <span id="file-name"></span> (<span id="file-size"></span>)
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex justify-end">
+                <button id="parse-csv-btn" onclick="app.parseCSVFile()" disabled
+                        class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed">
+                  ファイルを解析
+                </button>
+              </div>
+            </div>
+
+            <!-- ステップ2: プレビュー -->
+            <div id="csv-step2" class="hidden space-y-4">
+              <div id="parse-results">
+                <!-- パース結果がここに表示される -->
+              </div>
+              <div class="flex justify-between">
+                <button onclick="app.goToCSVStep(1)" 
+                        class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors">
+                  戻る
+                </button>
+                <button id="execute-import-btn" onclick="app.executeCSVImport()" 
+                        class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                  インポート実行
+                </button>
+              </div>
+            </div>
+
+            <!-- ステップ3: 実行結果 -->
+            <div id="csv-step3" class="hidden space-y-4">
+              <div id="import-results">
+                <!-- インポート結果がここに表示される -->
+              </div>
+              <div class="flex justify-between">
+                <button onclick="app.goToCSVStep(1)" 
+                        class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors">
+                  新しいファイル
+                </button>
+                <button onclick="this.closest('.fixed').remove()" 
+                        class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                  完了
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <div class="p-6 border-t border-gray-200 flex justify-end">
+            <button onclick="this.closest('.fixed').remove()" 
+                    class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors">
+              閉じる
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modal);
+    
+    // ファイル選択イベント
+    document.getElementById('enhanced-csv-input').addEventListener('change', this.handleCSVFileSelect.bind(this));
+    
+    // ドラッグ&ドロップイベント
+    const dropZone = document.querySelector('label[for="enhanced-csv-input"]');
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('border-blue-400', 'bg-blue-50');
+    });
+    
+    dropZone.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('border-blue-400', 'bg-blue-50');
+    });
+    
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('border-blue-400', 'bg-blue-50');
+      
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        document.getElementById('enhanced-csv-input').files = files;
+        this.handleCSVFileSelect({ target: { files: files } });
+      }
+    });
+  }
+
+  // CSVファイル選択処理
+  handleCSVFileSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // ファイル情報表示
+    document.getElementById('file-name').textContent = file.name;
+    document.getElementById('file-size').textContent = this.formatFileSize(file.size);
+    document.getElementById('file-info').classList.remove('hidden');
+
+    // ファイルバリデーション
+    const validation = this.validateCSVFileClient(file);
+    
+    if (!validation.isValid) {
+      alert('ファイルエラー:\\n' + validation.errors.join('\\n'));
+      document.getElementById('parse-csv-btn').disabled = true;
+      return;
+    }
+
+    if (validation.warnings.length > 0) {
+      console.warn('ファイル警告:', validation.warnings);
+    }
+
+    document.getElementById('parse-csv-btn').disabled = false;
+    this.currentCSVFile = file;
+  }
+
+  // ファイルサイズフォーマット
+  formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
+
+  // クライアントサイドファイルバリデーション
+  validateCSVFileClient(file) {
+    const result = {
+      isValid: true,
+      errors: [],
+      warnings: []
+    };
+
+    // ファイルサイズチェック (10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      result.isValid = false;
+      result.errors.push('ファイルサイズが10MBを超えています');
+    }
+
+    // 拡張子チェック
+    const extension = file.name.toLowerCase().split('.').pop();
+    if (extension !== 'csv') {
+      result.isValid = false;
+      result.errors.push('CSVファイル（.csv）のみ対応しています');
+    }
+
+    // MIMEタイプチェック（警告のみ）
+    if (file.type && !['text/csv', 'application/csv'].includes(file.type)) {
+      result.warnings.push(`MIMEタイプ（${file.type}）が一般的ではありません`);
+    }
+
+    // 空ファイルチェック
+    if (file.size === 0) {
+      result.isValid = false;
+      result.errors.push('ファイルが空です');
+    }
+
+    return result;
+  }
+
+  // CSVファイル解析
+  async parseCSVFile() {
+    if (!this.currentCSVFile) {
+      alert('ファイルが選択されていません');
+      return;
+    }
+
+    try {
+      document.getElementById('parse-csv-btn').disabled = true;
+      document.getElementById('parse-csv-btn').innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>解析中...';
+
+      const csvText = await this.currentCSVFile.text();
+      
+      const token = localStorage.getItem('sessionToken');
+      const response = await axios.post('/api/admin/csv-import/parse', {
+        csvText: csvText,
+        filename: this.currentCSVFile.name,
+        fileSize: this.currentCSVFile.size
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.data.success) {
+        this.currentParseResult = response.data.parseResult;
+        this.currentSessionId = response.data.sessionId;
+        
+        this.renderCSVParseResults(response.data.parseResult);
+        this.goToCSVStep(2);
+      } else {
+        alert('CSV解析エラー:\\n' + (response.data.details ? response.data.details.join('\\n') : response.data.error));
+      }
+    } catch (error) {
+      console.error('Error parsing CSV:', error);
+      alert('CSV解析中にエラーが発生しました');
+    } finally {
+      document.getElementById('parse-csv-btn').disabled = false;
+      document.getElementById('parse-csv-btn').innerHTML = 'ファイルを解析';
+    }
+  }
+
+  // CSV解析結果表示
+  renderCSVParseResults(parseResult) {
+    const resultsContainer = document.getElementById('parse-results');
+    
+    const summaryClass = parseResult.isValid ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800';
+    
+    let html = `
+      <div class="space-y-4">
+        <div class="${summaryClass} border rounded-lg p-4">
+          <h4 class="font-medium mb-2">解析結果サマリー</h4>
+          <div class="grid grid-cols-2 gap-4 text-sm">
+            <div>総行数: <strong>${parseResult.totalRows}</strong></div>
+            <div>有効行数: <strong class="text-green-600">${parseResult.summary.validCount}</strong></div>
+            <div>エラー行数: <strong class="text-red-600">${parseResult.summary.errorCount}</strong></div>
+            <div>警告行数: <strong class="text-yellow-600">${parseResult.summary.warningCount}</strong></div>
+          </div>
+        </div>
+    `;
+
+    // グローバルエラー
+    if (parseResult.globalErrors.length > 0) {
+      html += `
+        <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+          <h4 class="font-medium text-red-800 mb-2">ファイル全体のエラー</h4>
+          <ul class="text-sm text-red-700 space-y-1">
+            ${parseResult.globalErrors.map(error => `<li>• ${error}</li>`).join('')}
+          </ul>
+        </div>
+      `;
+    }
+
+    // ヘッダー情報
+    html += `
+      <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+        <h4 class="font-medium text-gray-800 mb-2">検出されたカラム</h4>
+        <div class="text-sm text-gray-600">
+          ${parseResult.headers.join(', ')}
+        </div>
+      </div>
+    `;
+
+    // エラー行詳細
+    if (parseResult.invalidRows.length > 0) {
+      html += `
+        <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+          <h4 class="font-medium text-red-800 mb-2">エラー行詳細 (最大5件表示)</h4>
+          <div class="space-y-2 text-sm">
+            ${parseResult.invalidRows.slice(0, 5).map(row => `
+              <div class="bg-white border border-red-300 rounded p-2">
+                <div class="font-medium text-red-700">行 ${row.row}</div>
+                <div class="text-red-600 text-xs mt-1">
+                  ${row.errors.map(error => `• ${error}`).join('<br>')}
+                </div>
+              </div>
+            `).join('')}
+            ${parseResult.invalidRows.length > 5 ? `<div class="text-red-600 text-xs">ほか${parseResult.invalidRows.length - 5}件のエラー行があります</div>` : ''}
+          </div>
+        </div>
+      `;
+    }
+
+    // 有効行プレビュー
+    if (parseResult.validRows.length > 0) {
+      html += `
+        <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+          <h4 class="font-medium text-green-800 mb-2">有効行プレビュー (最大3件表示)</h4>
+          <div class="overflow-x-auto">
+            <table class="min-w-full text-xs">
+              <thead class="bg-green-100">
+                <tr>
+                  <th class="px-2 py-1 text-left">行</th>
+                  ${parseResult.headers.map(header => `<th class="px-2 py-1 text-left">${header}</th>`).join('')}
+                </tr>
+              </thead>
+              <tbody class="bg-white">
+                ${parseResult.validRows.slice(0, 3).map(row => `
+                  <tr>
+                    <td class="px-2 py-1 border-t">${row.row}</td>
+                    ${parseResult.headers.map(header => `<td class="px-2 py-1 border-t">${row.data[header] || ''}</td>`).join('')}
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+            ${parseResult.validRows.length > 3 ? `<div class="text-green-600 text-xs mt-2">ほか${parseResult.validRows.length - 3}件の有効行があります</div>` : ''}
+          </div>
+        </div>
+      `;
+    }
+
+    html += `</div>`;
+    resultsContainer.innerHTML = html;
+  }
+
+  // CSVインポート実行
+  async executeCSVImport() {
+    if (!this.currentSessionId) {
+      alert('セッションIDが見つかりません');
+      return;
+    }
+
+    try {
+      document.getElementById('execute-import-btn').disabled = true;
+      document.getElementById('execute-import-btn').innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>インポート中...';
+
+      const token = localStorage.getItem('sessionToken');
+      const response = await axios.post('/api/admin/csv-import/execute', {
+        sessionId: this.currentSessionId,
+        config: null // デフォルト設定を使用
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.data.success) {
+        this.renderCSVImportResults(response.data.importResult);
+        this.goToCSVStep(3);
+      } else {
+        alert('CSVインポートエラー:\\n' + response.data.error);
+      }
+    } catch (error) {
+      console.error('Error executing CSV import:', error);
+      alert('CSVインポート中にエラーが発生しました');
+    } finally {
+      document.getElementById('execute-import-btn').disabled = false;
+      document.getElementById('execute-import-btn').innerHTML = 'インポート実行';
+    }
+  }
+
+  // CSVインポート結果表示
+  renderCSVImportResults(importResult) {
+    const resultsContainer = document.getElementById('import-results');
+    
+    const statusClass = {
+      'completed': 'bg-green-50 border-green-200 text-green-800',
+      'partial': 'bg-yellow-50 border-yellow-200 text-yellow-800',
+      'failed': 'bg-red-50 border-red-200 text-red-800'
+    };
+
+    const statusText = {
+      'completed': '完了',
+      'partial': '部分的成功',
+      'failed': '失敗'
+    };
+
+    let html = `
+      <div class="space-y-4">
+        <div class="${statusClass[importResult.status]} border rounded-lg p-4">
+          <h4 class="font-medium mb-2">インポート結果: ${statusText[importResult.status]}</h4>
+          <div class="grid grid-cols-2 gap-4 text-sm">
+            <div>総行数: <strong>${importResult.importSummary.totalRows}</strong></div>
+            <div>成功: <strong class="text-green-600">${importResult.importSummary.successfulImports}</strong></div>
+            <div>失敗: <strong class="text-red-600">${importResult.importSummary.failedImports}</strong></div>
+            <div>重複スキップ: <strong class="text-blue-600">${importResult.importSummary.duplicateEmails}</strong></div>
+          </div>
+          <div class="mt-2 text-xs">
+            処理時間: ${importResult.processingTimeMs}ms
+          </div>
+        </div>
+    `;
+
+    // 失敗行詳細
+    if (importResult.failedRows.length > 0) {
+      html += `
+        <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+          <h4 class="font-medium text-red-800 mb-2">失敗行詳細</h4>
+          <div class="space-y-2 text-sm">
+            ${importResult.failedRows.slice(0, 5).map(failedRow => `
+              <div class="bg-white border border-red-300 rounded p-2">
+                <div class="font-medium text-red-700">行 ${failedRow.row}: ${failedRow.data.email}</div>
+                <div class="text-red-600 text-xs mt-1">${failedRow.error}</div>
+                <div class="text-gray-500 text-xs">カテゴリ: ${failedRow.category}</div>
+              </div>
+            `).join('')}
+            ${importResult.failedRows.length > 5 ? `<div class="text-red-600 text-xs">ほか${importResult.failedRows.length - 5}件の失敗行があります</div>` : ''}
+          </div>
+        </div>
+      `;
+    }
+
+    // 作成されたユーザー
+    if (importResult.createdUsers.length > 0) {
+      html += `
+        <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+          <h4 class="font-medium text-green-800 mb-2">作成されたユーザー</h4>
+          <div class="text-sm text-green-700">
+            ${importResult.createdUsers.length}件のユーザーが正常に作成されました
+          </div>
+        </div>
+      `;
+    }
+
+    // ダウンロードリンク（将来実装）
+    html += `
+      <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+        <h4 class="font-medium text-gray-800 mb-2">レポートダウンロード</h4>
+        <div class="flex space-x-2 text-sm">
+          <button class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition-colors disabled:bg-gray-300" disabled>
+            <i class="fas fa-download mr-1"></i>成功レポート
+          </button>
+          <button class="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 transition-colors disabled:bg-gray-300" disabled>
+            <i class="fas fa-download mr-1"></i>エラーレポート
+          </button>
+        </div>
+        <div class="text-xs text-gray-500 mt-1">※ レポートダウンロード機能は今後実装予定</div>
+      </div>
+    `;
+
+    html += `</div>`;
+    resultsContainer.innerHTML = html;
+  }
+
+  // CSVステップ移動
+  goToCSVStep(step) {
+    // すべてのステップを非表示
+    document.getElementById('csv-step1').classList.add('hidden');
+    document.getElementById('csv-step2').classList.add('hidden');
+    document.getElementById('csv-step3').classList.add('hidden');
+
+    // インジケーターリセット
+    document.getElementById('step1-indicator').className = 'flex items-center justify-center w-8 h-8 bg-gray-300 text-gray-500 rounded-full text-sm font-medium';
+    document.getElementById('step2-indicator').className = 'flex items-center justify-center w-8 h-8 bg-gray-300 text-gray-500 rounded-full text-sm font-medium';
+    document.getElementById('step3-indicator').className = 'flex items-center justify-center w-8 h-8 bg-gray-300 text-gray-500 rounded-full text-sm font-medium';
+
+    // 指定されたステップを表示
+    document.getElementById(`csv-step${step}`).classList.remove('hidden');
+    document.getElementById(`step${step}-indicator`).className = 'flex items-center justify-center w-8 h-8 bg-blue-600 text-white rounded-full text-sm font-medium';
+
+    // 完了したステップを緑色に
+    for (let i = 1; i < step; i++) {
+      document.getElementById(`step${i}-indicator`).className = 'flex items-center justify-center w-8 h-8 bg-green-600 text-white rounded-full text-sm font-medium';
+    }
+  }
+
+  // サンプルCSVダウンロード
+  async downloadSampleCSV() {
+    try {
+      const token = localStorage.getItem('sessionToken');
+      const response = await axios.get('/api/admin/csv-import/sample', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        responseType: 'blob'
+      });
+
+      // ブラウザでダウンロード
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'neo-member-import-sample.csv');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading sample CSV:', error);
+      alert('サンプルCSVダウンロード中にエラーが発生しました');
+    }
   }
 }
 
