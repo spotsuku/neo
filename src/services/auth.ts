@@ -249,6 +249,109 @@ export class AuthService {
     return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
   }
 
+  // メンバーのアンケート比較データを計算
+  static calculateMemberSurveyComparisons(
+    personalSurveys: any[],
+    surveyAnalytics: any,
+    userRole: UserRole
+  ): any {
+    if (personalSurveys.length === 0 || !surveyAnalytics) {
+      return {
+        memberPercentiles: {},
+        regionAverages: {},
+        overallAverages: {},
+        growthTrends: {},
+        lastCalculated: new Date().toISOString()
+      };
+    }
+
+    const memberPercentiles: Record<string, number> = {};
+    const growthTrends: Record<string, any> = {};
+
+    // 最新のアンケート結果からパーセンタイル計算
+    const latestSurvey = personalSurveys[0];
+    if (latestSurvey && surveyAnalytics.regionStats) {
+      Object.entries(latestSurvey.scores).forEach(([key, value]) => {
+        const percentiles = surveyAnalytics.regionStats.percentileRanges[key];
+        if (percentiles && typeof value === 'number') {
+          memberPercentiles[key] = this.calculateMemberPercentile(value, percentiles);
+        }
+      });
+    }
+
+    // 成長トレンド計算（最初と最新の比較）
+    if (personalSurveys.length >= 2) {
+      const oldestSurvey = personalSurveys[personalSurveys.length - 1];
+      Object.keys(latestSurvey.scores).forEach(key => {
+        const initial = oldestSurvey.scores[key];
+        const current = latestSurvey.scores[key];
+        
+        if (typeof initial === 'number' && typeof current === 'number') {
+          const growth = current - initial;
+          growthTrends[key] = {
+            initial,
+            current,
+            growth,
+            trend: growth > 0.5 ? 'improving' : growth < -0.5 ? 'declining' : 'stable'
+          };
+        }
+      });
+    }
+
+    return {
+      memberPercentiles,
+      regionAverages: surveyAnalytics.regionStats.averageScores,
+      overallAverages: surveyAnalytics.regionStats.averageScores, // 実際は全体平均を取得
+      growthTrends,
+      lastCalculated: new Date().toISOString()
+    };
+  }
+
+  // メンバーのパーセンタイル位置を計算
+  private static calculateMemberPercentile(value: number, percentiles: any): number {
+    if (value <= percentiles.p25) return 25;
+    if (value <= percentiles.p50) return 50;
+    if (value <= percentiles.p75) return 75;
+    if (value <= percentiles.p90) return 90;
+    return 95;
+  }
+
+  // メンバーカルテアクセス権限チェック
+  static canAccessMemberCard(user: User, targetMemberId: string, targetCompanyId?: string): boolean {
+    switch (user.role) {
+      case 'student':
+        // 自分のカルテのみアクセス可能
+        return user.memberId === targetMemberId;
+      
+      case 'company_admin':
+        // 自社メンバーのカルテのみアクセス可能
+        return user.companyId === targetCompanyId;
+      
+      case 'secretariat':
+      case 'owner':
+        // 全メンバーのカルテにアクセス可能
+        return true;
+      
+      default:
+        return false;
+    }
+  }
+
+  // メンバーカルテ編集権限チェック
+  static canEditMemberCard(user: User): boolean {
+    return user.role === 'secretariat' || user.role === 'owner';
+  }
+
+  // 事務局コメント表示権限チェック
+  static canViewPrivateComments(user: User, targetMemberId: string): boolean {
+    if (user.role === 'secretariat' || user.role === 'owner') {
+      return true;
+    }
+    
+    // 学生は自分の非プライベートコメントのみ表示
+    return user.memberId === targetMemberId;
+  }
+
   // 監査ログ記録（本番環境では外部ログサービスに送信）
   static async logAuditEvent(
     user: User,

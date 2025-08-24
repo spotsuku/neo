@@ -51,6 +51,11 @@ export interface Member {
   joinDate?: string;
   mentorId?: string;
   bio?: string;
+  // クラス編成関連
+  classNumber?: number; // 1-3クラス
+  teamNumber?: number;  // 1-5チーム
+  attendanceNumber?: number; // 出席番号
+  furigana?: string;    // ひらがな読み仮名（ソート用）
 }
 
 // 出欠管理
@@ -286,6 +291,162 @@ export interface FilterParams {
   committee?: string;
   category?: string;
   status?: string;
+}
+
+// メンバーカルテ（非公開）
+export interface MemberCard {
+  id: string;
+  regionId: RegionId;
+  memberId: string;
+  // 基本プロフィール
+  personalProfile: {
+    age?: number;
+    birthPlace?: string;
+    education?: string;
+    skills?: string[];
+    interests?: string[];
+    careerGoals?: string;
+  };
+  // 個人アンケート結果
+  personalSurveys: PersonalSurveyData[];
+  // アンケート比較データ
+  surveyComparisons: SurveyComparison;
+  // 事務局コメント
+  secretariatComments: SecretariatComment[];
+  // 目標設定
+  goals: Goal[];
+  // 学習ログ
+  learningLogs: LearningLog[];
+  // 最終更新情報
+  lastUpdated: string;
+  updatedBy: string;
+}
+
+// 個人アンケートデータ
+export interface PersonalSurveyData {
+  id: string;
+  surveyType: 'pre_program' | 'mid_program' | 'post_program' | 'monthly' | 'event_specific';
+  surveyTitle: string;
+  submittedAt: string;
+  scores: Record<string, number>;  // 項目名: スコア
+  textResponses: Record<string, string>; // 項目名: 自由記述
+  npsScore?: number;
+  overallSatisfaction?: number;
+}
+
+// アンケート比較分析
+export interface SurveyComparison {
+  memberPercentiles: Record<string, number>; // 項目別パーセンタイル
+  regionAverages: Record<string, number>;     // 地域平均
+  overallAverages: Record<string, number>;    // 全体平均
+  growthTrends: Record<string, {
+    initial: number;
+    current: number;
+    growth: number;
+    trend: 'improving' | 'stable' | 'declining';
+  }>;
+  lastCalculated: string;
+}
+
+// 事務局コメント
+export interface SecretariatComment {
+  id: string;
+  authorId: string;
+  authorName: string;
+  category: 'progress' | 'behavior' | 'skills' | 'concerns' | 'achievements' | 'general';
+  priority: 'high' | 'medium' | 'low';
+  comment: string;
+  isPrivate: boolean; // true: 事務局内のみ, false: 本人も閲覧可能
+  createdAt: string;
+  updatedAt?: string;
+}
+
+// 目標設定
+export interface Goal {
+  id: string;
+  category: 'learning' | 'project' | 'skill' | 'network' | 'career';
+  title: string;
+  description: string;
+  targetDate: string;
+  status: 'not_started' | 'in_progress' | 'completed' | 'paused' | 'cancelled';
+  progress: number; // 0-100
+  milestones: Milestone[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+// マイルストーン
+export interface Milestone {
+  id: string;
+  title: string;
+  description?: string;
+  targetDate: string;
+  completed: boolean;
+  completedAt?: string;
+}
+
+// 学習ログ
+export interface LearningLog {
+  id: string;
+  date: string;
+  category: 'class_attendance' | 'self_study' | 'project_work' | 'networking' | 'reflection';
+  title: string;
+  description: string;
+  hoursSpent?: number;
+  skillsLearned?: string[];
+  reflections?: string;
+  attachments?: string[];
+  createdAt: string;
+}
+
+// クラス編成情報
+export interface ClassAssignment {
+  regionId: RegionId;
+  year: string;
+  assignments: ClassMember[];
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string;
+}
+
+// クラスメンバー
+export interface ClassMember {
+  memberId: string;
+  memberName: string;
+  furigana: string;
+  classNumber: number; // 1-3
+  teamNumber: number;  // 1-5 (クラス内でのチーム番号)
+  attendanceNumber: number; // 出席番号（クラス内での五十音順）
+  companyId: string;
+  companyName: string;
+}
+
+// アンケート分析統計
+export interface SurveyAnalytics {
+  regionId: RegionId;
+  analysisDate: string;
+  memberCount: number;
+  surveyTypes: string[];
+  
+  // 地域統計
+  regionStats: {
+    averageScores: Record<string, number>;
+    medianScores: Record<string, number>;
+    standardDeviations: Record<string, number>;
+    percentileRanges: Record<string, {
+      p25: number;
+      p50: number;
+      p75: number;
+      p90: number;
+    }>;
+  };
+  
+  // 比較データ
+  comparisonData: {
+    byCompany: Record<string, Record<string, number>>;
+    byHeroStep: Record<number, Record<string, number>>;
+    bySelectionType: Record<SelectionType, Record<string, number>>;
+  };
 }
 
 // Notion API レスポンス型

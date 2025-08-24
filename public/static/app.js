@@ -237,6 +237,7 @@ class NEODigitalPlatform {
     const roleSpecificItems = {
       student: [
         { key: 'classes', label: '授業', icon: 'fas fa-chalkboard-teacher' },
+        { key: 'members', label: '受講生一覧', icon: 'fas fa-users' },
         { key: 'announcements', label: 'お知らせ', icon: 'fas fa-bullhorn' },
         { key: 'neo-projects', label: 'NEO公認プロジェクト', icon: 'fas fa-project-diagram' },
         { key: 'profile', label: 'プロフィール', icon: 'fas fa-user-circle' },
@@ -255,7 +256,8 @@ class NEODigitalPlatform {
       ],
       secretariat: [
         { key: 'dashboard', label: 'ダッシュボード', icon: 'fas fa-tachometer-alt' },
-        { key: 'member-management', label: 'メンバー管理', icon: 'fas fa-user-cog' },
+        { key: 'members', label: 'メンバー管理', icon: 'fas fa-users' },
+        { key: 'member-management', label: 'メンバーカルテ', icon: 'fas fa-user-cog' },
         { key: 'consultation-management', label: '相談管理', icon: 'fas fa-clipboard-list' },
         { key: 'analytics', label: 'アンケート分析', icon: 'fas fa-poll' },
         { key: 'regional-comparison', label: '地域比較', icon: 'fas fa-globe' }
@@ -312,6 +314,10 @@ class NEODigitalPlatform {
         return this.renderLectureSummaryPage();
       case 'attendance':
         return this.renderAttendancePage();
+      case 'members':
+        return this.renderMembersPage();
+      case 'member-card':
+        return this.renderMemberCardPage();
       case 'cross-region':
         return this.renderCrossRegionPage();
       default:
@@ -681,6 +687,8 @@ class NEODigitalPlatform {
     const titles = {
       'home': 'ホーム',
       'classes': '授業',
+      'members': '受講生一覧',
+      'member-card': 'メンバーカルテ',
       'announcements': 'お知らせ',
       'neo-projects': 'NEO公認プロジェクト',
       'profile': 'プロフィール',
@@ -759,6 +767,648 @@ class NEODigitalPlatform {
 
   renderAttendancePage() {
     return '<div class="p-8 text-center text-gray-500">受講状況ページ（実装予定）</div>';
+  }
+
+  // メンバー一覧ページ（受講生一覧）
+  renderMembersPage() {
+    const members = this.data.members || [];
+    const role = this.currentUser.role;
+    
+    // クラス編成情報の表示（secretariat/ownerのみ）
+    const showClassAssignments = role === 'secretariat' || role === 'owner';
+    
+    return `
+      <div class="space-y-6">
+        <!-- ヘッダー -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-lg font-semibold text-gray-800">受講生一覧</h3>
+              <p class="text-sm text-gray-600 mt-1">
+                ${this.regionNames[this.currentRegion]}地域の受講生 ${members.length}名
+              </p>
+            </div>
+            ${showClassAssignments ? `
+              <button onclick="app.loadClassAssignments()" 
+                      class="bg-neo-blue text-white px-4 py-2 rounded-lg hover:bg-neo-dark transition-colors">
+                <i class="fas fa-layer-group mr-2"></i>クラス編成表示
+              </button>
+            ` : ''}
+          </div>
+        </div>
+
+        <!-- フィルター・検索 -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <div class="flex flex-wrap gap-4">
+            <div class="flex-1 min-w-64">
+              <input type="text" id="memberSearch" placeholder="氏名で検索..." 
+                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-neo-blue focus:border-neo-blue"
+                     onkeyup="app.filterMembers()">
+            </div>
+            <select id="selectionTypeFilter" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-neo-blue focus:border-neo-blue"
+                    onchange="app.filterMembers()">
+              <option value="">全選抜区分</option>
+              <option value="company_selected">企業推薦</option>
+              <option value="youth_selected">ユース選抜</option>
+            </select>
+            <select id="heroStepFilter" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-neo-blue focus:border-neo-blue"
+                    onchange="app.filterMembers()">
+              <option value="">全ステップ</option>
+              <option value="0">ステップ0</option>
+              <option value="1">ステップ1</option>
+              <option value="2">ステップ2</option>
+              <option value="3">ステップ3</option>
+              <option value="4">ステップ4</option>
+              <option value="5">ステップ5</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- メンバーグリッド -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="membersGrid">
+          ${this.renderMemberCards(members)}
+        </div>
+      </div>
+    `;
+  }
+
+  // メンバーカード表示
+  renderMemberCards(members) {
+    if (members.length === 0) {
+      return `
+        <div class="col-span-full text-center py-12">
+          <i class="fas fa-users text-4xl text-gray-400 mb-4"></i>
+          <p class="text-gray-500">表示するメンバーがありません</p>
+        </div>
+      `;
+    }
+
+    return members.map(member => `
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+        <div class="p-6">
+          <div class="flex items-start space-x-4">
+            <div class="flex-shrink-0">
+              ${member.profileImage ? `
+                <img src="${member.profileImage}" alt="${member.name}" 
+                     class="w-12 h-12 rounded-full object-cover border-2 border-gray-200">
+              ` : `
+                <div class="w-12 h-12 rounded-full bg-gradient-to-br from-neo-blue to-neo-light flex items-center justify-center text-white font-bold text-lg">
+                  ${member.name.charAt(0)}
+                </div>
+              `}
+            </div>
+            
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between">
+                <button onclick="app.openMemberCard('${member.id}')" 
+                        class="text-lg font-semibold text-gray-900 hover:text-neo-blue transition-colors cursor-pointer">
+                  ${member.name}
+                </button>
+                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                  member.type === 'company_selected' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
+                }">
+                  ${member.type === 'company_selected' ? '企業推薦' : 'ユース選抜'}
+                </span>
+              </div>
+              
+              <div class="mt-2 space-y-2">
+                <div class="flex items-center text-sm text-gray-600">
+                  <i class="fas fa-route mr-2 text-gray-400"></i>
+                  <span>ヒーローステップ ${member.heroStep}/5</span>
+                  <div class="ml-2 flex-1 bg-gray-200 rounded-full h-1.5">
+                    <div class="bg-gradient-to-r from-neo-blue to-neo-light h-1.5 rounded-full transition-all duration-500" 
+                         style="width: ${(member.heroStep / 5) * 100}%"></div>
+                  </div>
+                </div>
+                
+                ${member.attendanceRate !== undefined ? `
+                  <div class="flex items-center text-sm text-gray-600">
+                    <i class="fas fa-calendar-check mr-2 text-gray-400"></i>
+                    <span>出席率 ${member.attendanceRate}%</span>
+                  </div>
+                ` : ''}
+                
+                ${this.currentUser.role === 'secretariat' || this.currentUser.role === 'owner' ? `
+                  <div class="flex items-center text-sm text-gray-600">
+                    <i class="fas fa-users-cog mr-2 text-gray-400"></i>
+                    <span>クラス ${member.classNumber || '-'} / チーム ${member.teamNumber || '-'}</span>
+                  </div>
+                ` : ''}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // メンバーカルテ詳細ページ
+  renderMemberCardPage() {
+    const memberCard = this.data.currentMemberCard;
+    
+    if (!memberCard) {
+      return `
+        <div class="text-center py-12">
+          <i class="fas fa-user-slash text-4xl text-gray-400 mb-4"></i>
+          <p class="text-gray-500">メンバーカルテが見つかりません</p>
+          <button onclick="app.navigateTo('members')" 
+                  class="mt-4 bg-neo-blue text-white px-4 py-2 rounded-lg hover:bg-neo-dark transition-colors">
+            メンバー一覧に戻る
+          </button>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="space-y-6">
+        <!-- ヘッダー・ナビゲーション -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+              <button onclick="app.navigateTo('members')" 
+                      class="text-gray-500 hover:text-gray-700 transition-colors">
+                <i class="fas fa-arrow-left mr-2"></i>メンバー一覧に戻る
+              </button>
+              <div class="h-6 border-l border-gray-300"></div>
+              <h2 class="text-xl font-bold text-gray-800">メンバーカルテ</h2>
+            </div>
+            ${this.currentUser.role === 'secretariat' || this.currentUser.role === 'owner' ? `
+              <button onclick="app.editMemberCard('${memberCard.memberId}')" 
+                      class="bg-neo-blue text-white px-4 py-2 rounded-lg hover:bg-neo-dark transition-colors">
+                <i class="fas fa-edit mr-2"></i>編集
+              </button>
+            ` : ''}
+          </div>
+        </div>
+
+        <!-- メンバーカルテ7セクション -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <!-- 左カラム: 基本情報・アンケート -->
+          <div class="lg:col-span-2 space-y-6">
+            ${this.renderMemberProfileSection(memberCard)}
+            ${this.renderPersonalSurveysSection(memberCard)}
+            ${this.renderSurveyComparisonsSection(memberCard)}
+            ${this.renderLearningLogsSection(memberCard)}
+          </div>
+          
+          <!-- 右カラム: コメント・目標・チーム -->
+          <div class="space-y-6">
+            ${this.renderSecretariatCommentsSection(memberCard)}
+            ${this.renderGoalsSection(memberCard)}
+            ${this.renderTeamMembersSection(memberCard)}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // メンバーカルテセクション実装
+  renderMemberProfileSection(memberCard) {
+    const profile = memberCard.personalProfile || {};
+    
+    return `
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div class="p-6 border-b border-gray-200">
+          <h3 class="text-lg font-semibold text-gray-800">
+            <i class="fas fa-user-circle mr-2 text-neo-blue"></i>基本プロフィール
+          </h3>
+        </div>
+        <div class="p-6 space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="text-sm font-medium text-gray-600">年齢</label>
+              <p class="text-gray-900">${profile.age || '-'}歳</p>
+            </div>
+            <div>
+              <label class="text-sm font-medium text-gray-600">出身地</label>
+              <p class="text-gray-900">${profile.birthPlace || '-'}</p>
+            </div>
+            <div>
+              <label class="text-sm font-medium text-gray-600">学歴</label>
+              <p class="text-gray-900">${profile.education || '-'}</p>
+            </div>
+            <div>
+              <label class="text-sm font-medium text-gray-600">キャリア目標</label>
+              <p class="text-gray-900">${profile.careerGoals || '-'}</p>
+            </div>
+          </div>
+          
+          ${profile.skills && profile.skills.length > 0 ? `
+            <div>
+              <label class="text-sm font-medium text-gray-600">スキル</label>
+              <div class="mt-2 flex flex-wrap gap-2">
+                ${profile.skills.map(skill => `
+                  <span class="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full">${skill}</span>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+          
+          ${profile.interests && profile.interests.length > 0 ? `
+            <div>
+              <label class="text-sm font-medium text-gray-600">関心分野</label>
+              <div class="mt-2 flex flex-wrap gap-2">
+                ${profile.interests.map(interest => `
+                  <span class="px-3 py-1 bg-green-100 text-green-800 text-sm rounded-full">${interest}</span>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  renderPersonalSurveysSection(memberCard) {
+    const surveys = memberCard.personalSurveys || [];
+    
+    return `
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div class="p-6 border-b border-gray-200">
+          <h3 class="text-lg font-semibold text-gray-800">
+            <i class="fas fa-poll mr-2 text-neo-blue"></i>個人アンケート結果
+          </h3>
+        </div>
+        <div class="p-6">
+          ${surveys.length === 0 ? `
+            <p class="text-gray-500 text-center py-8">アンケート結果がありません</p>
+          ` : `
+            <div class="space-y-4">
+              ${surveys.slice(0, 3).map(survey => `
+                <div class="border border-gray-200 rounded-lg p-4">
+                  <div class="flex items-center justify-between mb-3">
+                    <h4 class="font-medium text-gray-800">${survey.surveyTitle}</h4>
+                    <span class="text-sm text-gray-500">${this.formatDate(survey.submittedAt)}</span>
+                  </div>
+                  
+                  ${Object.entries(survey.scores).length > 0 ? `
+                    <div class="grid grid-cols-2 gap-3 text-sm">
+                      ${Object.entries(survey.scores).slice(0, 4).map(([key, value]) => `
+                        <div class="flex justify-between">
+                          <span class="text-gray-600">${key}:</span>
+                          <span class="font-medium">${value}/5</span>
+                        </div>
+                      `).join('')}
+                    </div>
+                  ` : ''}
+                  
+                  ${survey.npsScore !== undefined ? `
+                    <div class="mt-3 pt-3 border-t border-gray-100">
+                      <div class="flex justify-between text-sm">
+                        <span class="text-gray-600">NPS:</span>
+                        <span class="font-medium ${survey.npsScore >= 0 ? 'text-green-600' : 'text-red-600'}">
+                          ${survey.npsScore}
+                        </span>
+                      </div>
+                    </div>
+                  ` : ''}
+                </div>
+              `).join('')}
+            </div>
+          `}
+        </div>
+      </div>
+    `;
+  }
+
+  renderSurveyComparisonsSection(memberCard) {
+    const comparisons = memberCard.surveyComparisons || {};
+    const percentiles = comparisons.memberPercentiles || {};
+    
+    return `
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div class="p-6 border-b border-gray-200">
+          <h3 class="text-lg font-semibold text-gray-800">
+            <i class="fas fa-chart-bar mr-2 text-neo-blue"></i>アンケート比較分析
+          </h3>
+        </div>
+        <div class="p-6">
+          ${Object.keys(percentiles).length === 0 ? `
+            <p class="text-gray-500 text-center py-8">比較データがありません</p>
+          ` : `
+            <div class="space-y-4">
+              <div>
+                <h4 class="font-medium text-gray-800 mb-3">地域内パーセンタイル</h4>
+                <div class="space-y-3">
+                  ${Object.entries(percentiles).slice(0, 5).map(([key, percentile]) => `
+                    <div class="flex items-center justify-between">
+                      <span class="text-sm text-gray-600">${key}</span>
+                      <div class="flex items-center space-x-3">
+                        <div class="w-24 bg-gray-200 rounded-full h-2">
+                          <div class="bg-gradient-to-r from-neo-blue to-neo-light h-2 rounded-full" 
+                               style="width: ${percentile}%"></div>
+                        </div>
+                        <span class="text-sm font-medium text-gray-800 w-12 text-right">${percentile}%</span>
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+              
+              ${Object.keys(comparisons.growthTrends || {}).length > 0 ? `
+                <div class="pt-4 border-t border-gray-200">
+                  <h4 class="font-medium text-gray-800 mb-3">成長トレンド</h4>
+                  <div class="space-y-2">
+                    ${Object.entries(comparisons.growthTrends).slice(0, 3).map(([key, trend]) => `
+                      <div class="flex items-center justify-between text-sm">
+                        <span class="text-gray-600">${key}</span>
+                        <div class="flex items-center space-x-2">
+                          <span class="text-gray-500">${trend.initial} → ${trend.current}</span>
+                          <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                            trend.trend === 'improving' ? 'bg-green-100 text-green-800' :
+                            trend.trend === 'declining' ? 'bg-red-100 text-red-800' : 
+                            'bg-gray-100 text-gray-800'
+                          }">
+                            ${trend.trend === 'improving' ? '改善' : trend.trend === 'declining' ? '低下' : '安定'}
+                          </span>
+                        </div>
+                      </div>
+                    `).join('')}
+                  </div>
+                </div>
+              ` : ''}
+            </div>
+          `}
+        </div>
+      </div>
+    `;
+  }
+
+  renderSecretariatCommentsSection(memberCard) {
+    const comments = memberCard.secretariatComments || [];
+    const canViewPrivate = this.currentUser.role === 'secretariat' || this.currentUser.role === 'owner';
+    const visibleComments = canViewPrivate ? comments : comments.filter(c => !c.isPrivate);
+    
+    return `
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div class="p-6 border-b border-gray-200">
+          <h3 class="text-lg font-semibold text-gray-800">
+            <i class="fas fa-comments mr-2 text-neo-blue"></i>事務局コメント
+          </h3>
+        </div>
+        <div class="p-6">
+          ${visibleComments.length === 0 ? `
+            <p class="text-gray-500 text-center py-8">コメントがありません</p>
+          ` : `
+            <div class="space-y-4">
+              ${visibleComments.slice(0, 5).map(comment => `
+                <div class="border-l-4 ${
+                  comment.priority === 'high' ? 'border-red-500 bg-red-50' :
+                  comment.priority === 'medium' ? 'border-yellow-500 bg-yellow-50' :
+                  'border-gray-500 bg-gray-50'
+                } p-4 rounded-r">
+                  <div class="flex items-start justify-between mb-2">
+                    <span class="text-sm font-medium text-gray-800">${comment.authorName}</span>
+                    <div class="flex items-center space-x-2">
+                      ${comment.isPrivate ? '<i class="fas fa-lock text-red-500 text-xs"></i>' : ''}
+                      <span class="text-xs text-gray-500">${this.formatDate(comment.createdAt)}</span>
+                    </div>
+                  </div>
+                  <p class="text-sm text-gray-700">${comment.comment}</p>
+                  <span class="inline-block mt-2 px-2 py-1 text-xs rounded-full ${
+                    comment.category === 'progress' ? 'bg-blue-100 text-blue-800' :
+                    comment.category === 'achievements' ? 'bg-green-100 text-green-800' :
+                    comment.category === 'concerns' ? 'bg-red-100 text-red-800' :
+                    'bg-gray-100 text-gray-800'
+                  }">
+                    ${comment.category}
+                  </span>
+                </div>
+              `).join('')}
+            </div>
+          `}
+        </div>
+      </div>
+    `;
+  }
+
+  renderGoalsSection(memberCard) {
+    const goals = memberCard.goals || [];
+    
+    return `
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div class="p-6 border-b border-gray-200">
+          <h3 class="text-lg font-semibold text-gray-800">
+            <i class="fas fa-target mr-2 text-neo-blue"></i>目標設定
+          </h3>
+        </div>
+        <div class="p-6">
+          ${goals.length === 0 ? `
+            <p class="text-gray-500 text-center py-8">設定された目標がありません</p>
+          ` : `
+            <div class="space-y-4">
+              ${goals.slice(0, 3).map(goal => `
+                <div class="border border-gray-200 rounded-lg p-4">
+                  <div class="flex items-start justify-between mb-2">
+                    <h4 class="font-medium text-gray-800">${goal.title}</h4>
+                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                      goal.status === 'completed' ? 'bg-green-100 text-green-800' :
+                      goal.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
+                      goal.status === 'paused' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-gray-100 text-gray-800'
+                    }">
+                      ${goal.status === 'completed' ? '完了' :
+                        goal.status === 'in_progress' ? '進行中' :
+                        goal.status === 'paused' ? '一時停止' : '未開始'}
+                    </span>
+                  </div>
+                  <p class="text-sm text-gray-600 mb-3">${goal.description}</p>
+                  <div class="flex items-center justify-between text-xs text-gray-500">
+                    <span>期限: ${this.formatDate(goal.targetDate)}</span>
+                    <span>進捗: ${goal.progress}%</span>
+                  </div>
+                  <div class="mt-2 w-full bg-gray-200 rounded-full h-1.5">
+                    <div class="bg-gradient-to-r from-neo-blue to-neo-light h-1.5 rounded-full" 
+                         style="width: ${goal.progress}%"></div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          `}
+        </div>
+      </div>
+    `;
+  }
+
+  renderTeamMembersSection(memberCard) {
+    // クラス編成情報から同じクラス・チームのメンバーを表示
+    const classAssignment = memberCard.classAssignment;
+    
+    return `
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div class="p-6 border-b border-gray-200">
+          <h3 class="text-lg font-semibold text-gray-800">
+            <i class="fas fa-users mr-2 text-neo-blue"></i>チームメンバー
+          </h3>
+        </div>
+        <div class="p-6">
+          ${!classAssignment ? `
+            <p class="text-gray-500 text-center py-8">クラス編成情報がありません</p>
+          ` : `
+            <div class="space-y-4">
+              <div class="text-center bg-gray-50 rounded-lg p-4">
+                <h4 class="font-medium text-gray-800">クラス ${classAssignment.classNumber} / チーム ${classAssignment.teamNumber}</h4>
+                <p class="text-sm text-gray-600 mt-1">出席番号: ${classAssignment.attendanceNumber}</p>
+              </div>
+              <p class="text-sm text-gray-500 text-center">
+                チームメンバー情報は実装予定です
+              </p>
+            </div>
+          `}
+        </div>
+      </div>
+    `;
+  }
+
+  renderLearningLogsSection(memberCard) {
+    const logs = memberCard.learningLogs || [];
+    
+    return `
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div class="p-6 border-b border-gray-200">
+          <h3 class="text-lg font-semibold text-gray-800">
+            <i class="fas fa-book mr-2 text-neo-blue"></i>学習ログ
+          </h3>
+        </div>
+        <div class="p-6">
+          ${logs.length === 0 ? `
+            <p class="text-gray-500 text-center py-8">学習ログがありません</p>
+          ` : `
+            <div class="space-y-4">
+              ${logs.slice(0, 5).map(log => `
+                <div class="border-l-4 border-neo-blue bg-blue-50 p-4 rounded-r">
+                  <div class="flex items-start justify-between mb-2">
+                    <h4 class="font-medium text-gray-800">${log.title}</h4>
+                    <span class="text-xs text-gray-500">${this.formatDate(log.date)}</span>
+                  </div>
+                  <p class="text-sm text-gray-700 mb-2">${log.description}</p>
+                  <div class="flex items-center justify-between text-xs text-gray-600">
+                    <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full">${log.category}</span>
+                    ${log.hoursSpent ? `<span>学習時間: ${log.hoursSpent}時間</span>` : ''}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          `}
+        </div>
+      </div>
+    `;
+  }
+
+  // メンバーカルテ関連の操作メソッド
+  async openMemberCard(memberId) {
+    try {
+      const response = await axios.get(`/api/member-card/${memberId}`, {
+        params: { region_id: this.currentRegion }
+      });
+      
+      if (response.data.success) {
+        this.data.currentMemberCard = response.data.data;
+        this.navigateTo('member-card');
+      } else {
+        alert('メンバーカルテの取得に失敗しました');
+      }
+    } catch (error) {
+      console.error('Error loading member card:', error);
+      alert('メンバーカルテの読み込み中にエラーが発生しました');
+    }
+  }
+
+  async loadClassAssignments() {
+    try {
+      const response = await axios.get('/api/class-assignments', {
+        params: { region_id: this.currentRegion }
+      });
+      
+      if (response.data.success) {
+        this.data.classAssignments = response.data.data;
+        this.showClassAssignmentModal();
+      }
+    } catch (error) {
+      console.error('Error loading class assignments:', error);
+      alert('クラス編成の読み込み中にエラーが発生しました');
+    }
+  }
+
+  showClassAssignmentModal() {
+    const assignments = this.data.classAssignments;
+    if (!assignments) return;
+
+    // 簡易モーダル表示（実際はより詳細な実装が必要）
+    const modalContent = `
+      <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onclick="this.remove()">
+        <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full m-4 max-h-96 overflow-y-auto" onclick="event.stopPropagation()">
+          <div class="p-6 border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-800">クラス編成表 (${assignments.year}年度)</h3>
+          </div>
+          <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+              ${[1, 2, 3].map(classNum => `
+                <div class="bg-gray-50 rounded-lg p-4">
+                  <h4 class="font-medium text-gray-800 mb-3">クラス ${classNum}</h4>
+                  <div class="space-y-2">
+                    ${assignments.assignments
+                      .filter(a => a.classNumber === classNum)
+                      .sort((a, b) => a.attendanceNumber - b.attendanceNumber)
+                      .map(member => `
+                        <div class="text-sm">
+                          <span class="text-gray-600">${member.attendanceNumber}.</span>
+                          <span class="font-medium">${member.memberName}</span>
+                          <span class="text-gray-500">(チーム${member.teamNumber})</span>
+                        </div>
+                      `).join('')}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+          <div class="p-6 border-t border-gray-200 text-right">
+            <button onclick="this.closest('.fixed').remove()" 
+                    class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors">
+              閉じる
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalContent);
+  }
+
+  filterMembers() {
+    const searchTerm = document.getElementById('memberSearch')?.value.toLowerCase() || '';
+    const selectionType = document.getElementById('selectionTypeFilter')?.value || '';
+    const heroStep = document.getElementById('heroStepFilter')?.value || '';
+    
+    let filteredMembers = this.data.members || [];
+    
+    if (searchTerm) {
+      filteredMembers = filteredMembers.filter(member => 
+        member.name.toLowerCase().includes(searchTerm)
+      );
+    }
+    
+    if (selectionType) {
+      filteredMembers = filteredMembers.filter(member => 
+        member.type === selectionType
+      );
+    }
+    
+    if (heroStep) {
+      filteredMembers = filteredMembers.filter(member => 
+        member.heroStep === parseInt(heroStep)
+      );
+    }
+    
+    const membersGrid = document.getElementById('membersGrid');
+    if (membersGrid) {
+      membersGrid.innerHTML = this.renderMemberCards(filteredMembers);
+    }
+  }
+
+  async editMemberCard(memberId) {
+    // メンバーカルテ編集機能は実装予定
+    alert('メンバーカルテ編集機能は実装予定です');
   }
 }
 

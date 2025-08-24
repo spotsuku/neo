@@ -415,6 +415,161 @@ app.get('/api/dashboard', authMiddleware, async (c) => {
   }
 });
 
+// メンバーカルテ詳細取得（role-based access control）
+app.get('/api/member-card/:memberId', authMiddleware, async (c) => {
+  try {
+    const { env } = c;
+    const user = c.get('user') as User;
+    const currentRegion = c.get('currentRegion') as RegionId;
+    const memberId = c.req.param('memberId');
+    
+    // 権限チェック
+    if (user.role === 'student' && user.memberId !== memberId) {
+      return c.json({ error: 'Access denied to other member cards' }, 403);
+    }
+    
+    if (user.role === 'company_admin') {
+      // 自社メンバーのみアクセス可能
+      const notionService = createNotionService(env);
+      const member = await notionService.getMemberById(currentRegion, memberId);
+      if (!member || member.companyId !== user.companyId) {
+        return c.json({ error: 'Access denied to member card' }, 403);
+      }
+    }
+    
+    const notionService = createNotionService(env);
+    
+    // メンバーカルテデータを並行取得
+    const [memberCard, personalSurveys, classAssignment] = await Promise.all([
+      notionService.getMemberCard(currentRegion, memberId),
+      notionService.getPersonalSurveys(currentRegion, memberId),
+      notionService.getClassAssignment(currentRegion)
+    ]);
+    
+    if (!memberCard) {
+      return c.json({ error: 'Member card not found' }, 404);
+    }
+    
+    // アンケート分析データを取得
+    const surveyAnalytics = await notionService.calculateSurveyAnalytics(currentRegion);
+    
+    // メンバーのクラス・チーム情報を取得
+    const memberAssignment = classAssignment?.assignments.find(a => a.memberId === memberId);
+    
+    // アンケート比較データを計算
+    const surveyComparisons = personalSurveys.length > 0 && surveyAnalytics
+      ? AuthService.calculateMemberSurveyComparisons(personalSurveys, surveyAnalytics, user.role)
+      : memberCard.surveyComparisons;
+    
+    const responseData = {
+      ...memberCard,
+      personalSurveys,
+      surveyComparisons,
+      classAssignment: memberAssignment,
+      // データマスキング: ロール別に表示内容を制御
+      secretariatComments: user.role === 'student' 
+        ? memberCard.secretariatComments.filter(c => !c.isPrivate)
+        : memberCard.secretariatComments
+    };
+    
+    return c.json({
+      success: true,
+      data: responseData,
+      regionId: currentRegion
+    });
+  } catch (error) {
+    console.error('Error in /api/member-card:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+// クラス編成情報取得
+app.get('/api/class-assignments', authMiddleware, async (c) => {
+  try {
+    const { env } = c;
+    const user = c.get('user') as User;
+    const currentRegion = c.get('currentRegion') as RegionId;
+    const year = c.req.query('year') || new Date().getFullYear().toString();
+    
+    // 権限チェック（secretariat/ownerのみ全体編成を表示）
+    if (user.role === 'student' || user.role === 'company_admin') {
+      return c.json({ error: 'Access denied to class assignments' }, 403);
+    }
+    
+    const notionService = createNotionService(env);
+    const classAssignment = await notionService.getClassAssignment(currentRegion, year);
+    
+    if (!classAssignment) {
+      return c.json({ error: 'Class assignments not found' }, 404);
+    }
+    
+    return c.json({
+      success: true,
+      data: classAssignment,
+      regionId: currentRegion
+    });
+  } catch (error) {
+    console.error('Error in /api/class-assignments:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+// メンバーカルテ更新（secretariat/ownerのみ）
+app.put('/api/member-card/:memberId', authMiddleware, async (c) => {
+  try {
+    const { env } = c;
+    const user = c.get('user') as User;
+    const currentRegion = c.get('currentRegion') as RegionId;
+    const memberId = c.req.param('memberId');
+    
+    // 権限チェック
+    if (user.role !== 'secretariat' && user.role !== 'owner') {
+      return c.json({ error: 'Access denied to update member card' }, 403);
+    }
+    
+    const updateData = await c.req.json();
+    
+    // 実際の実装では、Notionページを更新
+    // const notionService = createNotionService(env);
+    // await notionService.updateMemberCard(currentRegion, memberId, updateData);
+    
+    return c.json({
+      success: true,
+      message: 'Member card updated successfully',
+      regionId: currentRegion
+    });
+  } catch (error) {
+    console.error('Error in /api/member-card update:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
+// アンケート分析統計取得（secretariat/ownerのみ）
+app.get('/api/survey-analytics', authMiddleware, async (c) => {
+  try {
+    const { env } = c;
+    const user = c.get('user') as User;
+    const currentRegion = c.get('currentRegion') as RegionId;
+    
+    // 権限チェック
+    if (user.role !== 'secretariat' && user.role !== 'owner') {
+      return c.json({ error: 'Access denied to survey analytics' }, 403);
+    }
+    
+    const notionService = createNotionService(env);
+    const analytics = await notionService.calculateSurveyAnalytics(currentRegion);
+    
+    return c.json({
+      success: true,
+      data: analytics,
+      regionId: currentRegion
+    });
+  } catch (error) {
+    console.error('Error in /api/survey-analytics:', error);
+    return c.json({ error: 'Internal server error' }, 500);
+  }
+});
+
 // 地域横断比較データ取得（owner/secretariatのみ）
 app.get('/api/cross-region-stats', authMiddleware, async (c) => {
   try {

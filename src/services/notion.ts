@@ -12,6 +12,11 @@ import type {
   Survey,
   Matching,
   HeroCandidate,
+  MemberCard,
+  PersonalSurveyData,
+  ClassAssignment,
+  ClassMember,
+  SurveyAnalytics,
   NotionDatabase,
   NotionPage,
   FilterParams,
@@ -805,5 +810,359 @@ export class NotionService {
   private calculateAverage(values: number[]): number {
     if (values.length === 0) return 0;
     return Math.round((values.reduce((sum, val) => sum + val, 0) / values.length) * 100) / 100;
+  }
+
+  // メンバーカルテ情報を取得
+  async getMemberCard(regionId: RegionId, memberId: string): Promise<MemberCard | null> {
+    try {
+      const filters = [
+        {
+          property: 'MemberID',
+          rich_text: {
+            equals: memberId
+          }
+        }
+      ];
+
+      const regionFilter = this.createRegionFilter(regionId);
+      if (regionFilter) filters.push(regionFilter);
+
+      const response = await this.notion.databases.query({
+        database_id: this.databases.privateMemberCards,
+        filter: this.createCompoundFilter(filters)
+      }) as NotionDatabase;
+
+      if (response.results.length === 0) return null;
+      return this.parseMemberCardFromNotion(response.results[0]);
+    } catch (error) {
+      console.error('Error fetching member card:', error);
+      return null;
+    }
+  }
+
+  // 個人アンケートデータを取得
+  async getPersonalSurveys(regionId: RegionId, memberId: string): Promise<PersonalSurveyData[]> {
+    try {
+      const filters = [
+        {
+          property: 'RespondentID',
+          rich_text: {
+            equals: memberId
+          }
+        },
+        {
+          property: 'RespondentType',
+          select: {
+            equals: 'student'
+          }
+        }
+      ];
+
+      const regionFilter = this.createRegionFilter(regionId);
+      if (regionFilter) filters.push(regionFilter);
+
+      const response = await this.notion.databases.query({
+        database_id: this.databases.privateSurveys,
+        filter: this.createCompoundFilter(filters),
+        sorts: [
+          {
+            property: 'SubmittedAt',
+            direction: 'descending'
+          }
+        ]
+      }) as NotionDatabase;
+
+      return response.results.map(page => this.parsePersonalSurveyFromNotion(page));
+    } catch (error) {
+      console.error('Error fetching personal surveys:', error);
+      return [];
+    }
+  }
+
+  // クラス編成情報を取得
+  async getClassAssignment(regionId: RegionId, year: string = new Date().getFullYear().toString()): Promise<ClassAssignment | null> {
+    try {
+      // 実際の実装では、クラス編成情報は別のデータベースまたは
+      // メンバーデータベースのプロパティから取得
+      const members = await this.getPublicMembers(regionId);
+      
+      // 日本語名前ソートとクラス編成のロジックを適用
+      const assignments = this.generateClassAssignments(regionId, members, year);
+      
+      return assignments;
+    } catch (error) {
+      console.error('Error fetching class assignment:', error);
+      return null;
+    }
+  }
+
+  // クラス編成を生成（3クラス・5人1チーム・五十音順）
+  private generateClassAssignments(regionId: RegionId, members: Member[], year: string): ClassAssignment {
+    // ひらがな変換とソート
+    const sortedMembers = members
+      .map(member => ({
+        ...member,
+        furigana: this.convertToHiragana(member.name)
+      }))
+      .sort((a, b) => a.furigana.localeCompare(b.furigana, 'ja'));
+
+    const assignments: ClassMember[] = [];
+    const membersPerClass = Math.ceil(sortedMembers.length / 3);
+
+    sortedMembers.forEach((member, index) => {
+      const classNumber = Math.floor(index / membersPerClass) + 1;
+      const positionInClass = index % membersPerClass;
+      const teamNumber = Math.floor(positionInClass / 5) + 1;
+      const attendanceNumber = positionInClass + 1;
+      
+      assignments.push({
+        memberId: member.id,
+        memberName: member.name,
+        furigana: member.furigana || this.convertToHiragana(member.name),
+        classNumber: Math.min(classNumber, 3), // 最大3クラス
+        teamNumber,
+        attendanceNumber,
+        companyId: member.companyId,
+        companyName: '' // 実際の実装では企業名を取得
+      });
+    });
+
+    return {
+      regionId,
+      year,
+      assignments,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      createdBy: 'system'
+    };
+  }
+
+  // 日本語名前をひらがなに変換（簡易版）
+  private convertToHiragana(name: string): string {
+    // カタカナからひらがなへの変換
+    return name.replace(/[\u30A1-\u30F6]/g, (match) => {
+      const code = match.charCodeAt(0) - 0x60;
+      return String.fromCharCode(code);
+    });
+  }
+
+  // アンケート分析統計を計算
+  async calculateSurveyAnalytics(regionId: RegionId): Promise<SurveyAnalytics | null> {
+    try {
+      const surveys = await this.getAllSurveys(regionId);
+      const members = await this.getPublicMembers(regionId);
+      
+      if (surveys.length === 0) return null;
+
+      // 統計計算のロジック
+      const analytics = this.computeSurveyStatistics(regionId, surveys, members);
+      
+      return analytics;
+    } catch (error) {
+      console.error('Error calculating survey analytics:', error);
+      return null;
+    }
+  }
+
+  // 全アンケートデータを取得（内部用）
+  private async getAllSurveys(regionId: RegionId): Promise<Survey[]> {
+    const filters = [];
+    const regionFilter = this.createRegionFilter(regionId);
+    if (regionFilter) filters.push(regionFilter);
+
+    const response = await this.notion.databases.query({
+      database_id: this.databases.privateSurveys,
+      filter: this.createCompoundFilter(filters)
+    }) as NotionDatabase;
+
+    return response.results.map(page => this.parseSurveyFromNotion(page));
+  }
+
+  // 統計計算（詳細実装）
+  private computeSurveyStatistics(regionId: RegionId, surveys: Survey[], members: Member[]): SurveyAnalytics {
+    // 統計計算のロジック実装
+    const surveyTypes = [...new Set(surveys.map(s => s.eventId || 'general'))];
+    
+    // 平均スコア計算
+    const averageScores: Record<string, number> = {};
+    const allScores: Record<string, number[]> = {};
+    
+    surveys.forEach(survey => {
+      Object.entries(survey.scores).forEach(([key, value]) => {
+        if (!allScores[key]) allScores[key] = [];
+        allScores[key].push(value);
+      });
+    });
+
+    Object.entries(allScores).forEach(([key, values]) => {
+      averageScores[key] = this.calculateAverage(values);
+    });
+
+    // パーセンタイル計算
+    const percentileRanges: Record<string, any> = {};
+    Object.entries(allScores).forEach(([key, values]) => {
+      const sorted = values.sort((a, b) => a - b);
+      percentileRanges[key] = {
+        p25: this.calculatePercentile(sorted, 25),
+        p50: this.calculatePercentile(sorted, 50),
+        p75: this.calculatePercentile(sorted, 75),
+        p90: this.calculatePercentile(sorted, 90)
+      };
+    });
+
+    return {
+      regionId,
+      analysisDate: new Date().toISOString(),
+      memberCount: members.length,
+      surveyTypes,
+      regionStats: {
+        averageScores,
+        medianScores: Object.fromEntries(
+          Object.entries(allScores).map(([key, values]) => [
+            key, 
+            this.calculatePercentile(values.sort((a, b) => a - b), 50)
+          ])
+        ),
+        standardDeviations: Object.fromEntries(
+          Object.entries(allScores).map(([key, values]) => [
+            key, 
+            this.calculateStandardDeviation(values)
+          ])
+        ),
+        percentileRanges
+      },
+      comparisonData: {
+        byCompany: {},
+        byHeroStep: {},
+        bySelectionType: {}
+      }
+    };
+  }
+
+  // パーセンタイル計算
+  private calculatePercentile(sortedValues: number[], percentile: number): number {
+    if (sortedValues.length === 0) return 0;
+    const index = (percentile / 100) * (sortedValues.length - 1);
+    if (Number.isInteger(index)) {
+      return sortedValues[index];
+    } else {
+      const lower = Math.floor(index);
+      const upper = Math.ceil(index);
+      const weight = index - lower;
+      return sortedValues[lower] * (1 - weight) + sortedValues[upper] * weight;
+    }
+  }
+
+  // 標準偏差計算
+  private calculateStandardDeviation(values: number[]): number {
+    if (values.length === 0) return 0;
+    const mean = this.calculateAverage(values);
+    const squaredDiffs = values.map(value => Math.pow(value - mean, 2));
+    const avgSquaredDiff = this.calculateAverage(squaredDiffs);
+    return Math.sqrt(avgSquaredDiff);
+  }
+
+  // NotionページからMemberCardオブジェクトをパース
+  private parseMemberCardFromNotion(page: NotionPage): MemberCard {
+    const props = page.properties;
+    
+    return {
+      id: page.id,
+      regionId: props.RegionID?.rich_text?.[0]?.text?.content || 'FUK',
+      memberId: props.MemberID?.rich_text?.[0]?.text?.content || '',
+      personalProfile: {
+        age: props.Age?.number || undefined,
+        birthPlace: props.BirthPlace?.rich_text?.[0]?.text?.content || undefined,
+        education: props.Education?.rich_text?.[0]?.text?.content || undefined,
+        skills: props.Skills?.multi_select?.map((s: any) => s.name) || [],
+        interests: props.Interests?.multi_select?.map((s: any) => s.name) || [],
+        careerGoals: props.CareerGoals?.rich_text?.[0]?.text?.content || undefined
+      },
+      personalSurveys: [], // 別途取得
+      surveyComparisons: {
+        memberPercentiles: {},
+        regionAverages: {},
+        overallAverages: {},
+        growthTrends: {},
+        lastCalculated: new Date().toISOString()
+      },
+      secretariatComments: this.parseSecretariatComments(props.SecretariatComments),
+      goals: this.parseGoals(props.Goals),
+      learningLogs: this.parseLearningLogs(props.LearningLogs),
+      lastUpdated: page.last_edited_time,
+      updatedBy: props.UpdatedBy?.rich_text?.[0]?.text?.content || 'system'
+    };
+  }
+
+  // NotionページからPersonalSurveyDataオブジェクトをパース
+  private parsePersonalSurveyFromNotion(page: NotionPage): PersonalSurveyData {
+    const props = page.properties;
+    
+    return {
+      id: page.id,
+      surveyType: this.mapSurveyType(props.SurveyType?.select?.name || 'general'),
+      surveyTitle: props.SurveyTitle?.title?.[0]?.text?.content || '',
+      submittedAt: props.SubmittedAt?.date?.start || page.created_time,
+      scores: this.parseScoresFromNotion(props.Scores),
+      textResponses: this.parseTextResponsesFromNotion(props.TextResponses),
+      npsScore: props.NPSScore?.number || undefined,
+      overallSatisfaction: props.OverallSatisfaction?.number || undefined
+    };
+  }
+
+  // アンケートタイプをマッピング
+  private mapSurveyType(type: string): 'pre_program' | 'mid_program' | 'post_program' | 'monthly' | 'event_specific' {
+    switch (type) {
+      case 'プログラム前':
+        return 'pre_program';
+      case 'プログラム中間':
+        return 'mid_program';
+      case 'プログラム後':
+        return 'post_program';
+      case '月次':
+        return 'monthly';
+      case 'イベント固有':
+        return 'event_specific';
+      default:
+        return 'monthly';
+    }
+  }
+
+  // スコアをパース（JSON形式から変換）
+  private parseScoresFromNotion(scoresProperty: any): Record<string, number> {
+    if (!scoresProperty?.rich_text?.[0]?.text?.content) return {};
+    try {
+      return JSON.parse(scoresProperty.rich_text[0].text.content);
+    } catch {
+      return {};
+    }
+  }
+
+  // テキスト回答をパース（JSON形式から変換）
+  private parseTextResponsesFromNotion(textProperty: any): Record<string, string> {
+    if (!textProperty?.rich_text?.[0]?.text?.content) return {};
+    try {
+      return JSON.parse(textProperty.rich_text[0].text.content);
+    } catch {
+      return {};
+    }
+  }
+
+  // 事務局コメントをパース（簡易版）
+  private parseSecretariatComments(commentsProperty: any): any[] {
+    // 実際の実装では、コメントの詳細構造をパース
+    return [];
+  }
+
+  // 目標をパース（簡易版）
+  private parseGoals(goalsProperty: any): any[] {
+    // 実際の実装では、目標の詳細構造をパース
+    return [];
+  }
+
+  // 学習ログをパース（簡易版）
+  private parseLearningLogs(logsProperty: any): any[] {
+    // 実際の実装では、ログの詳細構造をパース
+    return [];
   }
 }
