@@ -3,6 +3,7 @@
  */
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
+import { ClientProviders } from '@/components/providers/client-providers'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -42,7 +43,9 @@ export default function RootLayout({
   return (
     <html lang="ja" className="h-full">
       <body className={`${inter.className} h-full antialiased`}>
-        {children}
+        <ClientProviders>
+          {children}
+        </ClientProviders>
       </body>
     </html>
   )

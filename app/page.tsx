@@ -6,6 +6,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useAuth } from '@/lib/auth/auth-context'
 
 interface DashboardStats {
   total_users: number
@@ -19,6 +20,7 @@ interface DashboardStats {
 export default function HomePage() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
+  const { isAuthenticated, isLoading, user } = useAuth()
 
   useEffect(() => {
     // Mock data for demonstration
@@ -67,9 +69,26 @@ export default function HomePage() {
               </Link>
             </nav>
             <div className="flex items-center space-x-4">
-              <button className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700">
-                ログイン
-              </button>
+              {isLoading ? (
+                <div className="w-16 h-8 bg-gray-200 animate-pulse rounded"></div>
+              ) : isAuthenticated ? (
+                <div className="flex items-center space-x-3">
+                  <span className="text-sm text-gray-600">こんにちは、{user?.name}さん</span>
+                  <Link 
+                    href="/dashboard" 
+                    className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
+                  >
+                    ダッシュボード
+                  </Link>
+                </div>
+              ) : (
+                <Link 
+                  href="/auth/login" 
+                  className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
+                >
+                  ログイン
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -84,12 +103,37 @@ export default function HomePage() {
             デジタル学習管理システムで、効率的な学習体験を提供します
           </p>
           <div className="flex space-x-4">
-            <button className="bg-white text-blue-600 px-6 py-3 rounded-md font-medium hover:bg-gray-100">
-              今すぐ開始
-            </button>
-            <button className="border border-white text-white px-6 py-3 rounded-md font-medium hover:bg-white hover:text-blue-600">
-              詳細を見る
-            </button>
+            {isAuthenticated ? (
+              <>
+                <Link 
+                  href="/dashboard" 
+                  className="bg-white text-blue-600 px-6 py-3 rounded-md font-medium hover:bg-gray-100 transition-colors"
+                >
+                  ダッシュボードへ
+                </Link>
+                <Link 
+                  href="/profile" 
+                  className="border border-white text-white px-6 py-3 rounded-md font-medium hover:bg-white hover:text-blue-600 transition-colors"
+                >
+                  プロフィール
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link 
+                  href="/auth/login" 
+                  className="bg-white text-blue-600 px-6 py-3 rounded-md font-medium hover:bg-gray-100 transition-colors"
+                >
+                  今すぐ開始
+                </Link>
+                <Link 
+                  href="/auth/signup" 
+                  className="border border-white text-white px-6 py-3 rounded-md font-medium hover:bg-white hover:text-blue-600 transition-colors"
+                >
+                  新規登録
+                </Link>
+              </>
+            )}
           </div>
         </div>
 
