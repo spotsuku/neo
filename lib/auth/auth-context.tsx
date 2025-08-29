@@ -159,20 +159,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setAuthState(prev => ({ ...prev, isLoading: true }))
       
-      const response = await fetch('/api/auth/signup', {
+      const requestBody: any = { ...userData }
+      
+      // 招待コードが空でない場合のみ追加
+      if (invitationCode && invitationCode.trim()) {
+        requestBody.invitation_code = invitationCode.trim()
+      }
+      
+      const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          invitation_code: invitationCode,
-          ...userData
-        })
+        body: JSON.stringify(requestBody)
       })
 
       const result = await response.json()
 
       if (response.ok && result.success) {
-        setTokens(result.data.access_token, result.data.refresh_token)
-        updateAuthState(result.data.user)
+        setTokens(result.tokens.access_token, result.tokens.refresh_token)
+        updateAuthState(result.user)
         return { success: true }
       } else {
         updateAuthState(null)

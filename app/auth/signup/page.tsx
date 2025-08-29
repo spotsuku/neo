@@ -76,9 +76,10 @@ export default function SignupPage() {
   const validateForm = (): FormErrors => {
     const newErrors: FormErrors = {}
 
-    if (!formData.invitationCode.trim()) {
-      newErrors.invitationCode = '招待コードを入力してください'
-    }
+    // 招待コードは任意項目
+    // if (!formData.invitationCode.trim()) {
+    //   newErrors.invitationCode = '招待コードを入力してください'
+    // }
 
     if (!formData.name.trim()) {
       newErrors.name = '名前を入力してください'
@@ -121,7 +122,7 @@ export default function SignupPage() {
     setErrors({})
 
     try {
-      const result = await signup(formData.invitationCode, {
+      const result = await signup(formData.invitationCode.trim(), {
         name: formData.name.trim(),
         email: formData.email.trim(),
         password: formData.password
@@ -167,7 +168,7 @@ export default function SignupPage() {
           <CardHeader>
             <CardTitle className="text-center">アカウント作成</CardTitle>
             <CardDescription className="text-center">
-              招待コードを使用してアカウントを作成します
+              必要な情報を入力してアカウントを作成します
             </CardDescription>
           </CardHeader>
           
@@ -183,19 +184,23 @@ export default function SignupPage() {
 
               {/* 招待コード */}
               <div>
-                <Label htmlFor="invitationCode">招待コード</Label>
+                <Label htmlFor="invitationCode">招待コード（任意）</Label>
                 <Input
                   id="invitationCode"
                   type="text"
                   value={formData.invitationCode}
                   onChange={(e) => handleInputChange('invitationCode', e.target.value)}
-                  placeholder="招待コードを入力"
+                  placeholder="お持ちの場合は招待コードを入力"
                   aria-invalid={!!errors.invitationCode}
-                  aria-describedby={errors.invitationCode ? 'invitation-error' : undefined}
+                  aria-describedby={errors.invitationCode ? 'invitation-error' : 'invitation-help'}
                   className={errors.invitationCode ? 'border-red-500 focus-visible:ring-red-500' : ''}
                 />
-                {errors.invitationCode && (
+                {errors.invitationCode ? (
                   <p id="invitation-error" className="text-sm text-red-600 mt-1">{errors.invitationCode}</p>
+                ) : (
+                  <p id="invitation-help" className="text-xs text-gray-600 mt-1">
+                    招待コードをお持ちの場合は入力してください。空欄でも登録可能です。
+                  </p>
                 )}
               </div>
 
