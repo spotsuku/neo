@@ -9,8 +9,17 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "neo-platform-db",
+      "database_name": "webapp-production",
       "database_id": "local-development-db"
+    }
+  ],
+
+  // R2 Object Storage Configuration
+  "r2_buckets": [
+    {
+      "binding": "R2",
+      "bucket_name": "neo-platform-files",
+      "preview_bucket_name": "neo-platform-files-dev"
     }
   ]
 }

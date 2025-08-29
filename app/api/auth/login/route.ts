@@ -1,185 +1,408 @@
-// NEO Digital Platform - ログインAPI
+// NEO Digital Platform - User Login API
 // POST /api/auth/login
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { z } from 'zod';
-import { UserService } from '@/lib/database';
-import { generateJWT, verifyPassword } from '@/lib/auth';
-import type { LoginRequest, LoginResponse } from '@/types/database';
+import { getDbService } from '@/lib/db';
+import { AuthService } from '@/lib/auth-enhanced';
+import { 
+  verifyPassword, 
+  TOTPService,
+  RateLimitService, 
+  SecurityLogger,
+  getClientIP,
+  setSecurityHeaders
+} from '@/lib/security';
 
 // リクエストバリデーションスキーマ
 const loginSchema = z.object({
   email: z.string().email('有効なメールアドレスを入力してください'),
-  password: z.string() // 開発用：パスワード長制限なし
+  password: z.string().min(1, 'パスワードを入力してください'),
+  totp_token: z.string().length(6, 'TOTPトークンは6桁である必要があります').optional(),
+  remember_me: z.boolean().default(false),
 });
 
-// モック D1 データベース（開発用）
-const mockDB = {
-  prepare: (sql: string) => ({
-    bind: (...params: any[]) => ({
-      first: async () => {
-        // 開発用のモックユーザーデータ
-        if (sql.includes('SELECT * FROM users WHERE email = ?')) {
-          const email = params[0];
-          if (email === 'admin@neo-fukuoka.jp') {
-            return {
-              id: 'user_admin001',
-              email: 'admin@neo-fukuoka.jp',
-              password_hash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', // 空文字のハッシュ（開発用）
-              name: '福岡管理者',
-              role: 'owner',
-              region_id: 'FUK',
-              accessible_regions: '["FUK","ISK","NIG"]',
-              profile_image: null,
-              is_active: true,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            };
-          }
-          if (email === 'company1@example.com') {
-            return {
-              id: 'user_comp001',
-              email: 'company1@example.com',
-              password_hash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
-              name: '田中企業管理者',
-              role: 'company_admin',
-              region_id: 'FUK',
-              accessible_regions: '["FUK"]',
-              profile_image: null,
-              is_active: true,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            };
-          }
-          if (email === 'student1@example.com') {
-            return {
-              id: 'user_stu001',
-              email: 'student1@example.com',
-              password_hash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
-              name: '山田学生',
-              role: 'student',
-              region_id: 'FUK',
-              accessible_regions: '["FUK"]',
-              profile_image: null,
-              is_active: true,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            };
-          }
-        }
-        return null;
-      }
-    })
-  })
-};
+type LoginRequest = z.infer<typeof loginSchema>;
 
-export async function POST(request: NextRequest) {
+interface CloudflareBindings {
+  DB: D1Database;
+}
+
+export const POST = async (request: NextRequest) => {
+  const env = process.env as any as CloudflareBindings;
+  
+  if (!env.DB) {
+    return setSecurityHeaders(new Response(
+      JSON.stringify({ 
+        error: 'DATABASE_UNAVAILABLE', 
+        message: 'データベースに接続できません' 
+      }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    ));
+  }
+
+  const db = getDbService(env.DB);
+  const authService = new AuthService(env.DB);
+  const rateLimitService = new RateLimitService(env.DB);
+  const securityLogger = new SecurityLogger(env.DB);
+  const clientIP = getClientIP(request);
+
   try {
     // リクエストボディ解析
-    const body = await request.json();
-    
+    let body: LoginRequest;
+    try {
+      body = await request.json();
+    } catch {
+      return setSecurityHeaders(new Response(
+        JSON.stringify({ 
+          error: 'INVALID_JSON', 
+          message: '無効なJSONデータです' 
+        }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      ));
+    }
+
     // バリデーション
     const result = loginSchema.safeParse(body);
     if (!result.success) {
-      return NextResponse.json(
-        { 
+      return setSecurityHeaders(new Response(
+        JSON.stringify({
           error: 'VALIDATION_ERROR',
-          message: '入力データが無効です',
-          details: result.error.errors
-        },
-        { status: 400 }
-      );
+          message: 'バリデーションエラーが発生しました',
+          details: result.error.issues.map(issue => ({
+            field: issue.path.join('.'),
+            message: issue.message
+          }))
+        }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      ));
     }
 
-    const { email, password } = result.data;
+    const { email, password, totp_token, remember_me } = result.data;
+    const emailLower = email.toLowerCase();
 
-    // ユーザー検索
-    const userService = new UserService(mockDB as any);
-    const user = await userService.getUserByEmail(email);
+    // IPレート制限チェック (IP: 10回/15分)
+    const ipRateLimit = await rateLimitService.checkRateLimit(
+      'ip', 
+      clientIP || 'unknown', 
+      '/auth/login', 
+      10, 
+      15
+    );
 
+    if (!ipRateLimit.allowed) {
+      await securityLogger.log({
+        action: 'LOGIN_RATE_LIMITED_IP',
+        ipAddress: clientIP,
+        userAgent: request.headers.get('user-agent'),
+        details: { email: emailLower },
+        riskLevel: 'HIGH'
+      });
+
+      return setSecurityHeaders(new Response(
+        JSON.stringify({
+          error: 'RATE_LIMIT_EXCEEDED',
+          message: `ログイン試行回数が上限を超えました。${ipRateLimit.resetAt.toLocaleString('ja-JP')}後にお試しください`,
+          resetAt: ipRateLimit.resetAt.toISOString()
+        }),
+        { status: 429, headers: { 'Content-Type': 'application/json' } }
+      ));
+    }
+
+    // メールレート制限チェック (メール: 5回/15分)
+    const emailRateLimit = await rateLimitService.checkRateLimit(
+      'email',
+      emailLower,
+      '/auth/login',
+      5,
+      15
+    );
+
+    if (!emailRateLimit.allowed) {
+      await securityLogger.log({
+        action: 'LOGIN_RATE_LIMITED_EMAIL',
+        ipAddress: clientIP,
+        userAgent: request.headers.get('user-agent'),
+        details: { email: emailLower },
+        riskLevel: 'HIGH'
+      });
+
+      return setSecurityHeaders(new Response(
+        JSON.stringify({
+          error: 'ACCOUNT_RATE_LIMIT',
+          message: 'このアカウントのログイン試行回数が上限を超えました'
+        }),
+        { status: 429, headers: { 'Content-Type': 'application/json' } }
+      ));
+    }
+
+    // ユーザー情報取得
+    const user = await db.getUserByEmail(emailLower);
     if (!user) {
-      return NextResponse.json(
-        { 
+      await securityLogger.log({
+        action: 'LOGIN_USER_NOT_FOUND',
+        ipAddress: clientIP,
+        userAgent: request.headers.get('user-agent'),
+        details: { email: emailLower },
+        riskLevel: 'MEDIUM'
+      });
+
+      return setSecurityHeaders(new Response(
+        JSON.stringify({
           error: 'INVALID_CREDENTIALS',
           message: 'メールアドレスまたはパスワードが間違っています'
-        },
-        { status: 401 }
-      );
+        }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      ));
     }
 
-    // アクティブユーザーチェック
+    // アカウント無効・ロックチェック
     if (!user.is_active) {
-      return NextResponse.json(
-        { 
+      await securityLogger.log({
+        userId: user.id,
+        action: 'LOGIN_ACCOUNT_DISABLED',
+        ipAddress: clientIP,
+        userAgent: request.headers.get('user-agent'),
+        details: { email: emailLower },
+        riskLevel: 'MEDIUM'
+      });
+
+      return setSecurityHeaders(new Response(
+        JSON.stringify({
           error: 'ACCOUNT_DISABLED',
           message: 'アカウントが無効化されています'
-        },
-        { status: 401 }
-      );
+        }),
+        { status: 403, headers: { 'Content-Type': 'application/json' } }
+      ));
     }
 
-    // パスワード検証（開発用：空文字で認証成功）
-    const isValidPassword = password === '' || await verifyPassword(password, user.password_hash);
-    
-    if (!isValidPassword) {
-      return NextResponse.json(
-        { 
+    // アカウントロック状態チェック
+    if (user.locked_until && new Date(user.locked_until) > new Date()) {
+      await securityLogger.log({
+        userId: user.id,
+        action: 'LOGIN_ACCOUNT_LOCKED',
+        ipAddress: clientIP,
+        userAgent: request.headers.get('user-agent'),
+        details: { 
+          email: emailLower,
+          lockedUntil: user.locked_until
+        },
+        riskLevel: 'MEDIUM'
+      });
+
+      return setSecurityHeaders(new Response(
+        JSON.stringify({
+          error: 'ACCOUNT_LOCKED',
+          message: `アカウントがロックされています。${new Date(user.locked_until).toLocaleString('ja-JP')}後にお試しください`,
+          lockedUntil: user.locked_until
+        }),
+        { status: 423, headers: { 'Content-Type': 'application/json' } }
+      ));
+    }
+
+    // パスワード検証
+    const isPasswordValid = await verifyPassword(password, user.password_hash);
+    if (!isPasswordValid) {
+      // ログイン試行回数をインクリメント
+      const newAttempts = (user.login_attempts || 0) + 1;
+      const shouldLock = newAttempts >= 5;
+
+      await env.DB.prepare(`
+        UPDATE users 
+        SET login_attempts = ?, 
+            locked_until = ${shouldLock ? 'datetime("now", "+30 minutes")' : 'NULL'}
+        WHERE id = ?
+      `).bind(newAttempts, user.id).run();
+
+      await securityLogger.log({
+        userId: user.id,
+        action: shouldLock ? 'LOGIN_ACCOUNT_LOCKED_ATTEMPTS' : 'LOGIN_INVALID_PASSWORD',
+        ipAddress: clientIP,
+        userAgent: request.headers.get('user-agent'),
+        details: { 
+          email: emailLower,
+          attempts: newAttempts,
+          locked: shouldLock
+        },
+        riskLevel: shouldLock ? 'HIGH' : 'MEDIUM'
+      });
+
+      return setSecurityHeaders(new Response(
+        JSON.stringify({
           error: 'INVALID_CREDENTIALS',
-          message: 'メールアドレスまたはパスワードが間違っています'
-        },
-        { status: 401 }
-      );
+          message: shouldLock 
+            ? 'パスワードが間違っています。アカウントが30分間ロックされました'
+            : 'メールアドレスまたはパスワードが間違っています'
+        }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      ));
     }
 
-    // JWT トークン生成
-    const token = await generateJWT({
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      region_id: user.region_id,
-      accessible_regions: user.accessible_regions,
-      profile_image: user.profile_image
-    });
+    // TOTP設定確認
+    const totpConfig = await env.DB.prepare(`
+      SELECT * FROM user_totp WHERE user_id = ? AND is_enabled = 1
+    `).bind(user.id).first<any>();
 
-    // レスポンス生成
-    const loginResponse: LoginResponse = {
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-        region_id: user.region_id,
-        accessible_regions: user.accessible_regions,
-        profile_image: user.profile_image,
-        is_active: user.is_active,
-        created_at: user.created_at,
-        updated_at: user.updated_at
+    let totpVerified = false;
+
+    if (totpConfig) {
+      // TOTP必須、トークンが提供されていない場合
+      if (!totp_token) {
+        await securityLogger.log({
+          userId: user.id,
+          action: 'LOGIN_TOTP_REQUIRED',
+          ipAddress: clientIP,
+          userAgent: request.headers.get('user-agent'),
+          details: { email: emailLower },
+          riskLevel: 'LOW'
+        });
+
+        return setSecurityHeaders(new Response(
+          JSON.stringify({
+            error: 'TOTP_REQUIRED',
+            message: '2段階認証コードを入力してください',
+            requires_totp: true
+          }),
+          { status: 428, headers: { 'Content-Type': 'application/json' } }
+        ));
+      }
+
+      // TOTPトークン検証
+      const isTokenValid = TOTPService.verifyToken(totp_token, totpConfig.secret_key);
+      if (!isTokenValid) {
+        await securityLogger.log({
+          userId: user.id,
+          action: 'LOGIN_INVALID_TOTP',
+          ipAddress: clientIP,
+          userAgent: request.headers.get('user-agent'),
+          details: { email: emailLower },
+          riskLevel: 'HIGH'
+        });
+
+        return setSecurityHeaders(new Response(
+          JSON.stringify({
+            error: 'INVALID_TOTP',
+            message: '2段階認証コードが間違っています'
+          }),
+          { status: 401, headers: { 'Content-Type': 'application/json' } }
+        ));
+      }
+
+      totpVerified = true;
+
+      // TOTP使用カウンター更新（リプレイ攻撃防止）
+      await env.DB.prepare(`
+        UPDATE user_totp 
+        SET last_used_counter = last_used_counter + 1 
+        WHERE user_id = ?
+      `).bind(user.id).run();
+    }
+
+    // ログイン成功：試行回数リセット、最終ログイン更新
+    await env.DB.prepare(`
+      UPDATE users 
+      SET login_attempts = 0, 
+          locked_until = NULL,
+          last_login_at = datetime('now')
+      WHERE id = ?
+    `).bind(user.id).run();
+
+    // セッション作成
+    const sessionId = await authService.createSession(
+      user.id,
+      request.headers.get('user-agent') || 'Unknown',
+      clientIP
+    );
+
+    // トークン生成
+    const accessToken = await authService.generateAccessToken(user, sessionId, totpVerified);
+    const refreshToken = await authService.generateRefreshToken(user, sessionId);
+
+    // レート制限リセット（成功時）
+    await rateLimitService.resetRateLimit('email', emailLower, '/auth/login');
+
+    // セキュリティログ記録
+    await securityLogger.log({
+      userId: user.id,
+      action: 'LOGIN_SUCCESS',
+      ipAddress: clientIP,
+      userAgent: request.headers.get('user-agent'),
+      details: { 
+        email: emailLower,
+        totpUsed: totpVerified,
+        rememberMe: remember_me
       },
-      token,
-      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
-    };
-
-    // HTTPOnlyクッキーでトークンを設定
-    const response = NextResponse.json(loginResponse);
-    response.cookies.set('neo-auth-token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60, // 7日間
-      path: '/'
+      riskLevel: 'LOW'
     });
 
-    return response;
+    const accessibleRegions = typeof user.accessible_regions === 'string' 
+      ? JSON.parse(user.accessible_regions) 
+      : user.accessible_regions;
+
+    const cookieMaxAge = remember_me ? 604800 : 900; // 7日 or 15分
+
+    const response = new Response(
+      JSON.stringify({
+        success: true,
+        message: 'ログインに成功しました',
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          region_id: user.region_id,
+          accessible_regions: accessibleRegions,
+          totp_enabled: !!totpConfig,
+          totp_verified: totpVerified,
+          email_verified: user.email_verified || false,
+          last_login_at: user.last_login_at
+        },
+        tokens: {
+          access_token: accessToken,
+          refresh_token: refreshToken,
+          expires_in: 900 // 15分
+        }
+      }),
+      {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Set-Cookie': `neo-auth-token=${accessToken}; HttpOnly; Secure; SameSite=Lax; Max-Age=${cookieMaxAge}; Path=/`
+        }
+      }
+    );
+
+    return setSecurityHeaders(response);
 
   } catch (error) {
-    console.error('Login API error:', error);
-    return NextResponse.json(
-      { 
+    console.error('Login error:', error);
+    
+    await securityLogger.log({
+      action: 'LOGIN_ERROR',
+      ipAddress: clientIP,
+      userAgent: request.headers.get('user-agent'),
+      details: { error: String(error) },
+      riskLevel: 'HIGH'
+    });
+
+    return setSecurityHeaders(new Response(
+      JSON.stringify({
         error: 'INTERNAL_ERROR',
-        message: 'ログイン処理中にエラーが発生しました'
-      },
-      { status: 500 }
-    );
+        message: 'ログイン中にエラーが発生しました'
+      }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    ));
   }
-}
+};
+
+// OPTIONS method for CORS
+export const OPTIONS = async () => {
+  return setSecurityHeaders(new Response(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Max-Age': '86400',
+    },
+  }));
+};
