@@ -13,7 +13,8 @@ import {
   MapPin,
   User,
   Edit,
-  Trash2
+  Trash2,
+  Megaphone
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -116,7 +117,7 @@ export default function AnnouncementsPage() {
   };
 
   // 作成権限チェック
-  const canCreate = user && ['owner', 'secretariat', 'company_admin'].includes(user.role as string);
+  const canCreate = user && ['owner', 'secretariat', 'company_admin'].includes(user.role as unknown as string);
 
   if (loading) {
     return (

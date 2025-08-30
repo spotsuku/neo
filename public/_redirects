@@ -1,0 +1,33 @@
+# Cloudflare Pages専用リダイレクト設定
+# https://developers.cloudflare.com/pages/platform/redirects/
+
+# API routes - Next.js API routesへのプロキシ
+/api/* /.netlify/functions/api/:splat 200
+
+# 管理画面アクセス制御（本番環境では適切な認証を実装）
+/admin /admin/login 302
+
+# レガシーURL対応
+/dashboard /admin 301
+/manage /admin 301
+/control /admin 301
+
+# WWWドメイン正規化（必要に応じて設定）
+# https://www.your-domain.com/* https://your-domain.com/:splat 301!
+
+# HTTPからHTTPSへのリダイレクト（Cloudflareで自動処理されるため通常不要）
+# http://your-domain.com/* https://your-domain.com/:splat 301!
+
+# 古いAPI endpoints
+/v1/api/* /api/:splat 301
+/old-api/* /api/:splat 301
+
+# 画像パス正規化
+/assets/images/* /images/:splat 301
+/static/images/* /images/:splat 301
+
+# ファイルダウンロード
+/downloads/* /api/files/:splat 200
+
+# 404 fallback - SPAサポート
+/* /index.html 200

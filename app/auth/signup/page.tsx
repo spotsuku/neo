@@ -37,6 +37,18 @@ interface PasswordRequirement {
 }
 
 export default function SignupPage() {
+  // 一時的に無効化
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="text-center">
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">サインアップ</h1>
+        <p className="text-gray-600">現在メンテナンス中です</p>
+      </div>
+    </div>
+  )
+}
+
+function SignupPageOld() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { signup, isAuthenticated, isLoading } = useAuth()

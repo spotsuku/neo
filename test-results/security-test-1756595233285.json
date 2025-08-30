@@ -1,0 +1,466 @@
+{
+  "timestamp": "2025-08-30T23:07:13.285Z",
+  "summary": {
+    "total_tests": 62,
+    "passed_tests": 54,
+    "failed_tests": 8,
+    "success_rate": "87.10"
+  },
+  "vulnerabilities": {
+    "total": 8,
+    "by_severity": {
+      "high": 2,
+      "medium": 4,
+      "low": 2
+    },
+    "list": [
+      {
+        "id": "8580d2ea-4b6f-4eda-82a4-3d705ada50a6",
+        "severity": "high",
+        "category": "authentication",
+        "title": "認証なしでの保護リソースアクセス",
+        "description": "保護されるべきパス /admin/dashboard に認証なしでアクセス可能: HTTP 404",
+        "evidence": null,
+        "timestamp": "2025-08-30T23:07:08.968Z"
+      },
+      {
+        "id": "c9ad03e1-61f5-452e-91c6-7b5c32d13445",
+        "severity": "medium",
+        "category": "xss",
+        "title": "クロスサイトスクリプティング脆弱性",
+        "description": "エンドポイント /api/search でXSS脆弱性を検出",
+        "evidence": "'; alert('XSS'); //",
+        "timestamp": "2025-08-30T23:07:11.976Z"
+      },
+      {
+        "id": "29f2cac0-df65-41b5-a39c-58d29dda9410",
+        "severity": "medium",
+        "category": "headers",
+        "title": "セキュリティヘッダー不足: strict-transport-security",
+        "description": "HTTPS強制のためのHSTSヘッダーが不足",
+        "evidence": null,
+        "timestamp": "2025-08-30T23:07:13.206Z"
+      },
+      {
+        "id": "95789e59-4c63-48db-8be8-4cb4a714a7ab",
+        "severity": "high",
+        "category": "headers",
+        "title": "セキュリティヘッダー不足: content-security-policy",
+        "description": "XSS防止のためのCSPヘッダーが不足",
+        "evidence": null,
+        "timestamp": "2025-08-30T23:07:13.206Z"
+      },
+      {
+        "id": "09c15ea0-be7a-4bd6-b2e0-a0d704f51137",
+        "severity": "medium",
+        "category": "headers",
+        "title": "セキュリティヘッダー不足: x-content-type-options",
+        "description": "MIMEタイプスニッフィング防止ヘッダーが不足",
+        "evidence": null,
+        "timestamp": "2025-08-30T23:07:13.206Z"
+      },
+      {
+        "id": "f63c9d15-ecbd-4d2a-828f-291b3eb1ed57",
+        "severity": "medium",
+        "category": "headers",
+        "title": "セキュリティヘッダー不足: x-frame-options",
+        "description": "クリックジャッキング防止ヘッダーが不足",
+        "evidence": null,
+        "timestamp": "2025-08-30T23:07:13.206Z"
+      },
+      {
+        "id": "2ee57ca7-4988-4ce3-827c-0305556c96e6",
+        "severity": "low",
+        "category": "headers",
+        "title": "セキュリティヘッダー不足: x-xss-protection",
+        "description": "XSS保護ヘッダーが不足",
+        "evidence": null,
+        "timestamp": "2025-08-30T23:07:13.206Z"
+      },
+      {
+        "id": "31e5a290-a4ba-4cdc-8d52-0aaf1181cff9",
+        "severity": "low",
+        "category": "headers",
+        "title": "セキュリティヘッダー不足: referrer-policy",
+        "description": "リファラーポリシーヘッダーが不足",
+        "evidence": null,
+        "timestamp": "2025-08-30T23:07:13.206Z"
+      }
+    ]
+  },
+  "test_results": [
+    {
+      "test": "Auth check: /admin/dashboard",
+      "passed": false,
+      "details": 404,
+      "timestamp": "2025-08-30T23:07:08.980Z"
+    },
+    {
+      "test": "Auth check: /api/monitoring/dashboard",
+      "passed": true,
+      "details": 401,
+      "timestamp": "2025-08-30T23:07:09.308Z"
+    },
+    {
+      "test": "Invalid token: invalid-token",
+      "passed": true,
+      "details": null,
+      "timestamp": "2025-08-30T23:07:09.360Z"
+    },
+    {
+      "test": "Invalid token: Bearer invalid",
+      "passed": true,
+      "details": null,
+      "timestamp": "2025-08-30T23:07:09.411Z"
+    },
+    {
+      "test": "Invalid token: Bearer ",
+      "passed": true,
+      "details": null,
+      "timestamp": "2025-08-30T23:07:09.460Z"
+    },
+    {
+      "test": "Invalid token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.invalid",
+      "passed": true,
+      "details": null,
+      "timestamp": "2025-08-30T23:07:09.512Z"
+    },
+    {
+      "test": "Invalid token: null",
+      "passed": true,
+      "details": null,
+      "timestamp": "2025-08-30T23:07:09.565Z"
+    },
+    {
+      "test": "Invalid token: undefined",
+      "passed": true,
+      "details": null,
+      "timestamp": "2025-08-30T23:07:09.614Z"
+    },
+    {
+      "test": "SQL injection: /api/search",
+      "passed": true,
+      "details": "' OR 1=1 --",
+      "timestamp": "2025-08-30T23:07:09.762Z"
+    },
+    {
+      "test": "SQL injection: /api/search",
+      "passed": true,
+      "details": "' UNION SELECT * FROM users --",
+      "timestamp": "2025-08-30T23:07:09.917Z"
+    },
+    {
+      "test": "SQL injection: /api/search",
+      "passed": true,
+      "details": "'; DROP TABLE users; --",
+      "timestamp": "2025-08-30T23:07:10.065Z"
+    },
+    {
+      "test": "SQL injection: /api/search",
+      "passed": true,
+      "details": "1' OR '1'='1",
+      "timestamp": "2025-08-30T23:07:10.227Z"
+    },
+    {
+      "test": "SQL injection: /api/search",
+      "passed": true,
+      "details": "admin'/*",
+      "timestamp": "2025-08-30T23:07:10.367Z"
+    },
+    {
+      "test": "SQL injection: /api/search",
+      "passed": true,
+      "details": "' OR 'x'='x",
+      "timestamp": "2025-08-30T23:07:10.540Z"
+    },
+    {
+      "test": "SQL injection: /api/search",
+      "passed": true,
+      "details": "1'; WAITFOR DELAY '00:00:05' --",
+      "timestamp": "2025-08-30T23:07:10.703Z"
+    },
+    {
+      "test": "XSS: /api/search",
+      "passed": true,
+      "details": "<script>alert(\"XSS\")</script>",
+      "timestamp": "2025-08-30T23:07:10.870Z"
+    },
+    {
+      "test": "XSS: /api/search",
+      "passed": true,
+      "details": "<img src=x onerror=alert(\"XSS\")>",
+      "timestamp": "2025-08-30T23:07:11.411Z"
+    },
+    {
+      "test": "XSS: /api/search",
+      "passed": true,
+      "details": "javascript:alert(\"XSS\")",
+      "timestamp": "2025-08-30T23:07:11.559Z"
+    },
+    {
+      "test": "XSS: /api/search",
+      "passed": true,
+      "details": "<svg onload=alert(\"XSS\")>",
+      "timestamp": "2025-08-30T23:07:11.691Z"
+    },
+    {
+      "test": "XSS: /api/search",
+      "passed": true,
+      "details": "\"><script>alert(\"XSS\")</script>",
+      "timestamp": "2025-08-30T23:07:11.831Z"
+    },
+    {
+      "test": "XSS: /api/search",
+      "passed": false,
+      "details": "'; alert('XSS'); //",
+      "timestamp": "2025-08-30T23:07:11.976Z"
+    },
+    {
+      "test": "SQL injection: /api/users",
+      "passed": true,
+      "details": "' OR 1=1 --",
+      "timestamp": "2025-08-30T23:07:12.123Z"
+    },
+    {
+      "test": "SQL injection: /api/users",
+      "passed": true,
+      "details": "' UNION SELECT * FROM users --",
+      "timestamp": "2025-08-30T23:07:12.271Z"
+    },
+    {
+      "test": "SQL injection: /api/users",
+      "passed": true,
+      "details": "'; DROP TABLE users; --",
+      "timestamp": "2025-08-30T23:07:12.410Z"
+    },
+    {
+      "test": "SQL injection: /api/users",
+      "passed": true,
+      "details": "1' OR '1'='1",
+      "timestamp": "2025-08-30T23:07:12.549Z"
+    },
+    {
+      "test": "SQL injection: /api/users",
+      "passed": true,
+      "details": "admin'/*",
+      "timestamp": "2025-08-30T23:07:12.688Z"
+    },
+    {
+      "test": "SQL injection: /api/users",
+      "passed": true,
+      "details": "' OR 'x'='x",
+      "timestamp": "2025-08-30T23:07:12.816Z"
+    },
+    {
+      "test": "SQL injection: /api/users",
+      "passed": true,
+      "details": "1'; WAITFOR DELAY '00:00:05' --",
+      "timestamp": "2025-08-30T23:07:12.946Z"
+    },
+    {
+      "test": "XSS: /api/users",
+      "passed": true,
+      "details": "<script>alert(\"XSS\")</script>",
+      "timestamp": "2025-08-30T23:07:13.081Z"
+    },
+    {
+      "test": "XSS: /api/users",
+      "passed": true,
+      "details": "<img src=x onerror=alert(\"XSS\")>",
+      "timestamp": "2025-08-30T23:07:13.193Z"
+    },
+    {
+      "test": "XSS: /api/users",
+      "passed": true,
+      "details": "javascript:alert(\"XSS\")",
+      "timestamp": "2025-08-30T23:07:13.197Z"
+    },
+    {
+      "test": "XSS: /api/users",
+      "passed": true,
+      "details": "<svg onload=alert(\"XSS\")>",
+      "timestamp": "2025-08-30T23:07:13.199Z"
+    },
+    {
+      "test": "XSS: /api/users",
+      "passed": true,
+      "details": "\"><script>alert(\"XSS\")</script>",
+      "timestamp": "2025-08-30T23:07:13.201Z"
+    },
+    {
+      "test": "XSS: /api/users",
+      "passed": true,
+      "details": "'; alert('XSS'); //",
+      "timestamp": "2025-08-30T23:07:13.203Z"
+    },
+    {
+      "test": "Security header: strict-transport-security",
+      "passed": false,
+      "details": null,
+      "timestamp": "2025-08-30T23:07:13.206Z"
+    },
+    {
+      "test": "Security header: content-security-policy",
+      "passed": false,
+      "details": null,
+      "timestamp": "2025-08-30T23:07:13.206Z"
+    },
+    {
+      "test": "Security header: x-content-type-options",
+      "passed": false,
+      "details": null,
+      "timestamp": "2025-08-30T23:07:13.206Z"
+    },
+    {
+      "test": "Security header: x-frame-options",
+      "passed": false,
+      "details": null,
+      "timestamp": "2025-08-30T23:07:13.206Z"
+    },
+    {
+      "test": "Security header: x-xss-protection",
+      "passed": false,
+      "details": null,
+      "timestamp": "2025-08-30T23:07:13.206Z"
+    },
+    {
+      "test": "Security header: referrer-policy",
+      "passed": false,
+      "details": null,
+      "timestamp": "2025-08-30T23:07:13.206Z"
+    },
+    {
+      "test": "Info disclosure: server",
+      "passed": true,
+      "details": null,
+      "timestamp": "2025-08-30T23:07:13.206Z"
+    },
+    {
+      "test": "Info disclosure: x-powered-by",
+      "passed": true,
+      "details": null,
+      "timestamp": "2025-08-30T23:07:13.206Z"
+    },
+    {
+      "test": "Info disclosure: x-aspnet-version",
+      "passed": true,
+      "details": null,
+      "timestamp": "2025-08-30T23:07:13.206Z"
+    },
+    {
+      "test": "CSRF protection: /api/users",
+      "passed": true,
+      "details": null,
+      "timestamp": "2025-08-30T23:07:13.212Z"
+    },
+    {
+      "test": "CSRF protection: /api/settings",
+      "passed": true,
+      "details": null,
+      "timestamp": "2025-08-30T23:07:13.214Z"
+    },
+    {
+      "test": "CSRF protection: /api/files",
+      "passed": true,
+      "details": null,
+      "timestamp": "2025-08-30T23:07:13.217Z"
+    },
+    {
+      "test": "Rate limiting: /api/login",
+      "passed": true,
+      "details": "0 rate limited, 0 successful",
+      "timestamp": "2025-08-30T23:07:13.234Z"
+    },
+    {
+      "test": "Rate limiting: /api/health",
+      "passed": true,
+      "details": "0 rate limited, 0 successful",
+      "timestamp": "2025-08-30T23:07:13.251Z"
+    },
+    {
+      "test": "File upload: test.php",
+      "passed": true,
+      "details": "Upload endpoint not available",
+      "timestamp": "2025-08-30T23:07:13.262Z"
+    },
+    {
+      "test": "File upload: test.exe",
+      "passed": true,
+      "details": "Upload endpoint not available",
+      "timestamp": "2025-08-30T23:07:13.266Z"
+    },
+    {
+      "test": "File upload: test.js",
+      "passed": true,
+      "details": "Upload endpoint not available",
+      "timestamp": "2025-08-30T23:07:13.269Z"
+    },
+    {
+      "test": "File upload: ../../../etc/passwd",
+      "passed": true,
+      "details": "Upload endpoint not available",
+      "timestamp": "2025-08-30T23:07:13.270Z"
+    },
+    {
+      "test": "File upload: test.svg",
+      "passed": true,
+      "details": "Upload endpoint not available",
+      "timestamp": "2025-08-30T23:07:13.272Z"
+    },
+    {
+      "test": "Info disclosure: /.env",
+      "passed": true,
+      "details": null,
+      "timestamp": "2025-08-30T23:07:13.275Z"
+    },
+    {
+      "test": "Info disclosure: /.git/config",
+      "passed": true,
+      "details": null,
+      "timestamp": "2025-08-30T23:07:13.276Z"
+    },
+    {
+      "test": "Info disclosure: /config.json",
+      "passed": true,
+      "details": null,
+      "timestamp": "2025-08-30T23:07:13.277Z"
+    },
+    {
+      "test": "Info disclosure: /package.json",
+      "passed": true,
+      "details": null,
+      "timestamp": "2025-08-30T23:07:13.278Z"
+    },
+    {
+      "test": "Info disclosure: /admin",
+      "passed": true,
+      "details": null,
+      "timestamp": "2025-08-30T23:07:13.279Z"
+    },
+    {
+      "test": "Info disclosure: /debug",
+      "passed": true,
+      "details": null,
+      "timestamp": "2025-08-30T23:07:13.281Z"
+    },
+    {
+      "test": "Info disclosure: /.well-known/security.txt",
+      "passed": true,
+      "details": null,
+      "timestamp": "2025-08-30T23:07:13.282Z"
+    },
+    {
+      "test": "Info disclosure: /robots.txt",
+      "passed": true,
+      "details": null,
+      "timestamp": "2025-08-30T23:07:13.283Z"
+    },
+    {
+      "test": "Info disclosure: /sitemap.xml",
+      "passed": true,
+      "details": null,
+      "timestamp": "2025-08-30T23:07:13.284Z"
+    }
+  ],
+  "security_score": 32
+}

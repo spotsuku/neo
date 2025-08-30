@@ -18,7 +18,7 @@ const refreshSchema = z.object({
 type RefreshRequest = z.infer<typeof refreshSchema>;
 
 interface CloudflareBindings {
-  DB: D1Database;
+  DB: any; // D1Database type placeholder
 }
 
 export const POST = async (request: NextRequest) => {
@@ -77,8 +77,8 @@ export const POST = async (request: NextRequest) => {
     if (!refreshResult.success) {
       await securityLogger.log({
         action: 'REFRESH_TOKEN_INVALID',
-        ipAddress: clientIP,
-        userAgent: request.headers.get('user-agent'),
+        ipAddress: clientIP || undefined,
+        userAgent: request.headers.get('user-agent') || undefined,
         details: { error: refreshResult.error },
         riskLevel: 'MEDIUM'
       });
@@ -138,8 +138,8 @@ export const POST = async (request: NextRequest) => {
     
     await securityLogger.log({
       action: 'REFRESH_TOKEN_ERROR',
-      ipAddress: clientIP,
-      userAgent: request.headers.get('user-agent'),
+      ipAddress: clientIP || undefined,
+      userAgent: request.headers.get('user-agent') || undefined,
       details: { error: String(error) },
       riskLevel: 'HIGH'
     });

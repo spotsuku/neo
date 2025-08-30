@@ -26,6 +26,18 @@ export function getDatabase(env: { DB: D1Database }): DatabaseService {
   }
 }
 
+// 一時的なDatabaseServiceクラス（後で適切に実装）
+export class DatabaseService {
+  constructor(private db?: D1Database) {}
+  
+  async query(sql: string, params: any[] = []): Promise<any> {
+    if (!this.db) {
+      throw new DatabaseError('Database not initialized', 'NOT_INITIALIZED')
+    }
+    return executeQuery(this.db, sql, params)
+  }
+}
+
 // 共通クエリー実行関数
 export async function executeQuery<T = any>(
   db: D1Database,

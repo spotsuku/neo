@@ -1,8 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Cloudflare Pages用静的エクスポート設定
-  output: 'export',
-  trailingSlash: true,
+  // セキュリティ設定
+  poweredByHeader: false,
+  
+  // Cloudflare Pages用設定（API Routesサポート）
+  trailingSlash: false,
   
   // 画像最適化無効（Cloudflare Pages制限）
   images: {

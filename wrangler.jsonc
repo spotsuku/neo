@@ -1,9 +1,9 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "neo-platform",
-  "compatibility_date": "2025-08-29",
+  "compatibility_date": "2024-01-01",
   "compatibility_flags": ["nodejs_compat"],
-  "pages_build_output_dir": "./out",
+  "pages_build_output_dir": "./dist",
   
   // D1 Database Configuration
   "d1_databases": [
@@ -11,6 +11,15 @@
       "binding": "DB",
       "database_name": "webapp-production",
       "database_id": "local-development-db"
+    }
+  ],
+
+  // KV Namespace Configuration
+  "kv_namespaces": [
+    {
+      "binding": "KV",
+      "id": "neo-platform-cache",
+      "preview_id": "neo-platform-cache-dev"
     }
   ],
 

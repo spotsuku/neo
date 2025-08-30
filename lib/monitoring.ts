@@ -1,557 +1,648 @@
-// NEO Digital Platform - Monitoring & Observability System
-// 監視・可観測性システム
+/**
+ * システム監視とアラート機能
+ * パフォーマンス監視、エラートラッキング、ヘルスチェック
+ */
 
-import { SecurityLogger, getClientIP } from './security';
-import type { NextRequest } from 'next/server';
+import { CloudflareBindings } from './env';
 
-// ログレベル定義
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'fatal';
-
-// メトリクス定義
-export interface Metric {
+// メトリクス型定義
+export interface PerformanceMetric {
   name: string;
   value: number;
-  timestamp: number;
+  unit: string;
+  timestamp: string;
   labels?: Record<string, string>;
-  unit?: string;
 }
 
-// エラー分類
-export type ErrorCategory = 
-  | 'authentication'
-  | 'authorization' 
-  | 'validation'
-  | 'database'
-  | 'external_api'
-  | 'business_logic'
-  | 'system'
-  | 'unknown';
+export interface ErrorEvent {
+  id: string;
+  message: string;
+  stack?: string;
+  level: 'error' | 'warning' | 'info';
+  context?: Record<string, any>;
+  timestamp: string;
+  userId?: number;
+  ip?: string;
+  userAgent?: string;
+}
 
-// パフォーマンス測定
-export interface PerformanceMetric {
-  operation: string;
-  duration: number;
-  startTime: number;
-  endTime: number;
-  success: boolean;
+export interface HealthCheck {
+  service: string;
+  status: 'healthy' | 'warning' | 'critical';
+  message?: string;
+  responseTime?: number;
+  timestamp: string;
   metadata?: Record<string, any>;
 }
 
-// アラート設定
-export interface AlertRule {
-  name: string;
-  condition: (metric: Metric) => boolean;
-  severity: 'low' | 'medium' | 'high' | 'critical';
-  description: string;
-  enabled: boolean;
+export interface SystemStats {
+  memoryUsage?: number;
+  cpuUsage?: number;
+  activeConnections: number;
+  responseTime: number;
+  errorRate: number;
+  throughput: number;
+  timestamp: string;
 }
 
 /**
- * 統合ロガー
- */
-export class Logger {
-  private static instance: Logger;
-  private logLevel: LogLevel = (process.env.LOG_LEVEL as LogLevel) || 'info';
-  private enableConsole: boolean = process.env.NODE_ENV !== 'production';
-  
-  static getInstance(): Logger {
-    if (!this.instance) {
-      this.instance = new Logger();
-    }
-    return this.instance;
-  }
-  
-  private shouldLog(level: LogLevel): boolean {
-    const levels: LogLevel[] = ['debug', 'info', 'warn', 'error', 'fatal'];
-    const currentLevelIndex = levels.indexOf(this.logLevel);
-    const messageLevelIndex = levels.indexOf(level);
-    return messageLevelIndex >= currentLevelIndex;
-  }
-  
-  private formatMessage(level: LogLevel, message: string, metadata?: any): string {
-    const timestamp = new Date().toISOString();
-    const meta = metadata ? ` | ${JSON.stringify(metadata)}` : '';
-    return `[${timestamp}] [${level.toUpperCase()}] ${message}${meta}`;
-  }
-  
-  debug(message: string, metadata?: any): void {
-    if (this.shouldLog('debug')) {
-      const formatted = this.formatMessage('debug', message, metadata);
-      if (this.enableConsole) console.debug(formatted);
-      // TODO: 外部ログサービス送信
-    }
-  }
-  
-  info(message: string, metadata?: any): void {
-    if (this.shouldLog('info')) {
-      const formatted = this.formatMessage('info', message, metadata);
-      if (this.enableConsole) console.info(formatted);
-      // TODO: 外部ログサービス送信
-    }
-  }
-  
-  warn(message: string, metadata?: any): void {
-    if (this.shouldLog('warn')) {
-      const formatted = this.formatMessage('warn', message, metadata);
-      if (this.enableConsole) console.warn(formatted);
-      // TODO: 外部ログサービス送信
-    }
-  }
-  
-  error(message: string, error?: Error, metadata?: any): void {
-    if (this.shouldLog('error')) {
-      const errorMeta = error ? {
-        name: error.name,
-        message: error.message,
-        stack: error.stack,
-        ...metadata
-      } : metadata;
-      
-      const formatted = this.formatMessage('error', message, errorMeta);
-      if (this.enableConsole) console.error(formatted);
-      
-      // セキュリティログにも記録（重要なエラーの場合）
-      if (this.isSensitiveError(message, error)) {
-        SecurityLogger.logSecurityEvent(
-          'system',
-          'error_occurred',
-          message,
-          null,
-          errorMeta
-        ).catch(console.error);
-      }
-    }
-  }
-  
-  fatal(message: string, error?: Error, metadata?: any): void {
-    const errorMeta = error ? {
-      name: error.name,
-      message: error.message,
-      stack: error.stack,
-      ...metadata
-    } : metadata;
-    
-    const formatted = this.formatMessage('fatal', message, errorMeta);
-    console.error(formatted); // 常に出力
-    
-    // 重大エラーは常にセキュリティログに記録
-    SecurityLogger.logSecurityEvent(
-      'system',
-      'fatal_error',
-      message,
-      null,
-      errorMeta
-    ).catch(console.error);
-  }
-  
-  private isSensitiveError(message: string, error?: Error): boolean {
-    const sensitiveKeywords = [
-      'authentication', 'authorization', 'security', 'permission',
-      'token', 'password', 'unauthorized', 'forbidden'
-    ];
-    
-    const text = `${message} ${error?.message || ''}`.toLowerCase();
-    return sensitiveKeywords.some(keyword => text.includes(keyword));
-  }
-}
-
-/**
- * メトリクス収集システム
- */
-export class MetricsCollector {
-  private static instance: MetricsCollector;
-  private metrics: Map<string, Metric[]> = new Map();
-  private maxMetricsPerName = 1000; // メモリ制限
-  
-  static getInstance(): MetricsCollector {
-    if (!this.instance) {
-      this.instance = new MetricsCollector();
-    }
-    return this.instance;
-  }
-  
-  /**
-   * メトリクスを記録
-   */
-  record(metric: Metric): void {
-    const existing = this.metrics.get(metric.name) || [];
-    existing.push(metric);
-    
-    // メモリ制限のため古いメトリクスを削除
-    if (existing.length > this.maxMetricsPerName) {
-      existing.shift();
-    }
-    
-    this.metrics.set(metric.name, existing);
-    
-    Logger.getInstance().debug(`Metric recorded: ${metric.name}`, metric);
-  }
-  
-  /**
-   * カウンターメトリクス
-   */
-  increment(name: string, labels?: Record<string, string>): void {
-    this.record({
-      name,
-      value: 1,
-      timestamp: Date.now(),
-      labels,
-      unit: 'count'
-    });
-  }
-  
-  /**
-   * ゲージメトリクス
-   */
-  gauge(name: string, value: number, labels?: Record<string, string>): void {
-    this.record({
-      name,
-      value,
-      timestamp: Date.now(),
-      labels,
-      unit: 'gauge'
-    });
-  }
-  
-  /**
-   * ヒストグラムメトリクス（レスポンス時間など）
-   */
-  histogram(name: string, value: number, labels?: Record<string, string>): void {
-    this.record({
-      name,
-      value,
-      timestamp: Date.now(),
-      labels,
-      unit: 'milliseconds'
-    });
-  }
-  
-  /**
-   * メトリクス取得
-   */
-  getMetrics(name?: string, since?: number): Metric[] {
-    if (name) {
-      const metrics = this.metrics.get(name) || [];
-      return since ? metrics.filter(m => m.timestamp >= since) : metrics;
-    }
-    
-    const allMetrics: Metric[] = [];
-    for (const metrics of this.metrics.values()) {
-      allMetrics.push(...metrics);
-    }
-    
-    return since ? allMetrics.filter(m => m.timestamp >= since) : allMetrics;
-  }
-  
-  /**
-   * メトリクス集計
-   */
-  aggregate(name: string, since?: number): {
-    count: number;
-    sum: number;
-    avg: number;
-    min: number;
-    max: number;
-  } {
-    const metrics = this.getMetrics(name, since);
-    
-    if (metrics.length === 0) {
-      return { count: 0, sum: 0, avg: 0, min: 0, max: 0 };
-    }
-    
-    const values = metrics.map(m => m.value);
-    const sum = values.reduce((a, b) => a + b, 0);
-    
-    return {
-      count: metrics.length,
-      sum,
-      avg: sum / metrics.length,
-      min: Math.min(...values),
-      max: Math.max(...values),
-    };
-  }
-}
-
-/**
- * パフォーマンス測定ユーティリティ
+ * パフォーマンス監視クラス
  */
 export class PerformanceMonitor {
-  private static measurements: Map<string, number> = new Map();
-  
-  /**
-   * 操作開始時間を記録
-   */
-  static start(operationId: string): void {
-    this.measurements.set(operationId, performance.now());
+  private metrics: PerformanceMetric[] = [];
+  private maxMetrics = 1000;
+
+  // レスポンス時間の記録
+  recordResponseTime(endpoint: string, duration: number): void {
+    this.addMetric({
+      name: 'response_time',
+      value: duration,
+      unit: 'ms',
+      timestamp: new Date().toISOString(),
+      labels: {
+        endpoint,
+        method: 'GET' // 実際のHTTPメソッドを使用
+      }
+    });
   }
-  
-  /**
-   * 操作終了時間を記録してメトリクス出力
-   */
-  static end(
-    operationId: string, 
-    operation: string, 
-    success: boolean = true,
-    metadata?: Record<string, any>
-  ): PerformanceMetric | null {
-    const startTime = this.measurements.get(operationId);
-    if (!startTime) {
-      Logger.getInstance().warn(`Performance measurement not found: ${operationId}`);
-      return null;
+
+  // メモリ使用量の記録（概算）
+  recordMemoryUsage(): void {
+    if (typeof performance !== 'undefined' && (performance as any).memory) {
+      const memory = (performance as any).memory;
+      this.addMetric({
+        name: 'memory_usage',
+        value: memory.usedJSHeapSize,
+        unit: 'bytes',
+        timestamp: new Date().toISOString()
+      });
     }
+  }
+
+  // データベースクエリ時間の記録
+  recordDbQueryTime(query: string, duration: number): void {
+    this.addMetric({
+      name: 'db_query_time',
+      value: duration,
+      unit: 'ms',
+      timestamp: new Date().toISOString(),
+      labels: {
+        query_type: this.extractQueryType(query)
+      }
+    });
+  }
+
+  // ファイルアップロード時間の記録
+  recordFileUploadTime(fileName: string, fileSize: number, duration: number): void {
+    this.addMetric({
+      name: 'file_upload_time',
+      value: duration,
+      unit: 'ms',
+      timestamp: new Date().toISOString(),
+      labels: {
+        file_name: fileName,
+        file_size: fileSize.toString()
+      }
+    });
+  }
+
+  // カスタムメトリクスの追加
+  recordCustomMetric(name: string, value: number, unit: string, labels?: Record<string, string>): void {
+    this.addMetric({
+      name,
+      value,
+      unit,
+      timestamp: new Date().toISOString(),
+      labels
+    });
+  }
+
+  // メトリクスの取得
+  getMetrics(name?: string, timeRange?: { start: string; end: string }): PerformanceMetric[] {
+    let filtered = this.metrics;
+
+    if (name) {
+      filtered = filtered.filter(m => m.name === name);
+    }
+
+    if (timeRange) {
+      filtered = filtered.filter(m => 
+        m.timestamp >= timeRange.start && m.timestamp <= timeRange.end
+      );
+    }
+
+    return filtered;
+  }
+
+  // 平均値の計算
+  getAverageMetric(name: string, timeRange?: { start: string; end: string }): number {
+    const metrics = this.getMetrics(name, timeRange);
+    if (metrics.length === 0) return 0;
     
-    const endTime = performance.now();
-    const duration = endTime - startTime;
+    const sum = metrics.reduce((acc, m) => acc + m.value, 0);
+    return sum / metrics.length;
+  }
+
+  // パーセンタイル計算
+  getPercentile(name: string, percentile: number, timeRange?: { start: string; end: string }): number {
+    const metrics = this.getMetrics(name, timeRange);
+    if (metrics.length === 0) return 0;
+
+    const sorted = metrics.map(m => m.value).sort((a, b) => a - b);
+    const index = Math.ceil((percentile / 100) * sorted.length) - 1;
+    return sorted[Math.max(0, index)];
+  }
+
+  private addMetric(metric: PerformanceMetric): void {
+    this.metrics.push(metric);
     
-    const metric: PerformanceMetric = {
-      operation,
-      duration,
-      startTime,
-      endTime,
-      success,
-      metadata,
+    // メトリクス数の制限
+    if (this.metrics.length > this.maxMetrics) {
+      this.metrics = this.metrics.slice(-this.maxMetrics);
+    }
+  }
+
+  private extractQueryType(query: string): string {
+    const trimmed = query.trim().toUpperCase();
+    if (trimmed.startsWith('SELECT')) return 'SELECT';
+    if (trimmed.startsWith('INSERT')) return 'INSERT';
+    if (trimmed.startsWith('UPDATE')) return 'UPDATE';
+    if (trimmed.startsWith('DELETE')) return 'DELETE';
+    return 'OTHER';
+  }
+}
+
+/**
+ * エラートラッキングクラス
+ */
+export class ErrorTracker {
+  private errors: ErrorEvent[] = [];
+  private maxErrors = 500;
+  private env?: CloudflareBindings;
+
+  constructor(env?: CloudflareBindings) {
+    this.env = env;
+  }
+
+  // エラーの記録
+  async recordError(
+    error: Error | string,
+    level: 'error' | 'warning' | 'info' = 'error',
+    context?: Record<string, any>,
+    userId?: number,
+    request?: Request
+  ): Promise<void> {
+    const errorEvent: ErrorEvent = {
+      id: this.generateErrorId(),
+      message: typeof error === 'string' ? error : error.message,
+      stack: typeof error === 'object' ? error.stack : undefined,
+      level,
+      context,
+      timestamp: new Date().toISOString(),
+      userId,
+      ip: request ? this.getClientIP(request) : undefined,
+      userAgent: request ? request.headers.get('User-Agent') || undefined : undefined
     };
-    
-    // メトリクス記録
-    MetricsCollector.getInstance().histogram(
-      `operation_duration_ms`,
-      duration,
-      { 
-        operation,
-        success: success.toString(),
-        ...metadata 
+
+    this.addError(errorEvent);
+
+    // KVストレージに保存（環境が利用可能な場合）
+    if (this.env?.KV) {
+      try {
+        await this.env.KV.put(
+          `error:${errorEvent.id}`,
+          JSON.stringify(errorEvent),
+          { expirationTtl: 7 * 24 * 60 * 60 } // 7日間保持
+        );
+      } catch (kvError) {
+        console.error('Failed to store error in KV:', kvError);
       }
-    );
-    
-    // ログ記録
-    const level = duration > 5000 ? 'warn' : 'debug'; // 5秒以上は警告
-    Logger.getInstance()[level](
-      `Operation ${operation} ${success ? 'completed' : 'failed'} in ${duration.toFixed(2)}ms`,
-      metadata
-    );
-    
-    // クリーンアップ
-    this.measurements.delete(operationId);
-    
-    return metric;
+    }
+
+    // 重要なエラーの場合は通知を送信
+    if (level === 'error') {
+      await this.sendAlert(errorEvent);
+    }
   }
-  
-  /**
-   * 非同期関数のパフォーマンス測定デコレーター
-   */
-  static async measure<T>(
-    operation: string,
-    fn: () => Promise<T>,
-    metadata?: Record<string, any>
-  ): Promise<T> {
-    const operationId = `${operation}-${Date.now()}-${Math.random()}`;
+
+  // 404エラーの記録
+  async record404(path: string, request?: Request): Promise<void> {
+    await this.recordError(
+      `404 Not Found: ${path}`,
+      'warning',
+      { path, type: '404' },
+      undefined,
+      request
+    );
+  }
+
+  // バリデーションエラーの記録
+  async recordValidationError(field: string, value: any, rule: string, request?: Request): Promise<void> {
+    await this.recordError(
+      `Validation failed for field '${field}': ${rule}`,
+      'warning',
+      { field, value, rule, type: 'validation' },
+      undefined,
+      request
+    );
+  }
+
+  // 認証エラーの記録
+  async recordAuthError(message: string, userId?: number, request?: Request): Promise<void> {
+    await this.recordError(
+      `Authentication error: ${message}`,
+      'warning',
+      { type: 'auth' },
+      userId,
+      request
+    );
+  }
+
+  // エラー統計の取得
+  getErrorStats(timeRange?: { start: string; end: string }): {
+    total: number;
+    byLevel: Record<string, number>;
+    byType: Record<string, number>;
+    recent: ErrorEvent[];
+  } {
+    let filtered = this.errors;
+
+    if (timeRange) {
+      filtered = filtered.filter(e => 
+        e.timestamp >= timeRange.start && e.timestamp <= timeRange.end
+      );
+    }
+
+    const byLevel = filtered.reduce((acc, e) => {
+      acc[e.level] = (acc[e.level] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const byType = filtered.reduce((acc, e) => {
+      const type = e.context?.type || 'general';
+      acc[type] = (acc[type] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return {
+      total: filtered.length,
+      byLevel,
+      byType,
+      recent: filtered.slice(-10).reverse() // 最新10件
+    };
+  }
+
+  private addError(error: ErrorEvent): void {
+    this.errors.push(error);
     
-    this.start(operationId);
+    if (this.errors.length > this.maxErrors) {
+      this.errors = this.errors.slice(-this.maxErrors);
+    }
+  }
+
+  private generateErrorId(): string {
+    return `err_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+  }
+
+  private getClientIP(request: Request): string {
+    return request.headers.get('CF-Connecting-IP') || 
+           request.headers.get('X-Forwarded-For') || 
+           request.headers.get('X-Real-IP') || 
+           'unknown';
+  }
+
+  private async sendAlert(error: ErrorEvent): Promise<void> {
+    // 実際の本番環境では、メール通知やSlack通知などを実装
+    console.error('ALERT:', error);
+    
+    // 環境設定から通知URLを取得して送信
+    // if (this.env?.WEBHOOK_URL) {
+    //   await fetch(this.env.WEBHOOK_URL, {
+    //     method: 'POST',
+    //     headers: { 'Content-Type': 'application/json' },
+    //     body: JSON.stringify(error)
+    //   });
+    // }
+  }
+}
+
+/**
+ * ヘルスチェック監視クラス
+ */
+export class HealthMonitor {
+  private env: CloudflareBindings;
+
+  constructor(env: CloudflareBindings) {
+    this.env = env;
+  }
+
+  // 総合ヘルスチェック
+  async performHealthCheck(): Promise<HealthCheck[]> {
+    const checks: HealthCheck[] = [];
+
+    // データベース接続チェック
+    checks.push(await this.checkDatabase());
+
+    // KVストレージチェック
+    checks.push(await this.checkKVStorage());
+
+    // R2ストレージチェック
+    checks.push(await this.checkR2Storage());
+
+    // システムリソースチェック
+    checks.push(await this.checkSystemResources());
+
+    return checks;
+  }
+
+  // データベース接続チェック
+  private async checkDatabase(): Promise<HealthCheck> {
+    const startTime = Date.now();
     
     try {
-      const result = await fn();
-      this.end(operationId, operation, true, metadata);
-      return result;
+      await this.env.DB.prepare('SELECT 1').first();
+      const responseTime = Date.now() - startTime;
+      
+      return {
+        service: 'database',
+        status: responseTime < 100 ? 'healthy' : 'warning',
+        message: responseTime < 100 ? 'Database responding normally' : 'Database response slow',
+        responseTime,
+        timestamp: new Date().toISOString()
+      };
     } catch (error) {
-      this.end(operationId, operation, false, {
-        ...metadata,
-        error: error instanceof Error ? error.message : String(error)
-      });
-      throw error;
+      return {
+        service: 'database',
+        status: 'critical',
+        message: `Database connection failed: ${error}`,
+        responseTime: Date.now() - startTime,
+        timestamp: new Date().toISOString()
+      };
+    }
+  }
+
+  // KVストレージチェック
+  private async checkKVStorage(): Promise<HealthCheck> {
+    const startTime = Date.now();
+    
+    try {
+      const testKey = 'health_check_' + Date.now();
+      await this.env.KV.put(testKey, 'test');
+      const value = await this.env.KV.get(testKey);
+      await this.env.KV.delete(testKey);
+      
+      const responseTime = Date.now() - startTime;
+      const status = value === 'test' && responseTime < 200 ? 'healthy' : 'warning';
+      
+      return {
+        service: 'kv_storage',
+        status,
+        message: status === 'healthy' ? 'KV storage responding normally' : 'KV storage response issues',
+        responseTime,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      return {
+        service: 'kv_storage',
+        status: 'critical',
+        message: `KV storage failed: ${error}`,
+        responseTime: Date.now() - startTime,
+        timestamp: new Date().toISOString()
+      };
+    }
+  }
+
+  // R2ストレージチェック
+  private async checkR2Storage(): Promise<HealthCheck> {
+    const startTime = Date.now();
+    
+    try {
+      const testKey = 'health_check_' + Date.now() + '.txt';
+      await this.env.R2.put(testKey, 'health check');
+      const object = await this.env.R2.get(testKey);
+      if (object) {
+        await this.env.R2.delete(testKey);
+      }
+      
+      const responseTime = Date.now() - startTime;
+      const status = object && responseTime < 500 ? 'healthy' : 'warning';
+      
+      return {
+        service: 'r2_storage',
+        status,
+        message: status === 'healthy' ? 'R2 storage responding normally' : 'R2 storage response issues',
+        responseTime,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      return {
+        service: 'r2_storage',
+        status: 'critical',
+        message: `R2 storage failed: ${error}`,
+        responseTime: Date.now() - startTime,
+        timestamp: new Date().toISOString()
+      };
+    }
+  }
+
+  // システムリソースチェック
+  private async checkSystemResources(): Promise<HealthCheck> {
+    try {
+      const memoryUsage = typeof performance !== 'undefined' && (performance as any).memory 
+        ? (performance as any).memory.usedJSHeapSize 
+        : 0;
+      
+      const status = memoryUsage < 50 * 1024 * 1024 ? 'healthy' : 'warning'; // 50MB threshold
+      
+      return {
+        service: 'system_resources',
+        status,
+        message: status === 'healthy' ? 'System resources normal' : 'High memory usage detected',
+        timestamp: new Date().toISOString(),
+        metadata: {
+          memoryUsage: memoryUsage
+        }
+      };
+    } catch (error) {
+      return {
+        service: 'system_resources',
+        status: 'warning',
+        message: `Unable to check system resources: ${error}`,
+        timestamp: new Date().toISOString()
+      };
     }
   }
 }
 
 /**
- * アラートシステム
+ * 統合監視システム
  */
-export class AlertManager {
-  private static instance: AlertManager;
-  private rules: AlertRule[] = [];
-  private alerts: Map<string, number> = new Map(); // 最後のアラート発火時刻
-  private cooldownMs = 300000; // 5分のクールダウン
-  
-  static getInstance(): AlertManager {
-    if (!this.instance) {
-      this.instance = new AlertManager();
-      this.instance.initializeDefaultRules();
+export class MonitoringSystem {
+  public performance: PerformanceMonitor;
+  public errors: ErrorTracker;
+  public health: HealthMonitor;
+  private env: CloudflareBindings;
+
+  constructor(env: CloudflareBindings) {
+    this.env = env;
+    this.performance = new PerformanceMonitor();
+    this.errors = new ErrorTracker(env);
+    this.health = new HealthMonitor(env);
+  }
+
+  // リクエスト監視の開始
+  startRequestMonitoring(request: Request): {
+    endMonitoring: (response: Response) => Promise<void>;
+  } {
+    const startTime = Date.now();
+    const url = new URL(request.url);
+    
+    return {
+      endMonitoring: async (response: Response) => {
+        const duration = Date.now() - startTime;
+        const endpoint = url.pathname;
+        
+        // レスポンス時間の記録
+        this.performance.recordResponseTime(endpoint, duration);
+        
+        // エラーレスポンスの記録
+        if (response.status >= 400) {
+          await this.errors.recordError(
+            `HTTP ${response.status} error on ${endpoint}`,
+            response.status >= 500 ? 'error' : 'warning',
+            { 
+              status: response.status,
+              method: request.method,
+              endpoint,
+              duration 
+            },
+            undefined,
+            request
+          );
+        }
+      }
+    };
+  }
+
+  // システム統計の取得
+  async getSystemStats(): Promise<SystemStats> {
+    const now = new Date().toISOString();
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const timeRange = { start: oneHourAgo, end: now };
+
+    const errorStats = this.errors.getErrorStats(timeRange);
+    const avgResponseTime = this.performance.getAverageMetric('response_time', timeRange);
+    
+    return {
+      activeConnections: 0, // Cloudflare Workersでは取得困難
+      responseTime: avgResponseTime,
+      errorRate: errorStats.total / Math.max(1, this.performance.getMetrics('response_time', timeRange).length),
+      throughput: this.performance.getMetrics('response_time', timeRange).length / 60, // per minute
+      timestamp: now
+    };
+  }
+
+  // ダッシュボード用データの取得
+  async getDashboardData(): Promise<{
+    health: HealthCheck[];
+    stats: SystemStats;
+    recentErrors: ErrorEvent[];
+    performanceMetrics: {
+      avgResponseTime: number;
+      p95ResponseTime: number;
+      p99ResponseTime: number;
+    };
+  }> {
+    const health = await this.health.performHealthCheck();
+    const stats = await this.getSystemStats();
+    const errorStats = this.errors.getErrorStats();
+    
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const timeRange = { start: oneHourAgo, end: new Date().toISOString() };
+
+    return {
+      health,
+      stats,
+      recentErrors: errorStats.recent,
+      performanceMetrics: {
+        avgResponseTime: this.performance.getAverageMetric('response_time', timeRange),
+        p95ResponseTime: this.performance.getPercentile('response_time', 95, timeRange),
+        p99ResponseTime: this.performance.getPercentile('response_time', 99, timeRange)
+      }
+    };
+  }
+
+  // アラート条件のチェック
+  async checkAlertConditions(): Promise<string[]> {
+    const alerts: string[] = [];
+    
+    // ヘルスチェックでcriticalなサービスがないかチェック
+    const healthChecks = await this.health.performHealthCheck();
+    const criticalServices = healthChecks.filter(hc => hc.status === 'critical');
+    
+    criticalServices.forEach(service => {
+      alerts.push(`Critical: ${service.service} - ${service.message}`);
+    });
+
+    // エラー率のチェック
+    const stats = await this.getSystemStats();
+    if (stats.errorRate > 0.05) { // 5%以上のエラー率
+      alerts.push(`High error rate detected: ${(stats.errorRate * 100).toFixed(2)}%`);
     }
-    return this.instance;
-  }
-  
-  private initializeDefaultRules(): void {
-    // デフォルトのアラートルール
-    this.addRule({
-      name: 'high_error_rate',
-      condition: (metric) => 
-        metric.name === 'api_errors' && metric.value > 10,
-      severity: 'high',
-      description: 'API error rate is too high',
-      enabled: true,
-    });
-    
-    this.addRule({
-      name: 'slow_response_time',
-      condition: (metric) =>
-        metric.name === 'operation_duration_ms' && metric.value > 10000,
-      severity: 'medium',
-      description: 'Response time is too slow',
-      enabled: true,
-    });
-    
-    this.addRule({
-      name: 'authentication_failures',
-      condition: (metric) =>
-        metric.name === 'auth_failures' && metric.value > 5,
-      severity: 'high',
-      description: 'Too many authentication failures',
-      enabled: true,
-    });
-  }
-  
-  addRule(rule: AlertRule): void {
-    this.rules.push(rule);
-  }
-  
-  removeRule(name: string): void {
-    this.rules = this.rules.filter(rule => rule.name !== name);
-  }
-  
-  checkAlerts(metric: Metric): void {
-    const now = Date.now();
-    
-    for (const rule of this.rules) {
-      if (!rule.enabled) continue;
-      
-      // クールダウンチェック
-      const lastAlert = this.alerts.get(rule.name);
-      if (lastAlert && (now - lastAlert) < this.cooldownMs) {
-        continue;
-      }
-      
-      // アラート条件チェック
-      if (rule.condition(metric)) {
-        this.fireAlert(rule, metric);
-        this.alerts.set(rule.name, now);
-      }
+
+    // レスポンス時間のチェック
+    if (stats.responseTime > 2000) { // 2秒以上の平均レスポンス時間
+      alerts.push(`High response time detected: ${stats.responseTime}ms`);
     }
-  }
-  
-  private fireAlert(rule: AlertRule, metric: Metric): void {
-    const alertMessage = `ALERT [${rule.severity.toUpperCase()}] ${rule.name}: ${rule.description}`;
-    
-    Logger.getInstance().error(alertMessage, undefined, {
-      rule: rule.name,
-      severity: rule.severity,
-      metric,
-    });
-    
-    // セキュリティログにも記録
-    SecurityLogger.logSecurityEvent(
-      'system',
-      'alert_fired',
-      alertMessage,
-      null,
-      {
-        rule: rule.name,
-        severity: rule.severity,
-        metric,
-      }
-    ).catch(console.error);
-    
-    // TODO: 外部アラートシステム通知（Slack, Email等）
-    this.notifyExternal(rule, metric);
-  }
-  
-  private async notifyExternal(rule: AlertRule, metric: Metric): Promise<void> {
-    // TODO: 外部通知システムの実装
-    // - Slack webhook
-    // - Email notification
-    // - PagerDuty integration
+
+    return alerts;
   }
 }
 
 /**
- * API監視ミドルウェア
+ * 監視システムのヘルパー関数
  */
-export function createApiMonitoringMiddleware() {
-  return async (request: NextRequest, response: Response) => {
-    const startTime = performance.now();
-    const operationId = `api-${Date.now()}-${Math.random()}`;
-    const method = request.method;
-    const path = new URL(request.url).pathname;
-    const clientIP = getClientIP(request);
-    
-    PerformanceMonitor.start(operationId);
-    
-    // リクエストメトリクス
-    MetricsCollector.getInstance().increment('api_requests_total', {
-      method,
-      path,
-    });
-    
-    Logger.getInstance().info(`API Request: ${method} ${path}`, {
-      clientIP,
-      userAgent: request.headers.get('user-agent'),
-    });
-    
-    try {
-      // レスポンス監視
-      const endTime = performance.now();
-      const duration = endTime - startTime;
-      
-      PerformanceMonitor.end(operationId, `api_${method}_${path}`, true, {
-        method,
-        path,
-        clientIP,
-        status: response.status,
-      });
-      
-      // ステータス別メトリクス
-      MetricsCollector.getInstance().increment('api_responses_total', {
-        method,
-        path,
-        status: response.status.toString(),
-      });
-      
-      // レスポンス時間メトリクス
-      MetricsCollector.getInstance().histogram('api_response_time_ms', duration, {
-        method,
-        path,
-      });
-      
-      Logger.getInstance().info(`API Response: ${method} ${path} - ${response.status} (${duration.toFixed(2)}ms)`);
-      
-    } catch (error) {
-      PerformanceMonitor.end(operationId, `api_${method}_${path}`, false, {
-        method,
-        path,
-        clientIP,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      
-      MetricsCollector.getInstance().increment('api_errors_total', {
-        method,
-        path,
-      });
-      
-      Logger.getInstance().error(`API Error: ${method} ${path}`, error as Error, {
-        clientIP,
-      });
-      
-      throw error;
-    }
-  };
+export function createMonitoringSystem(env: CloudflareBindings): MonitoringSystem {
+  return new MonitoringSystem(env);
 }
 
-// エクスポート用のシングルトンインスタンス
-export const logger = Logger.getInstance();
-export const metrics = MetricsCollector.getInstance();
-export const performance = PerformanceMonitor;
-export const alerts = AlertManager.getInstance();
+// Web Vitals測定用のクライアントサイド関数
+export const webVitalsScript = `
+// Web Vitals測定スクリプト
+(function() {
+  function sendMetric(name, value, id) {
+    fetch('/api/monitoring/vitals', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, value, id })
+    }).catch(console.error);
+  }
 
-// メトリクス自動チェック（アラート用）
-setInterval(() => {
-  const recentMetrics = metrics.getMetrics(undefined, Date.now() - 60000); // 過去1分
-  recentMetrics.forEach(metric => alerts.checkAlerts(metric));
-}, 30000); // 30秒ごとにチェック
+  // Core Web Vitals
+  new PerformanceObserver((list) => {
+    for (const entry of list.getEntries()) {
+      if (entry.name === 'first-contentful-paint') {
+        sendMetric('FCP', entry.startTime, entry.name);
+      }
+    }
+  }).observe({ entryTypes: ['paint'] });
+
+  // Largest Contentful Paint
+  new PerformanceObserver((list) => {
+    const entries = list.getEntries();
+    const lastEntry = entries[entries.length - 1];
+    sendMetric('LCP', lastEntry.startTime, lastEntry.id);
+  }).observe({ entryTypes: ['largest-contentful-paint'] });
+
+  // Cumulative Layout Shift
+  let clsValue = 0;
+  new PerformanceObserver((list) => {
+    for (const entry of list.getEntries()) {
+      if (!entry.hadRecentInput) {
+        clsValue += entry.value;
+        sendMetric('CLS', clsValue, 'cls-total');
+      }
+    }
+  }).observe({ entryTypes: ['layout-shift'] });
+})();
+`;

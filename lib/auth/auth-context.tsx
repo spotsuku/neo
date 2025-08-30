@@ -130,8 +130,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const result = await response.json()
 
       if (response.ok && result.success) {
-        setTokens(result.data.access_token, result.data.refresh_token)
-        updateAuthState(result.data.user)
+        setTokens(result.tokens.access_token, result.tokens.refresh_token)
+        updateAuthState(result.user)
         return { success: true }
       } else {
         updateAuthState(null)

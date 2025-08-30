@@ -1,0 +1,189 @@
+{
+  "timestamp": "2025-08-30T11:32:06.922Z",
+  "buildInfo": {
+    "polyfillFiles": [
+      "static/chunks/polyfills-42372ed130431b0a.js"
+    ],
+    "devFiles": [],
+    "ampDevFiles": [],
+    "lowPriorityFiles": [
+      "static/GbFVk7f6p8HZKWR30Z905/_buildManifest.js",
+      "static/GbFVk7f6p8HZKWR30Z905/_ssgManifest.js"
+    ],
+    "rootMainFiles": [
+      "static/chunks/webpack-cf82f7e4d919fdd8.js",
+      "static/css/931b179cff3131dc.css",
+      "static/chunks/framework-8db60b742b34ed32.js",
+      "static/chunks/lib-55e918a80875b28d.js",
+      "static/chunks/commons-84c77d22e9e38f02.js",
+      "static/chunks/main-app-4c1994b1a8c6877a.js"
+    ],
+    "rootMainFilesTree": {},
+    "pages": {
+      "/_app": [
+        "static/chunks/webpack-cf82f7e4d919fdd8.js",
+        "static/css/931b179cff3131dc.css",
+        "static/chunks/framework-8db60b742b34ed32.js",
+        "static/chunks/lib-55e918a80875b28d.js",
+        "static/chunks/commons-84c77d22e9e38f02.js",
+        "static/chunks/main-541bcddf5438ac09.js",
+        "static/chunks/pages/_app-1c7b31fc07670325.js"
+      ],
+      "/_error": [
+        "static/chunks/webpack-cf82f7e4d919fdd8.js",
+        "static/css/931b179cff3131dc.css",
+        "static/chunks/framework-8db60b742b34ed32.js",
+        "static/chunks/lib-55e918a80875b28d.js",
+        "static/chunks/commons-84c77d22e9e38f02.js",
+        "static/chunks/main-541bcddf5438ac09.js",
+        "static/chunks/pages/_error-f38550dc8a5477c1.js"
+      ]
+    },
+    "ampFirstPages": []
+  },
+  "staticAnalysis": {
+    "totalSize": 1458956,
+    "chunks": {
+      "_buildManifest.js": 2161,
+      "_ssgManifest.js": 80,
+      "3958.811ae620e3aa80f2.js": 13402,
+      "4827.0dee1bef4315874d.js": 13090,
+      "5523.00988d8f395ea8ce.js": 4401,
+      "5850.0c033777c7284f16.js": 513,
+      "7235.2eb83f4834453c0f.js": 891,
+      "admin-7bcd0649f099f572.js": 53311,
+      "page-042a9a68caac3725.js": 236,
+      "page-e18c7ee7dd42de74.js": 188,
+      "layout-90448bc5e3918763.js": 188,
+      "page-f6993734f9723db2.js": 188,
+      "page-cf7b3e2b55c10b79.js": 188,
+      "page-421c3aa989e7094e.js": 188,
+      "page-d3e36a4590001565.js": 7277,
+      "route-9bb141c4813c0a1c.js": 129,
+      "route-dd405169dd340499.js": 129,
+      "route-0a6d434228cfc8c2.js": 129,
+      "route-2abd8e2842fc6e6a.js": 129,
+      "route-a18fd51840da3455.js": 129,
+      "route-6de922dd46da55de.js": 129,
+      "route-0fb8f744a02aeaeb.js": 129,
+      "route-f874fdafa5fdda25.js": 129,
+      "route-94a5ec1295f7a969.js": 129,
+      "route-1b9161fa6c7f3e28.js": 129,
+      "route-a30d854e07463659.js": 129,
+      "route-0fbbf1f16465ac9b.js": 129,
+      "route-a0b823e328ab6a36.js": 129,
+      "route-773d461734f3c8f9.js": 129,
+      "route-1959202be2f23d45.js": 129,
+      "route-9a8c02663e3bf013.js": 129,
+      "route-4f29775aa8548d5b.js": 129,
+      "route-aacccf1d30de6f96.js": 129,
+      "route-94bed545254fe3fe.js": 128,
+      "route-34cd5f6260748ce4.js": 129,
+      "route-4f7c6c258840af82.js": 129,
+      "route-9c7cad3b2cee8409.js": 129,
+      "route-cd737f756f3321f8.js": 129,
+      "route-2eee872a00315314.js": 129,
+      "route-cb47945ba2ea9de6.js": 129,
+      "route-5719c589291f2b36.js": 129,
+      "page-bdfc5474c5c34d65.js": 6607,
+      "page-c3f53935ba101ae6.js": 7132,
+      "page-ab8fab5b810b1654.js": 8718,
+      "page-2f1d84941163c9ff.js": 6229,
+      "page-8598a8d0b7a909d1.js": 671,
+      "page-f8cb6963411204e1.js": 7071,
+      "page-3d33630a9cff5202.js": 5074,
+      "page-d6f0cb63e3383ce7.js": 11683,
+      "layout-effbc500a1b029ea.js": 2047,
+      "page-67979b6b5f7a8092.js": 8433,
+      "page-a2c5176a2df9156a.js": 9311,
+      "page-1fde24e68ee886b9.js": 7901,
+      "page-8997e6e29a978570.js": 13792,
+      "page-54ee97daa3611a28.js": 531,
+      "page-591f5d16bb5c953b.js": 556,
+      "commons-84c77d22e9e38f02.js": 38945,
+      "framework-8db60b742b34ed32.js": 671282,
+      "lib-55e918a80875b28d.js": 164040,
+      "main-541bcddf5438ac09.js": 124,
+      "main-app-4c1994b1a8c6877a.js": 551,
+      "_app-1c7b31fc07670325.js": 246,
+      "_error-f38550dc8a5477c1.js": 231,
+      "polyfills-42372ed130431b0a.js": 112594,
+      "webpack-cf82f7e4d919fdd8.js": 3465
+    },
+    "css": {
+      "6b564f3009314a0c.css": 51000,
+      "931b179cff3131dc.css": 2063
+    },
+    "media": {
+      "26a46d62cd723877-s.woff2": 18820,
+      "55c55f0601d81cf3-s.woff2": 25908,
+      "581909926a08bbc8-s.woff2": 19072,
+      "8e9860b6e62d6359-s.woff2": 85272,
+      "97e0cb1ae144a2a9-s.woff2": 11220,
+      "df0a9ae256c0569c-s.woff2": 10280,
+      "e4af272ccee01ff0-s.p.woff2": 48432
+    }
+  },
+  "chunks": {},
+  "suggestions": [
+    {
+      "type": "large-chunks",
+      "severity": "warning",
+      "message": "大きなチャンクが検出されました (3個)",
+      "details": [
+        {
+          "file": "framework-8db60b742b34ed32.js",
+          "size": "655.5KB",
+          "suggestion": "コード分割を検討"
+        },
+        {
+          "file": "lib-55e918a80875b28d.js",
+          "size": "160.2KB",
+          "suggestion": "動的インポートを検討"
+        },
+        {
+          "file": "polyfills-42372ed130431b0a.js",
+          "size": "110.0KB",
+          "suggestion": "動的インポートを検討"
+        }
+      ]
+    },
+    {
+      "type": "css-size",
+      "severity": "info",
+      "message": "CSSファイルが大きいです (51.8KB)",
+      "details": [
+        {
+          "suggestion": "未使用CSSの削除、Critical CSS抽出を検討"
+        }
+      ]
+    },
+    {
+      "type": "total-size",
+      "severity": "warning",
+      "message": "総バンドルサイズが大きいです (1.39MB)",
+      "details": [
+        {
+          "suggestion": "Tree shaking、依存関係の見直し、遅延読み込みを検討"
+        }
+      ]
+    }
+  ],
+  "metrics": {
+    "totalBundleSize": 1458956,
+    "jsChunkCount": 65,
+    "cssFileCount": 2,
+    "averageChunkSize": 18259.830769230768,
+    "largestChunk": 671282,
+    "compressionRatio": 0.7,
+    "estimatedLoadTime": 4.869791030883788
+  },
+  "summary": {
+    "totalFiles": 67,
+    "totalSize": 1458956,
+    "totalSizeMB": "1.39",
+    "estimatedGzipSize": "0.97",
+    "suggestionCount": 3,
+    "performanceScore": 45
+  }
+}

@@ -18,7 +18,7 @@ const logoutSchema = z.object({
 type LogoutRequest = z.infer<typeof logoutSchema>;
 
 interface CloudflareBindings {
-  DB: D1Database;
+  DB: any; // D1Database type placeholder
 }
 
 export const POST = async (request: NextRequest) => {
@@ -66,8 +66,8 @@ export const POST = async (request: NextRequest) => {
         await securityLogger.log({
           userId: authUser.id,
           action: 'LOGOUT_ALL_SESSIONS',
-          ipAddress: clientIP,
-          userAgent: request.headers.get('user-agent'),
+          ipAddress: clientIP || undefined,
+          userAgent: request.headers.get('user-agent') || undefined,
           riskLevel: 'LOW'
         });
       } else {
@@ -77,8 +77,8 @@ export const POST = async (request: NextRequest) => {
         await securityLogger.log({
           userId: authUser.id,
           action: 'LOGOUT_SUCCESS',
-          ipAddress: clientIP,
-          userAgent: request.headers.get('user-agent'),
+          ipAddress: clientIP || undefined,
+          userAgent: request.headers.get('user-agent') || undefined,
           details: { sessionId: authUser.session_id },
           riskLevel: 'LOW'
         });
@@ -87,8 +87,8 @@ export const POST = async (request: NextRequest) => {
       // 認証されていないユーザーのログアウト試行
       await securityLogger.log({
         action: 'LOGOUT_NO_SESSION',
-        ipAddress: clientIP,
-        userAgent: request.headers.get('user-agent'),
+        ipAddress: clientIP || undefined,
+        userAgent: request.headers.get('user-agent') || undefined,
         riskLevel: 'LOW'
       });
     }
@@ -121,8 +121,8 @@ export const POST = async (request: NextRequest) => {
     await securityLogger.log({
       userId: (await authService.getAuthUser(request))?.id,
       action: 'LOGOUT_ERROR',
-      ipAddress: clientIP,
-      userAgent: request.headers.get('user-agent'),
+      ipAddress: clientIP || undefined,
+      userAgent: request.headers.get('user-agent') || undefined,
       details: { error: String(error) },
       riskLevel: 'MEDIUM'
     });

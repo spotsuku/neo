@@ -55,7 +55,7 @@ export default function HomePage() {
               </div>
             </div>
             <nav className="hidden md:flex space-x-8">
-              <Link href="/announcements" className="text-gray-500 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+              <Link href="/notices" className="text-gray-500 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
                 お知らせ
               </Link>
               <Link href="/classes" className="text-gray-500 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
@@ -228,7 +228,7 @@ export default function HomePage() {
 
         {/* Features Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Link href="/announcements" className="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow">
+          <Link href="/notices" className="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow">
             <div className="text-center">
               <div className="mx-auto w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
                 <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

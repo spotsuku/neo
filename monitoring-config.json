@@ -1,0 +1,52 @@
+{
+  "alerts": {
+    "responseTimeThreshold": 2000,
+    "errorRateThreshold": 0.05,
+    "memoryThreshold": 104857600,
+    "diskUsageThreshold": 0.8,
+    "healthCheckInterval": 30000,
+    "alertCooldown": 300000
+  },
+  "notifications": {
+    "email": {
+      "enabled": false,
+      "recipients": [],
+      "smtpHost": "",
+      "smtpPort": 587,
+      "smtpUser": "",
+      "smtpPassword": ""
+    },
+    "webhook": {
+      "enabled": true,
+      "url": "https://webhook.site/test-neo-monitoring",
+      "headers": {
+        "Content-Type": "application/json",
+        "X-Monitor": "NEO-Platform"
+      },
+      "retryCount": 3,
+      "timeout": 5000
+    },
+    "slack": {
+      "enabled": false,
+      "webhookUrl": "",
+      "channel": "#alerts",
+      "username": "NEO Platform Monitor"
+    }
+  },
+  "retention": {
+    "metricsRetentionDays": 30,
+    "errorLogRetentionDays": 90,
+    "vitalsRetentionDays": 7
+  },
+  "performance": {
+    "enableWebVitals": true,
+    "enableRUM": true,
+    "samplingRate": 0.1,
+    "excludePatterns": [
+      "/health",
+      "/metrics",
+      "/_next",
+      "/favicon.ico"
+    ]
+  }
+}

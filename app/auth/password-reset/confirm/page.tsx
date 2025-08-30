@@ -4,7 +4,7 @@
  */
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Eye, EyeOff, CheckCircle, AlertCircle, Key } from 'lucide-react'
@@ -30,47 +30,84 @@ interface PasswordRequirement {
   text: string
 }
 
-export default function PasswordResetConfirmPage() {
-  const router = useRouter()
+function PasswordResetConfirmContent() {
   const searchParams = useSearchParams()
-  const { resetPassword } = useAuth()
-  
+  const router = useRouter()
+  const { login } = useAuth()
+
   const [token, setToken] = useState<string | null>(null)
+  const [isValidating, setIsValidating] = useState(true)
+  const [isTokenValid, setIsTokenValid] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  
   const [formData, setFormData] = useState<FormData>({
     password: '',
     confirmPassword: ''
   })
-  const [errors, setErrors] = useState<FormErrors>({})
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isSuccess, setIsSuccess] = useState(false)
-  const [tokenError, setTokenError] = useState<string | null>(null)
 
-  // URLパラメータからトークン取得
+  const [errors, setErrors] = useState<FormErrors>({})
+
+  // トークン取得と検証
   useEffect(() => {
-    const tokenParam = searchParams.get('token')
-    if (tokenParam) {
-      setToken(tokenParam)
-    } else {
-      setTokenError('無効なリセットリンクです。')
+    const urlToken = searchParams.get('token')
+    if (!urlToken) {
+      setIsValidating(false)
+      return
     }
+
+    setToken(urlToken)
+    validateToken(urlToken)
   }, [searchParams])
 
+  const validateToken = async (token: string) => {
+    try {
+      const response = await fetch('/api/auth/password-reset/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token }),
+      })
+
+      if (response.ok) {
+        setIsTokenValid(true)
+      } else {
+        setIsTokenValid(false)
+      }
+    } catch (error) {
+      console.error('Token validation error:', error)
+      setIsTokenValid(false)
+    } finally {
+      setIsValidating(false)
+    }
+  }
+
   // パスワード要件チェック
-  const getPasswordRequirements = (password: string): PasswordRequirement[] => [
-    { met: password.length >= 8, text: '8文字以上' },
-    { met: /[a-z]/.test(password), text: '小文字を含む' },
-    { met: /[A-Z]/.test(password), text: '大文字を含む' },
-    { met: /\d/.test(password), text: '数字を含む' },
-    { met: /[!@#$%^&*(),.?":{}|<>]/.test(password), text: '記号を含む' }
+  const passwordRequirements = [
+    { met: formData.password.length >= 8, text: '8文字以上' },
+    { met: /[A-Z]/.test(formData.password), text: '大文字を含む' },
+    { met: /[a-z]/.test(formData.password), text: '小文字を含む' },
+    { met: /\d/.test(formData.password), text: '数字を含む' },
+    { met: /[!@#$%^&*(),.?":{}|<>]/.test(formData.password), text: '記号を含む' }
   ]
 
-  const passwordRequirements = getPasswordRequirements(formData.password)
   const isPasswordValid = passwordRequirements.every(req => req.met)
 
-  // バリデーション
-  const validateForm = (): FormErrors => {
+  const handleInputChange = (field: keyof FormData, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+    
+    // エラーをクリア
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: undefined }))
+    }
+    if (errors.general) {
+      setErrors(prev => ({ ...prev, general: undefined }))
+    }
+  }
+
+  const validateForm = (): boolean => {
     const newErrors: FormErrors = {}
 
     if (!formData.password) {
@@ -85,21 +122,14 @@ export default function PasswordResetConfirmPage() {
       newErrors.confirmPassword = 'パスワードが一致しません'
     }
 
-    return newErrors
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
   }
 
-  // フォーム送信
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!token) {
-      setErrors({ general: '無効なリセットリンクです。' })
-      return
-    }
-
-    const validationErrors = validateForm()
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors)
+    if (!validateForm() || !token) {
       return
     }
 
@@ -107,76 +137,57 @@ export default function PasswordResetConfirmPage() {
     setErrors({})
 
     try {
-      const result = await resetPassword(token, formData.password)
+      const response = await fetch('/api/auth/password-reset/confirm', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          token,
+          password: formData.password
+        }),
+      })
 
-      if (result.success) {
-        setIsSuccess(true)
+      const data = await response.json()
+
+      if (response.ok) {
+        // パスワード更新成功 - 自動ログイン
+        if (data.user && data.accessToken) {
+          await login(data.user, data.accessToken, data.refreshToken)
+          router.push('/dashboard')
+        } else {
+          // ログイン画面にリダイレクト
+          router.push('/auth/login?message=password-updated')
+        }
       } else {
-        setErrors({ general: result.error || 'パスワードリセットに失敗しました' })
+        setErrors({
+          general: data.message || 'パスワードの更新に失敗しました'
+        })
       }
     } catch (error) {
-      setErrors({ general: 'ネットワークエラーが発生しました' })
+      console.error('Password reset error:', error)
+      setErrors({
+        general: 'ネットワークエラーが発生しました'
+      })
     } finally {
       setIsSubmitting(false)
     }
   }
 
-  // 入力値変更
-  const handleInputChange = (field: keyof FormData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: undefined }))
-    }
-  }
-
-  // 成功画面
-  if (isSuccess) {
+  // 検証中
+  if (isValidating) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">NEO Digital Platform</h1>
-          </div>
-
-          <Card>
-            <CardHeader>
-              <div className="mx-auto w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                <CheckCircle className="h-6 w-6 text-green-600" />
-              </div>
-              <CardTitle className="text-center">パスワードを変更しました</CardTitle>
-              <CardDescription className="text-center">
-                新しいパスワードでログインできます
-              </CardDescription>
-            </CardHeader>
-            
-            <CardContent>
-              <div className="text-center space-y-4">
-                <p className="text-sm text-gray-600">
-                  パスワードが正常に変更されました。<br />
-                  新しいパスワードでログインしてください。
-                </p>
-
-                <Button 
-                  onClick={() => router.push('/auth/login')}
-                  className="w-full"
-                >
-                  ログイン画面へ
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* フッター */}
-          <div className="mt-8 text-center text-xs text-gray-500">
-            <p>&copy; 2024 NEO Digital Platform. All rights reserved.</p>
-          </div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">トークンを確認しています...</p>
         </div>
       </div>
     )
   }
 
-  // トークンエラー画面
-  if (tokenError) {
+  // 無効なトークン
+  if (!isTokenValid) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full">
@@ -185,36 +196,24 @@ export default function PasswordResetConfirmPage() {
           </div>
 
           <Card>
-            <CardHeader>
-              <div className="mx-auto w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4">
-                <AlertCircle className="h-6 w-6 text-red-600" />
-              </div>
-              <CardTitle className="text-center">無効なリンクです</CardTitle>
-              <CardDescription className="text-center">
-                パスワードリセットリンクが無効です
-              </CardDescription>
-            </CardHeader>
-            
-            <CardContent>
-              <div className="text-center space-y-4">
-                <p className="text-sm text-gray-600">
-                  このリンクは無効、または期限が切れています。<br />
-                  新しいパスワードリセットを要求してください。
-                </p>
-
-                <div className="space-y-2">
-                  <Link href="/auth/password-reset">
-                    <Button className="w-full">
-                      パスワードリセットを再試行
-                    </Button>
-                  </Link>
-                  
-                  <Link href="/auth/login">
-                    <Button variant="outline" className="w-full">
-                      ログイン画面に戻る
-                    </Button>
-                  </Link>
-                </div>
+            <CardContent className="p-6 text-center">
+              <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+              <h2 className="text-lg font-semibold text-gray-900 mb-2">無効なリンクです</h2>
+              <p className="text-gray-600 mb-6">
+                このパスワードリセットリンクは無効か期限切れです。<br />
+                新しいリンクを要請してください。
+              </p>
+              <div className="space-y-3">
+                <Link href="/auth/password-reset">
+                  <Button className="w-full">
+                    新しいリンクを要請する
+                  </Button>
+                </Link>
+                <Link href="/auth/login">
+                  <Button variant="outline" className="w-full">
+                    ログイン画面に戻る
+                  </Button>
+                </Link>
               </div>
             </CardContent>
           </Card>
@@ -238,23 +237,27 @@ export default function PasswordResetConfirmPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-center">新しいパスワード</CardTitle>
-            <CardDescription className="text-center">
-              セキュリティ要件を満たすパスワードを設定してください
+            <CardTitle className="flex items-center gap-2">
+              <Key className="h-5 w-5" />
+              パスワードリセット
+            </CardTitle>
+            <CardDescription>
+              セキュリティのため、強力なパスワードを設定してください。
             </CardDescription>
           </CardHeader>
-          
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* 全般エラー表示 */}
-              {errors.general && (
-                <div className="bg-red-50 border border-red-200 rounded-md p-3 flex items-start gap-3">
-                  <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
-                  <p className="text-sm text-red-700">{errors.general}</p>
+            {/* エラーメッセージ */}
+            {errors.general && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 text-red-500" />
+                  <span className="text-sm text-red-800">{errors.general}</span>
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* パスワード */}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* 新しいパスワード */}
               <div>
                 <Label htmlFor="password">新しいパスワード</Label>
                 <div className="relative">
@@ -369,5 +372,20 @@ export default function PasswordResetConfirmPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function PasswordResetConfirmPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">読み込み中...</p>
+        </div>
+      </div>
+    }>
+      <PasswordResetConfirmContent />
+    </Suspense>
   )
 }

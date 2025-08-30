@@ -2,12 +2,12 @@
 // GET /api/announcements - お知らせ一覧取得
 // POST /api/announcements - お知らせ作成
 
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { withAuth, withCompanyAdminAuth } from '@/lib/middleware';
 import { hasResourcePermission, ResourceType, PermissionLevel } from '@/lib/permissions';
 import { createAuthenticatedResponse } from '@/lib/session';
-import type { Announcement, UserRole, RegionId } from '@/types/database';
+import type { Announcement, UserRole } from '@/types/database';
 
 // リクエストバリデーションスキーマ
 const createAnnouncementSchema = z.object({
@@ -31,7 +31,7 @@ const mockAnnouncements: (Announcement & { author_name?: string })[] = [
     summary: 'NEO福岡セッション - 地域DX推進戦略',
     author_id: 'user_sec001',
     author_name: '事務局担当者',
-    target_roles: ['student', 'company_admin'],
+    target_roles: JSON.stringify(['student', 'company_admin']),
     is_published: true,
     is_important: true,
     publish_date: '2024-08-29T14:00:00Z',
@@ -46,7 +46,7 @@ const mockAnnouncements: (Announcement & { author_name?: string })[] = [
     summary: 'メンバーカルテ機能リリース予定',
     author_id: 'user_admin001',
     author_name: '福岡管理者',
-    target_roles: ['student', 'company_admin', 'secretariat'],
+    target_roles: JSON.stringify(['student', 'company_admin', 'secretariat']),
     is_published: true,
     is_important: false,
     publish_date: '2024-08-29T15:00:00Z',
@@ -61,7 +61,7 @@ const mockAnnouncements: (Announcement & { author_name?: string })[] = [
     summary: '石川地域限定ワークショップ',
     author_id: 'user_sec001', 
     author_name: '事務局担当者',
-    target_roles: ['student', 'company_admin'],
+    target_roles: JSON.stringify(['student', 'company_admin']),
     is_published: true,
     is_important: false,
     publish_date: '2024-08-29T16:00:00Z',
@@ -77,16 +77,16 @@ export const GET = withAuth(async (request) => {
   
   const page = parseInt(searchParams.get('page') || '1');
   const limit = parseInt(searchParams.get('limit') || '10');
-  const regionFilter = searchParams.get('region') as RegionId || undefined;
+  const regionFilter = searchParams.get('region') as 'FUK' | 'ISK' | 'NIG' | 'ALL' | null;
   const importantOnly = searchParams.get('important') === 'true';
 
   try {
     // 権限チェック
     if (!hasResourcePermission(user, ResourceType.ANNOUNCEMENT, PermissionLevel.READ)) {
-      return new Response(JSON.stringify({ 
+      return NextResponse.json({ 
         error: 'FORBIDDEN', 
         message: 'お知らせの閲覧権限がありません' 
-      }), { status: 403 });
+      }, { status: 403 });
     }
 
     // データフィルタリング
@@ -123,7 +123,7 @@ export const GET = withAuth(async (request) => {
     
     const totalPages = Math.ceil(filteredAnnouncements.length / limit);
 
-    return createAuthenticatedResponse({
+    return NextResponse.json({
       announcements: paginatedData,
       pagination: {
         page,
@@ -133,14 +133,14 @@ export const GET = withAuth(async (request) => {
         hasNext: page < totalPages,
         hasPrev: page > 1
       }
-    }, user);
+    });
 
   } catch (error) {
     console.error('Get announcements error:', error);
-    return new Response(JSON.stringify({ 
+    return NextResponse.json({ 
       error: 'INTERNAL_ERROR',
       message: 'お知らせの取得中にエラーが発生しました'
-    }), { status: 500 });
+    }, { status: 500 });
   }
 });
 
@@ -151,31 +151,31 @@ export const POST = withCompanyAdminAuth(async (request) => {
   try {
     // 権限チェック
     if (!hasResourcePermission(user, ResourceType.ANNOUNCEMENT, PermissionLevel.WRITE)) {
-      return new Response(JSON.stringify({ 
+      return NextResponse.json({ 
         error: 'FORBIDDEN', 
         message: 'お知らせの作成権限がありません' 
-      }), { status: 403 });
+      }, { status: 403 });
     }
 
     const body = await request.json();
     const result = createAnnouncementSchema.safeParse(body);
     
     if (!result.success) {
-      return new Response(JSON.stringify({
+      return NextResponse.json({
         error: 'VALIDATION_ERROR',
         message: '入力データが無効です',
         details: result.error.errors
-      }), { status: 400 });
+      }, { status: 400 });
     }
 
     const data = result.data;
 
     // 地域アクセス権限チェック
     if (data.region_id !== 'ALL' && !user.accessible_regions.includes(data.region_id)) {
-      return new Response(JSON.stringify({ 
+      return NextResponse.json({ 
         error: 'FORBIDDEN', 
         message: `${data.region_id}地域への投稿権限がありません` 
-      }), { status: 403 });
+      }, { status: 403 });
     }
 
     // 新しいお知らせ作成
@@ -187,7 +187,7 @@ export const POST = withCompanyAdminAuth(async (request) => {
       summary: data.summary,
       author_id: user.id,
       author_name: user.name,
-      target_roles: data.target_roles,
+      target_roles: JSON.stringify(data.target_roles),
       is_published: true, // デフォルトで公開
       is_important: data.is_important,
       publish_date: data.publish_date || new Date().toISOString(),
@@ -199,16 +199,16 @@ export const POST = withCompanyAdminAuth(async (request) => {
     // モックデータに追加（本番では DB 保存）
     mockAnnouncements.unshift(newAnnouncement);
 
-    return createAuthenticatedResponse({
+    return NextResponse.json({
       message: 'お知らせを作成しました',
       announcement: newAnnouncement
-    }, user, 201);
+    }, { status: 201 });
 
   } catch (error) {
     console.error('Create announcement error:', error);
-    return new Response(JSON.stringify({ 
+    return NextResponse.json({ 
       error: 'INTERNAL_ERROR',
       message: 'お知らせの作成中にエラーが発生しました'
-    }), { status: 500 });
+    }, { status: 500 });
   }
 });
