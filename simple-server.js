@@ -30,6 +30,18 @@ const server = http.createServer((req, res) => {
     return;
   }
   
+  // Handle Admin Dashboard API routes
+  if (req.url.startsWith('/api/admin')) {
+    handleAdminDashboardAPI(req, res);
+    return;
+  }
+  
+  // Handle Export API routes
+  if (req.url.startsWith('/api/export')) {
+    handleExportAPI(req, res);
+    return;
+  }
+  
   // Handle Health Check API
   if (req.url === '/api/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -52,6 +64,12 @@ const server = http.createServer((req, res) => {
     filePath = '/password-reset-confirm.html';
   } else if (filePath === '/dashboard') {
     filePath = '/dashboard.html';
+  } else if (filePath === '/company-dashboard') {
+    filePath = '/company-dashboard.html';
+  } else if (filePath === '/admin-dashboard') {
+    filePath = '/admin-dashboard.html';
+  } else if (filePath === '/admin/dashboard') {
+    filePath = '/admin-dashboard.html';
   } else if (filePath === '/student/hero-progress' || filePath === '/student/hero-progress.html') {
     filePath = '/student/hero-progress.html';
   } else if (filePath === '/profile') {
@@ -436,6 +454,248 @@ function handleHeroesStepsAPI(req, res) {
       error: 'Internal server error'
     }));
   }
+}
+
+// Admin Dashboard API Handler
+function handleAdminDashboardAPI(req, res) {
+  const url = new URL(req.url, `http://${req.headers.host}`);
+  const pathname = url.pathname;
+  
+  console.log(`🔐 Admin API: ${req.method} ${pathname}`);
+  
+  // Mock data for admin dashboard
+  const mockKPIData = {
+    totalMembers: 247,
+    studentCount: 203,
+    companyCount: 28,
+    youthCount: 12,
+    corporateCount: 4,
+    npsScore: 68,
+    certifiedProjects: 18,
+    heroCertificationRate: 8.2,
+    atRiskCount: 7,
+    slackWAU: 142,
+    slackActions: 1247
+  };
+
+  const mockSlackData = {
+    weeklyActiveUsers: 142,
+    weeklyActions: 1247,
+    engagementRate: 78.5,
+    channelActivity: [
+      { channel: 'general', messages: 234, participants: 89 },
+      { channel: 'hero-steps', messages: 156, participants: 45 },
+      { channel: 'project-dev', messages: 89, participants: 23 }
+    ]
+  };
+
+  const mockConsultationData = {
+    new: [
+      { id: 'new-1', type: 'キャリア相談', student: '田中太郎', assignee: null, created: '2時間前' },
+      { id: 'new-2', type: '技術相談', student: '佐藤花子', assignee: null, created: '5時間前' },
+      { id: 'new-3', type: 'プロジェクト相談', student: '山田次郎', assignee: null, created: '1日前' }
+    ],
+    inProgress: [
+      { id: 'progress-1', type: '企業紹介依頼', student: '高橋美咲', assignee: '山田事務局員', duration: '2日' },
+      { id: 'progress-2', type: 'イベント企画', student: '渡辺由美', assignee: '佐藤事務局員', duration: '1日' }
+    ],
+    completed: [
+      { id: 'completed-1', type: '資格取得相談', student: '中村雄大', assignee: '鈴木事務局員', duration: '5日' },
+      { id: 'completed-2', type: '学習計画作成', student: '小林直美', assignee: '山田事務局員', duration: '3日' }
+    ]
+  };
+
+  try {
+    if (pathname === '/api/admin/kpi' && req.method === 'GET') {
+      // KPI データの取得
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        success: true,
+        data: mockKPIData
+      }));
+      
+    } else if (pathname === '/api/admin/slack' && req.method === 'GET') {
+      // Slack データの取得
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        success: true,
+        data: mockSlackData
+      }));
+      
+    } else if (pathname === '/api/admin/consultations' && req.method === 'GET') {
+      // 相談データの取得
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        success: true,
+        data: mockConsultationData
+      }));
+      
+    } else if (pathname === '/api/admin/consultation/status' && req.method === 'POST') {
+      // 相談ステータス更新
+      let body = '';
+      req.on('data', chunk => {
+        body += chunk.toString();
+      });
+      req.on('end', () => {
+        try {
+          const { consultationId, newStatus } = JSON.parse(body);
+          console.log(`📋 相談ステータス更新: ${consultationId} → ${newStatus}`);
+          
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            success: true,
+            message: '相談ステータスが更新されました'
+          }));
+        } catch (error) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            success: false,
+            error: 'Invalid request body'
+          }));
+        }
+      });
+      
+    } else if (pathname === '/api/admin/hero/approve' && req.method === 'POST') {
+      // ヒーロー承認
+      let body = '';
+      req.on('data', chunk => {
+        body += chunk.toString();
+      });
+      req.on('end', () => {
+        try {
+          const { heroId, action } = JSON.parse(body);
+          console.log(`🏆 ヒーロー${action}: ${heroId}`);
+          
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            success: true,
+            message: `ヒーローが${action === 'approve' ? '承認' : '差し戻し'}されました`
+          }));
+        } catch (error) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            success: false,
+            error: 'Invalid request body'
+          }));
+        }
+      });
+      
+    } else if (pathname === '/api/admin/system-status' && req.method === 'GET') {
+      // システム状況の取得
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        success: true,
+        data: {
+          apiUptime: 99.8,
+          avgResponse: 125,
+          errorCount: 3,
+          securityScore: 85,
+          alerts: [
+            { type: 'error', message: 'バックアップ失敗', detail: '日次バックアップでエラーが発生しました', time: '2時間前' },
+            { type: 'warning', message: 'CSP違反検出', detail: '外部スクリプトの読み込み試行を検出', time: '4時間前' },
+            { type: 'info', message: 'Rate Limit到達', detail: 'API呼び出し制限に達しました (IP: 192.168.1.100)', time: '6時間前' }
+          ]
+        }
+      }));
+      
+    } else {
+      // 存在しないエンドポイント
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        success: false,
+        error: 'Admin API endpoint not found'
+      }));
+    }
+    
+  } catch (error) {
+    console.error('Admin Dashboard API Error:', error);
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      success: false,
+      error: 'Internal server error'
+    }));
+  }
+}
+
+// Export API Handler
+function handleExportAPI(req, res) {
+  const url = new URL(req.url, `http://${req.headers.host}`);
+  const pathname = url.pathname;
+  
+  console.log(`📊 Export API: ${req.method} ${pathname}`);
+  
+  try {
+    if (pathname === '/api/export/csv' && req.method === 'POST') {
+      // CSV エクスポート
+      const csvData = generateMockCSV();
+      
+      res.writeHead(200, { 
+        'Content-Type': 'text/csv',
+        'Content-Disposition': 'attachment; filename="neo-dashboard-data.csv"'
+      });
+      res.end(csvData);
+      
+    } else if (pathname === '/api/export/pdf' && req.method === 'POST') {
+      // PDF エクスポート（理事会用）
+      const pdfData = generateMockPDFInfo();
+      
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        success: true,
+        message: 'PDFレポートの生成を開始しました。完了後にダウンロードリンクをお送りします。',
+        data: pdfData
+      }));
+      
+    } else {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        success: false,
+        error: 'Export endpoint not found'
+      }));
+    }
+    
+  } catch (error) {
+    console.error('Export API Error:', error);
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      success: false,
+      error: 'Export failed'
+    }));
+  }
+}
+
+// Mock CSV data generation
+function generateMockCSV() {
+  const headers = [
+    '日付', '総会員数', '学生数', '企業数', 'NPS', '公認プロジェクト数', 
+    'ヒーロー認定率', '離脱予備軍数', 'Slack WAU', 'Slack週次アクション数'
+  ];
+  
+  const rows = [
+    ['2025-09-02', '247', '203', '28', '68', '18', '8.2%', '7', '142', '1247'],
+    ['2025-09-01', '245', '201', '28', '67', '17', '8.0%', '8', '138', '1203'],
+    ['2025-08-31', '244', '200', '27', '66', '17', '7.8%', '9', '135', '1189'],
+  ];
+  
+  const csv = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+  return csv;
+}
+
+// Mock PDF info generation
+function generateMockPDFInfo() {
+  return {
+    filename: 'neo-dashboard-report-202509.pdf',
+    pages: 12,
+    sections: [
+      'エグゼクティブサマリー',
+      'KPI達成状況',
+      'ヒーローズプログラム進捗',
+      'コミュニティ健康度',
+      '授業・イベント運営状況',
+      '課題と改善提案'
+    ],
+    generatedAt: new Date().toISOString()
+  };
 }
 
 const PORT = 3000;

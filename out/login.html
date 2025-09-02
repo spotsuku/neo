@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ログイン - NEO Digital Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="/auth.js"></script>
+    <script>
+        // authManagerの初期化を確実にするための遅延初期化
+        window.addEventListener('load', function() {
+            console.log('🔄 ページ読み込み完了 - authManager初期化チェック');
+            if (!window.authManager) {
+                console.log('🔧 authManagerを手動初期化中...');
+                window.authManager = new AuthManager();
+                console.log('✅ authManager初期化完了');
+            }
+        });
+    </script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#eff6ff',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .transition-all { transition: all 0.3s ease; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center py-12 px-4">
+    <div class="max-w-md w-full">
+        <!-- ヘッダー -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">NEO Digital Platform</h1>
+            <p class="text-sm text-gray-600">アカウントにログインしてください</p>
+        </div>
+
+        <!-- ログインカード -->
+        <div class="bg-white rounded-lg shadow-lg border border-gray-200">
+            <!-- カードヘッダー -->
+            <div class="p-6 border-b border-gray-200">
+                <h2 class="text-xl font-semibold text-center text-gray-900">ログイン</h2>
+                <p class="text-sm text-gray-600 text-center mt-1">
+                    メールアドレスとパスワードを入力してください
+                </p>
+            </div>
+
+            <!-- カードコンテンツ -->
+            <div class="p-6">
+                <!-- エラーメッセージ -->
+                <div id="error-message" class="hidden mb-4 bg-red-50 border border-red-200 rounded-md p-3">
+                    <div class="flex items-start gap-3">
+                        <i class="fas fa-exclamation-triangle text-red-500 mt-0.5"></i>
+                        <p class="text-sm text-red-700" id="error-text"></p>
+                    </div>
+                </div>
+
+                <!-- ログインフォーム -->
+                <form id="login-form" class="space-y-4">
+                    <!-- メールアドレス -->
+                    <div>
+                        <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
+                            メールアドレス
+                        </label>
+                        <input 
+                            type="email" 
+                            id="email" 
+                            name="email"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                            placeholder="example@company.com"
+                            autocomplete="email"
+                            required
+                        >
+                        <p id="email-error" class="text-sm text-red-600 mt-1 hidden"></p>
+                    </div>
+
+                    <!-- パスワード -->
+                    <div>
+                        <label for="password" class="block text-sm font-medium text-gray-700 mb-2">
+                            パスワード
+                        </label>
+                        <div class="relative">
+                            <input 
+                                type="password" 
+                                id="password" 
+                                name="password"
+                                class="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                                placeholder="パスワードを入力"
+                                autocomplete="current-password"
+                                required
+                            >
+                            <button 
+                                type="button" 
+                                id="toggle-password"
+                                class="absolute inset-y-0 right-0 pr-3 flex items-center"
+                                aria-label="パスワードを表示"
+                            >
+                                <i class="fas fa-eye text-gray-500" id="password-icon"></i>
+                            </button>
+                        </div>
+                        <p id="password-error" class="text-sm text-red-600 mt-1 hidden"></p>
+                    </div>
+
+                    <!-- TOTP認証コード（必要時のみ表示） -->
+                    <div id="totp-field" class="hidden">
+                        <label for="totp-code" class="block text-sm font-medium text-gray-700 mb-2">
+                            認証コード
+                        </label>
+                        <input 
+                            type="text" 
+                            id="totp-code" 
+                            name="totpCode"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                            placeholder="6桁のコードを入力"
+                            autocomplete="one-time-code"
+                            maxlength="6"
+                            pattern="[0-9]{6}"
+                        >
+                        <p class="text-xs text-gray-600 mt-1">
+                            認証アプリで生成された6桁のコードを入力してください
+                        </p>
+                        <p id="totp-error" class="text-sm text-red-600 mt-1 hidden"></p>
+                    </div>
+
+                    <!-- ログインボタン -->
+                    <button 
+                        type="submit" 
+                        id="login-button"
+                        class="w-full bg-primary-600 text-white py-2 px-4 rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-all font-medium"
+                    >
+                        <span id="login-text" class="flex items-center justify-center gap-2">
+                            <i class="fas fa-sign-in-alt"></i>
+                            <span>ログイン</span>
+                        </span>
+                        <span id="login-loading" class="hidden flex items-center justify-center gap-2">
+                            <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                            <span>ログイン中...</span>
+                        </span>
+                    </button>
+                </form>
+
+                <!-- リンクセクション -->
+                <div class="mt-6 space-y-4">
+                    <div class="text-center">
+                        <a href="/password-reset.html" class="text-sm text-primary-600 hover:text-primary-500 hover:underline">
+                            パスワードを忘れた方
+                        </a>
+                    </div>
+                    
+                    <div class="relative">
+                        <div class="absolute inset-0 flex items-center">
+                            <span class="w-full border-t border-gray-300"></span>
+                        </div>
+                        <div class="relative flex justify-center text-sm">
+                            <span class="bg-white px-2 text-gray-500">または</span>
+                        </div>
+                    </div>
+
+                    <div class="text-center">
+                        <span class="text-sm text-gray-600">アカウントをお持ちでない方は </span>
+                        <a href="/signup.html" class="text-sm text-primary-600 hover:text-primary-500 hover:underline font-medium">
+                            サインアップ
+                        </a>
+                    </div>
+                    
+                    <!-- デバッグ用クイックログインボタン -->
+                    <div class="text-center mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                        <p class="text-xs text-yellow-700 mb-2">デバッグ用クイックログイン:</p>
+                        <div class="space-x-2">
+                            <button onclick="quickLogin('student')" class="text-xs bg-blue-500 text-white px-2 py-1 rounded">学生</button>
+                            <button onclick="quickLogin('admin')" class="text-xs bg-red-500 text-white px-2 py-1 rounded">管理者</button>
+                            <button onclick="quickLogin('company')" class="text-xs bg-purple-500 text-white px-2 py-1 rounded">企業</button>
+                            <button onclick="debugAuth()" class="text-xs bg-green-500 text-white px-2 py-1 rounded">デバッグ</button>
+                            <button onclick="resetAuth()" class="text-xs bg-orange-500 text-white px-2 py-1 rounded">リセット</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- フッター -->
+        <div class="mt-8 text-center text-xs text-gray-500">
+            <p>&copy; 2024 NEO Digital Platform. All rights reserved.</p>
+        </div>
+
+        <!-- 戻るボタン -->
+        <div class="mt-4 text-center">
+            <a href="/" class="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-800 transition-colors">
+                <i class="fas fa-arrow-left"></i>
+                ホームに戻る
+            </a>
+        </div>
+    </div>
+
+    <script>
+        // パスワード表示切り替え
+        document.getElementById('toggle-password').addEventListener('click', function() {
+            const passwordInput = document.getElementById('password');
+            const passwordIcon = document.getElementById('password-icon');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                passwordIcon.className = 'fas fa-eye-slash text-gray-500';
+                this.setAttribute('aria-label', 'パスワードを隠す');
+            } else {
+                passwordInput.type = 'password';
+                passwordIcon.className = 'fas fa-eye text-gray-500';
+                this.setAttribute('aria-label', 'パスワードを表示');
+            }
+        });
+
+        // TOTP コードの数字のみ入力制御
+        document.getElementById('totp-code').addEventListener('input', function(e) {
+            this.value = this.value.replace(/\D/g, '').slice(0, 6);
+        });
+
+        // フォーム送信処理
+        document.getElementById('login-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const totpCode = document.getElementById('totp-code').value.trim();
+            
+            // エラーをクリア
+            clearErrors();
+            
+            // バリデーション
+            if (!validateForm(email, password)) {
+                return;
+            }
+
+            // ローディング状態に変更
+            setLoadingState(true);
+
+            try {
+                // 統合認証システムでログイン
+                const response = await performLogin(email, password, totpCode);
+                
+                if (response.success) {
+                    // ログイン成功
+                    console.log('✅ Login successful, user:', response.user);
+                    
+                    // ロールベースのリダイレクト先を決定
+                    let redirectUrl = '/dashboard.html'; // デフォルト（学生用）
+                    let dashboardName = 'ダッシュボード';
+                    
+                    if (response.user && response.user.role) {
+                        console.log('👤 User role:', response.user.role);
+                        switch (response.user.role) {
+                            case 'company':
+                                redirectUrl = '/company-dashboard.html';
+                                dashboardName = '企業管理ダッシュボード';
+                                break;
+                            case 'admin':
+                                redirectUrl = '/admin/dashboard';
+                                dashboardName = '事務局ダッシュボード';
+                                break;
+                            case 'student':
+                            default:
+                                redirectUrl = '/dashboard.html';
+                                dashboardName = '学生ダッシュボード';
+                                break;
+                        }
+                    }
+                    
+                    showSuccess(`ログイン成功！${dashboardName}に移動します...`);
+                    
+                    // ロールに応じたリダイレクト
+                    console.log('🔄 Redirecting to dashboard...');
+                    setTimeout(() => {
+                        console.log('📍 Current location:', window.location.href);
+                        console.log(`🎯 Target location: ${redirectUrl}`);
+                        window.location.href = redirectUrl;
+                    }, 800);
+                } else {
+                    // TOTP が必要な場合
+                    if (response.requiresTOTP) {
+                        showTOTPField();
+                        showError('認証コードを入力してください');
+                    } else {
+                        showError(response.message || 'ログインに失敗しました');
+                    }
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                showError('ネットワークエラーが発生しました');
+            } finally {
+                setLoadingState(false);
+            }
+        });
+
+        // バリデーション関数
+        function validateForm(email, password) {
+            let isValid = true;
+            
+            if (!email) {
+                showFieldError('email', 'メールアドレスを入力してください');
+                isValid = false;
+            } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                showFieldError('email', '有効なメールアドレスを入力してください');
+                isValid = false;
+            }
+            
+            if (!password) {
+                showFieldError('password', 'パスワードを入力してください');
+                isValid = false;
+            } else if (password.length < 8) {
+                showFieldError('password', 'パスワードは8文字以上である必要があります');
+                isValid = false;
+            }
+            
+            return isValid;
+        }
+
+        // 統合認証システムを使用したログイン
+        async function performLogin(email, password, totpCode) {
+            console.log('🔐 ログイン試行開始');
+            console.log('📧 Email:', email);
+            console.log('🔑 Password length:', password.length);
+            console.log('🔢 TOTP Code:', totpCode);
+            
+            // authManagerの存在確認
+            if (!window.authManager) {
+                console.error('❌ authManager が見つかりません');
+                return {
+                    success: false,
+                    error: '認証システムが初期化されていません'
+                };
+            }
+            
+            // ユーザー検索テスト
+            const user = window.authManager.findUserByEmail(email);
+            console.log('👤 検索結果:', user);
+            
+            if (user) {
+                console.log('✅ ユーザーが見つかりました');
+                console.log('🔍 パスワード一致:', user.password === password);
+                console.log('👤 ユーザー詳細:', {
+                    id: user.id,
+                    name: user.name,
+                    email: user.email,
+                    role: user.role,
+                    passwordMatch: user.password === password
+                });
+            } else {
+                console.log('❌ ユーザーが見つかりません');
+                console.log('📝 登録済みメールアドレス一覧:');
+                const users = window.authManager.getUsers();
+                users.forEach(u => console.log(`  - ${u.email}`));
+            }
+            
+            // UI遅延（UX向上）
+            await new Promise(resolve => setTimeout(resolve, 800));
+            
+            // 統合認証システムでログイン
+            const result = window.authManager.login(email, password, totpCode);
+            console.log('🔐 ログイン結果:', result);
+            return result;
+        }
+
+        // UI 制御関数
+        function setLoadingState(loading) {
+            const button = document.getElementById('login-button');
+            const loginText = document.getElementById('login-text');
+            const loginLoading = document.getElementById('login-loading');
+            
+            if (loading) {
+                button.disabled = true;
+                loginText.classList.add('hidden');
+                loginLoading.classList.remove('hidden');
+            } else {
+                button.disabled = false;
+                loginText.classList.remove('hidden');
+                loginLoading.classList.add('hidden');
+            }
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error-message');
+            const errorText = document.getElementById('error-text');
+            errorText.textContent = message;
+            errorDiv.classList.remove('hidden');
+        }
+
+        function showFieldError(fieldId, message) {
+            const errorElement = document.getElementById(fieldId + '-error');
+            const fieldElement = document.getElementById(fieldId);
+            errorElement.textContent = message;
+            errorElement.classList.remove('hidden');
+            fieldElement.classList.add('border-red-500', 'focus:ring-red-500');
+        }
+
+        function clearErrors() {
+            document.getElementById('error-message').classList.add('hidden');
+            
+            ['email', 'password', 'totp-code'].forEach(fieldId => {
+                const errorElement = document.getElementById(fieldId + '-error');
+                const fieldElement = document.getElementById(fieldId);
+                errorElement?.classList.add('hidden');
+                fieldElement?.classList.remove('border-red-500', 'focus:ring-red-500');
+            });
+        }
+
+        function showTOTPField() {
+            document.getElementById('totp-field').classList.remove('hidden');
+        }
+
+        function showSuccess(message) {
+            showError(message);
+            document.getElementById('error-message').className = 'mb-4 bg-green-50 border border-green-200 rounded-md p-3';
+            document.getElementById('error-message').querySelector('i').className = 'fas fa-check-circle text-green-500 mt-0.5';
+            document.getElementById('error-text').className = 'text-sm text-green-700';
+        }
+
+        // ページロード時の初期化とデバッグ
+        console.log('🔐 NEO Digital Platform - ログインページ');
+        console.log('📧 デモアカウント: demo@neo.com / demo123');
+        console.log('👑 管理者アカウント: admin@neo.com / password123 (TOTP: 123456)');
+        console.log('🎓 学生アカウント: student@neo-academy.jp / student123');
+        
+        // デバッグ: authManagerが正しく初期化されているかチェック
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('=== 認証システムデバッグ情報 ===');
+            console.log('authManager:', window.authManager);
+            
+            if (window.authManager) {
+                console.log('🔍 登録済みユーザー一覧:');
+                const users = window.authManager.getUsers();
+                users.forEach(user => {
+                    console.log(`- ${user.name} (${user.email}) [${user.role}]`);
+                });
+                
+                // 学生アカウントが正しく登録されているかチェック
+                const studentUser = window.authManager.findUserByEmail('student@neo-academy.jp');
+                console.log('🎓 学生アカウント詳細:', studentUser);
+            } else {
+                console.error('❌ authManager が初期化されていません');
+            }
+            console.log('================================');
+        });
+        
+        // デバッグ用クイックログイン関数
+        window.quickLogin = function(type) {
+            let email, password;
+            
+            if (type === 'student') {
+                email = 'student@neo-academy.jp';
+                password = 'student123';
+            } else if (type === 'admin') {
+                email = 'admin@neo.com';
+                password = 'password123';
+            } else if (type === 'company') {
+                email = 'staff@techcorp.com';
+                password = 'company123';
+            }
+            
+            console.log(`🚀 クイックログイン: ${type}`);
+            console.log(`📧 Email: ${email}`);
+            console.log(`🔑 Password: ${password}`);
+            
+            // フォームに値を設定
+            document.getElementById('email').value = email;
+            document.getElementById('password').value = password;
+            
+            // 自動ログイン実行
+            setTimeout(() => {
+                document.getElementById('login-form').dispatchEvent(new Event('submit'));
+            }, 100);
+        };
+        
+        // デバッグ情報表示関数
+        window.debugAuth = function() {
+            console.clear();
+            console.log('=== 認証システム詳細デバッグ ===');
+            
+            if (window.authManager) {
+                console.log('✅ authManager 初期化済み');
+                
+                const users = window.authManager.getUsers();
+                console.log(`👥 登録ユーザー数: ${users.length}`);
+                
+                console.log('📝 全ユーザー詳細:');
+                users.forEach((user, index) => {
+                    console.log(`${index + 1}. ${user.name}`);
+                    console.log(`   📧 Email: ${user.email}`);
+                    console.log(`   🔑 Password: ${user.password}`);
+                    console.log(`   👤 Role: ${user.role}`);
+                    console.log(`   🆔 ID: ${user.id}`);
+                    if (user.studentId) console.log(`   🎓 Student ID: ${user.studentId}`);
+                    console.log('   ---');
+                });
+                
+                // 学生アカウントの詳細チェック
+                const studentUser = window.authManager.findUserByEmail('student@neo-academy.jp');
+                console.log('🎓 学生アカウント検索結果:', studentUser);
+                
+                // 現在のセッション状況
+                const session = window.authManager.getCurrentSession();
+                console.log('🔒 現在のセッション:', session);
+                
+                // localStorageの内容確認
+                console.log('💾 localStorage内容:');
+                console.log('- Users:', localStorage.getItem('neo_digital_platform_users'));
+                console.log('- Session:', localStorage.getItem('neo_digital_platform_session'));
+                
+            } else {
+                console.error('❌ authManager が初期化されていません');
+            }
+            
+            console.log('===============================');
+        };
+        
+        // 認証システムリセット機能
+        window.resetAuth = function() {
+            console.log('🔄 認証システムをリセット中...');
+            
+            // localStorageをクリア
+            localStorage.removeItem('neo_digital_platform_users');
+            localStorage.removeItem('neo_digital_platform_session');
+            localStorage.removeItem('neo_digital_platform_announcements');
+            localStorage.removeItem('neo_digital_platform_notices');
+            localStorage.removeItem('neo_digital_platform_reset_tokens');
+            
+            console.log('🗑️ localStorage クリア完了');
+            
+            // authManagerを再初期化
+            window.authManager = new AuthManager();
+            console.log('✅ authManager 再初期化完了');
+            
+            // デバッグ情報を表示
+            setTimeout(() => {
+                debugAuth();
+                alert('認証システムがリセットされました。学生アカウントでのログインを再試行してください。');
+            }, 500);
+        };
+    </script>
+</body>
+</html>
