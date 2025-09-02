@@ -52,6 +52,8 @@ const server = http.createServer((req, res) => {
     filePath = '/password-reset-confirm.html';
   } else if (filePath === '/dashboard') {
     filePath = '/dashboard.html';
+  } else if (filePath === '/student/hero-progress' || filePath === '/student/hero-progress.html') {
+    filePath = '/student/hero-progress.html';
   } else if (filePath === '/profile') {
     filePath = '/profile.html';
   } else if (filePath === '/announcements') {
