@@ -16,7 +16,15 @@ import {
   UserPlus,
   Settings,
   FileText,
-  Eye
+  Eye,
+  ChevronDown,
+  ChevronUp,
+  BarChart3,
+  Calendar,
+  MessageSquare,
+  Bell,
+  BookOpen,
+  HelpCircle
 } from 'lucide-react';
 
 interface SystemStats {
@@ -36,13 +44,47 @@ interface SystemStats {
   }>;
 }
 
+interface DashboardSection {
+  id: string;
+  title: string;
+  icon: string;
+  isExpanded: boolean;
+  isEnabled: boolean;
+}
+
 export default function AdminDashboard() {
   const [stats, setStats] = useState<SystemStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sections, setSections] = useState<DashboardSection[]>([
+    { id: 'communityHealth', title: 'コミュニティ健康度', icon: '📊', isExpanded: true, isEnabled: true },
+    { id: 'heroStepKPI', title: 'ヒーローステップ KPI', icon: '🏆', isExpanded: true, isEnabled: true },
+    { id: 'classEvents', title: '授業・イベント運営', icon: '📚', isExpanded: false, isEnabled: true },
+    { id: 'consultingMatch', title: '相談マッチング管理', icon: '🤝', isExpanded: false, isEnabled: true },
+    { id: 'systemStatus', title: 'システム・運営状況', icon: '⚡', isExpanded: true, isEnabled: true },
+    { id: 'publicRelations', title: '広報・発信管理', icon: '📢', isExpanded: false, isEnabled: true },
+    { id: 'memberManagement', title: '会員管理', icon: '👥', isExpanded: false, isEnabled: true },
+    { id: 'settings', title: '設定・カスタマイズ', icon: '⚙️', isExpanded: false, isEnabled: true }
+  ]);
 
   useEffect(() => {
     fetchSystemStats();
   }, []);
+
+  const toggleSection = (sectionId: string) => {
+    setSections(prev => prev.map(section => 
+      section.id === sectionId 
+        ? { ...section, isExpanded: !section.isExpanded }
+        : section
+    ));
+  };
+
+  const toggleSectionEnabled = (sectionId: string) => {
+    setSections(prev => prev.map(section => 
+      section.id === sectionId 
+        ? { ...section, isEnabled: !section.isEnabled }
+        : section
+    ));
+  };
 
   const fetchSystemStats = async () => {
     try {
@@ -55,7 +97,7 @@ export default function AdminDashboard() {
         adminUsers: 3,
         systemLoad: 12,
         uptime: 99.9,
-        alerts: 0,
+        alerts: 2,
         storage: 45,
         recentActivities: [
           {
@@ -141,228 +183,537 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* システム統計カード */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="border-l-4 border-l-blue-500">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">総ユーザー数</CardTitle>
-            <Users className="h-4 w-4 text-blue-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalUsers.toLocaleString()}</div>
-            <p className="text-xs text-gray-600">
-              アクティブ: {stats.activeUsers.toLocaleString()}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-red-500">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">管理者数</CardTitle>
-            <Shield className="h-4 w-4 text-red-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.adminUsers}</div>
-            <p className="text-xs text-gray-600">システム管理者</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-green-500">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">システム負荷</CardTitle>
-            <Server className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.systemLoad}%</div>
-            <p className="text-xs text-green-600">良好</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-yellow-500">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">稼働時間</CardTitle>
-            <Clock className="h-4 w-4 text-yellow-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.uptime}%</div>
-            <p className="text-xs text-gray-600">今月の平均</p>
-          </CardContent>
-        </Card>
+    <div className="neo-admin-dashboard">
+      <style jsx>{`
+        .neo-admin-dashboard {
+          --neo-bg: #f8fafc;
+          --neo-card: #ffffff;
+          --neo-text: #0f172a;
+          --neo-text-secondary: #64748b;
+          --neo-primary: #2563eb;
+          --neo-secondary: #7c3aed;
+          --neo-success: #059669;
+          --neo-warning: #d97706;
+          --neo-danger: #dc2626;
+          --neo-border: #e2e8f0;
+          --neo-header-height: 72px;
+          background-color: var(--neo-bg);
+          min-height: 100vh;
+        }
+        
+        .neo-header {
+          background: linear-gradient(135deg, var(--neo-primary) 0%, var(--neo-secondary) 100%);
+          color: white;
+          padding: 1rem 1.5rem;
+          margin: -2rem -2rem 2rem -2rem;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        .neo-section {
+          background: var(--neo-card);
+          border-radius: 12px;
+          box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+          margin-bottom: 1.5rem;
+          overflow: hidden;
+          transition: all 0.2s ease;
+        }
+        
+        .neo-section:hover {
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        .neo-section-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 1rem 1.5rem;
+          cursor: pointer;
+          border-bottom: 1px solid var(--neo-border);
+          transition: background-color 0.2s ease;
+        }
+        
+        .neo-section-header:hover {
+          background-color: #f8fafc;
+        }
+        
+        .neo-section-title {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          font-weight: 600;
+          color: var(--neo-text);
+        }
+        
+        .neo-section-icon {
+          font-size: 1.25rem;
+        }
+        
+        .neo-section-controls {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+        }
+        
+        .neo-toggle-switch {
+          position: relative;
+          width: 44px;
+          height: 24px;
+          background-color: #e2e8f0;
+          border-radius: 12px;
+          cursor: pointer;
+          transition: background-color 0.2s ease;
+        }
+        
+        .neo-toggle-switch.enabled {
+          background-color: var(--neo-primary);
+        }
+        
+        .neo-toggle-knob {
+          position: absolute;
+          top: 2px;
+          left: 2px;
+          width: 20px;
+          height: 20px;
+          background-color: white;
+          border-radius: 50%;
+          transition: transform 0.2s ease;
+        }
+        
+        .neo-toggle-switch.enabled .neo-toggle-knob {
+          transform: translateX(20px);
+        }
+        
+        .neo-toggle-icon {
+          transition: transform 0.2s ease;
+        }
+        
+        .neo-section.collapsed .neo-toggle-icon {
+          transform: rotate(-90deg);
+        }
+        
+        .neo-section-content {
+          padding: 1.5rem;
+          display: block;
+        }
+        
+        .neo-section.collapsed .neo-section-content {
+          display: none;
+        }
+        
+        .neo-kpi-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 1rem;
+          margin-bottom: 1.5rem;
+        }
+        
+        .neo-kpi-card {
+          background: #f8fafc;
+          padding: 1rem;
+          border-radius: 8px;
+          text-align: center;
+        }
+        
+        .neo-kpi-value {
+          font-size: 1.875rem;
+          font-weight: 700;
+          color: var(--neo-primary);
+        }
+        
+        .neo-kpi-label {
+          font-size: 0.875rem;
+          color: var(--neo-text-secondary);
+          margin-top: 0.25rem;
+        }
+        
+        .neo-alert {
+          display: flex;
+          align-items: flex-start;
+          gap: 0.75rem;
+          padding: 1rem;
+          border-radius: 8px;
+          margin-bottom: 0.5rem;
+        }
+        
+        .neo-alert.warning {
+          background-color: #fef3c7;
+          border-left: 4px solid var(--neo-warning);
+        }
+        
+        .neo-alert.error {
+          background-color: #fee2e2;
+          border-left: 4px solid var(--neo-danger);
+        }
+        
+        .neo-list-item {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0.75rem 0;
+          border-bottom: 1px solid var(--neo-border);
+        }
+        
+        .neo-list-item:last-child {
+          border-bottom: none;
+        }
+      `}</style>
+      
+      {/* NEO Platform Header */}
+      <div className="neo-header">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <div className="text-2xl">🚀</div>
+            <div>
+              <h1 className="text-2xl font-bold">NEO Digital Platform</h1>
+              <p className="text-blue-100">事務局ダッシュボード</p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-4">
+            <Badge variant="outline" className="bg-white/20 text-white border-white/30">
+              管理者
+            </Badge>
+            <div className="text-right">
+              <p className="font-medium">田中 太郎</p>
+              <p className="text-xs text-blue-100">最終ログイン: 10分前</p>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* メイン管理エリア */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* 管理機能 */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* ユーザー管理 */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Users className="h-5 w-5 mr-2 text-blue-500" />
-                ユーザー管理
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Button className="h-16 flex flex-col items-center justify-center">
-                  <UserPlus className="h-5 w-5 mb-1" />
-                  新規ユーザー
-                </Button>
-                <Button variant="outline" className="h-16 flex flex-col items-center justify-center">
-                  <Eye className="h-5 w-5 mb-1" />
-                  ユーザー一覧
-                </Button>
-                <Button variant="outline" className="h-16 flex flex-col items-center justify-center">
-                  <Shield className="h-5 w-5 mb-1" />
-                  権限管理
-                </Button>
+      {/* Dashboard Sections */}
+      <div className="space-y-0">
+        {sections.map((section) => (
+          <div key={section.id} className={`neo-section ${section.isExpanded ? '' : 'collapsed'}`}>
+            <div className="neo-section-header" onClick={() => toggleSection(section.id)}>
+              <div className="neo-section-title">
+                <span className="neo-section-icon">{section.icon}</span>
+                {section.title}
               </div>
-            </CardContent>
-          </Card>
-
-          {/* システム管理 */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Settings className="h-5 w-5 mr-2 text-orange-500" />
-                システム管理
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Button variant="outline" className="h-16 flex flex-col items-center justify-center">
-                  <Database className="h-5 w-5 mb-1" />
-                  データベース
-                </Button>
-                <Button variant="outline" className="h-16 flex flex-col items-center justify-center">
-                  <Shield className="h-5 w-5 mb-1" />
-                  セキュリティ
-                </Button>
-                <Button variant="outline" className="h-16 flex flex-col items-center justify-center">
-                  <TrendingUp className="h-5 w-5 mb-1" />
-                  パフォーマンス
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* システムヘルス */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Activity className="h-5 w-5 mr-2 text-green-500" />
-                システムヘルス
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">CPU使用率</span>
-                  <Badge variant="secondary">{stats.systemLoad}%</Badge>
+              <div className="neo-section-controls">
+                <div 
+                  className={`neo-toggle-switch ${section.isEnabled ? 'enabled' : ''}`}
+                  onClick={(e) => { e.stopPropagation(); toggleSectionEnabled(section.id); }}
+                >
+                  <div className="neo-toggle-knob"></div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">メモリ使用率</span>
-                  <Badge variant="outline">68%</Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">ストレージ使用率</span>
-                  <Badge variant="secondary">{stats.storage}%</Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">ネットワーク</span>
-                  <Badge variant="default">正常</Badge>
+                <div className="neo-toggle-icon">
+                  {section.isExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* サイドバー */}
-        <div className="space-y-6">
-          {/* アラート */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <AlertTriangle className="h-5 w-5 mr-2 text-red-500" />
-                セキュリティアラート
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {stats.alerts === 0 ? (
-                <div className="text-center py-6">
-                  <Activity className="h-8 w-8 text-green-500 mx-auto mb-2" />
-                  <p className="text-sm text-gray-600">アラートはありません</p>
-                  <p className="text-xs text-gray-500">システムは正常に稼働中</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {/* アラート一覧（実際のアラートがある場合） */}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* 最近のアクティビティ */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <FileText className="h-5 w-5 mr-2 text-indigo-500" />
-                最近のアクティビティ
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {stats.recentActivities.map((activity) => (
-                  <div key={activity.id} className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
-                    <div className="flex-shrink-0">
-                      {getActivityIcon(activity.type)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">
-                        {activity.action}
-                      </p>
-                      <p className="text-xs text-gray-500">{activity.user}</p>
-                      <div className="flex items-center justify-between mt-1">
-                        <span className="text-xs text-gray-400">{activity.timestamp}</span>
-                        <Badge variant={getActivityBadgeColor(activity.type) as any} className="text-xs">
-                          {activity.type}
-                        </Badge>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+            </div>
+            
+            {section.isEnabled && (
+              <div className="neo-section-content">
+                {renderSectionContent(section.id, stats)}
               </div>
-            </CardContent>
-          </Card>
-
-          {/* 管理ツール */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Settings className="h-5 w-5 mr-2 text-purple-500" />
-                管理ツール
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <Button variant="ghost" className="w-full justify-start text-sm">
-                  <FileText className="h-4 w-4 mr-2" />
-                  ログエクスポート
-                </Button>
-                <Button variant="ghost" className="w-full justify-start text-sm">
-                  <Database className="h-4 w-4 mr-2" />
-                  DBメンテナンス
-                </Button>
-                <Button variant="ghost" className="w-full justify-start text-sm">
-                  <Activity className="h-4 w-4 mr-2" />
-                  キャッシュクリア
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   );
+}
+
+function renderSectionContent(sectionId: string, stats: SystemStats | null) {
+  if (!stats) return null;
+
+  switch (sectionId) {
+    case 'communityHealth':
+      return (
+        <div>
+          <div className="neo-kpi-grid">
+            <div className="neo-kpi-card">
+              <div className="neo-kpi-value">{stats.totalUsers.toLocaleString()}</div>
+              <div className="neo-kpi-label">総ユーザー数</div>
+            </div>
+            <div className="neo-kpi-card">
+              <div className="neo-kpi-value">{stats.activeUsers.toLocaleString()}</div>
+              <div className="neo-kpi-label">アクティブユーザー</div>
+            </div>
+            <div className="neo-kpi-card">
+              <div className="neo-kpi-value">87%</div>
+              <div className="neo-kpi-label">関与度スコア</div>
+            </div>
+            <div className="neo-kpi-card">
+              <div className="neo-kpi-value">+12%</div>
+              <div className="neo-kpi-label">前月比増加</div>
+            </div>
+          </div>
+          <p className="text-sm text-gray-600">コミュニティの健康度は良好です。アクティブユーザー数が前月から12%増加しています。</p>
+        </div>
+      );
+    
+    case 'heroStepKPI':
+      return (
+        <div>
+          <div className="neo-kpi-grid">
+            <div className="neo-kpi-card">
+              <div className="neo-kpi-value">156</div>
+              <div className="neo-kpi-label">アクティブヒーロー</div>
+            </div>
+            <div className="neo-kpi-card">
+              <div className="neo-kpi-value">23</div>
+              <div className="neo-kpi-label">承認待ち</div>
+            </div>
+            <div className="neo-kpi-card">
+              <div className="neo-kpi-value">4.8</div>
+              <div className="neo-kpi-label">平均評価</div>
+            </div>
+            <div className="neo-kpi-card">
+              <div className="neo-kpi-value">92%</div>
+              <div className="neo-kpi-label">完了率</div>
+            </div>
+          </div>
+          <div className="mt-4">
+            <h4 className="font-semibold mb-2">新規ヒーロー候補</h4>
+            <div className="space-y-2">
+              <div className="neo-list-item">
+                <span>佐藤花子 - ウェブ開発</span>
+                <Badge variant="secondary">審査中</Badge>
+              </div>
+              <div className="neo-list-item">
+                <span>鈴木一郎 - データ分析</span>
+                <Badge variant="outline">書類確認中</Badge>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    
+    case 'classEvents':
+      return (
+        <div>
+          <div className="neo-kpi-grid">
+            <div className="neo-kpi-card">
+              <div className="neo-kpi-value">8</div>
+              <div className="neo-kpi-label">今週の授業</div>
+            </div>
+            <div className="neo-kpi-card">
+              <div className="neo-kpi-value">85%</div>
+              <div className="neo-kpi-label">平均出席率</div>
+            </div>
+            <div className="neo-kpi-card">
+              <div className="neo-kpi-value">4.6</div>
+              <div className="neo-kpi-label">授業評価</div>
+            </div>
+            <div className="neo-kpi-card">
+              <div className="neo-kpi-value">3</div>
+              <div className="neo-kpi-label">準備中</div>
+            </div>
+          </div>
+          <div className="mt-4">
+            <h4 className="font-semibold mb-2">今週のスケジュール</h4>
+            <div className="space-y-2">
+              <div className="neo-list-item">
+                <span>React基礎講座 - 12/20 19:00</span>
+                <Badge variant="default">準備完了</Badge>
+              </div>
+              <div className="neo-list-item">
+                <span>Python入門 - 12/21 20:00</span>
+                <Badge variant="outline">準備中</Badge>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    
+    case 'consultingMatch':
+      return (
+        <div>
+          <div className="neo-kpi-grid">
+            <div className="neo-kpi-card">
+              <div className="neo-kpi-value">42</div>
+              <div className="neo-kpi-label">新規相談</div>
+            </div>
+            <div className="neo-kpi-card">
+              <div className="neo-kpi-value">28</div>
+              <div className="neo-kpi-label">対応中</div>
+            </div>
+            <div className="neo-kpi-card">
+              <div className="neo-kpi-value">156</div>
+              <div className="neo-kpi-label">解決済み</div>
+            </div>
+            <div className="neo-kpi-card">
+              <div className="neo-kpi-value">4.9</div>
+              <div className="neo-kpi-label">満足度</div>
+            </div>
+          </div>
+          <div className="mt-4">
+            <h4 className="font-semibold mb-2">緊急対応が必要な相談</h4>
+            <div className="space-y-2">
+              <div className="neo-list-item">
+                <span>キャリア相談 - 田中様</span>
+                <Badge variant="destructive">緊急</Badge>
+              </div>
+              <div className="neo-list-item">
+                <span>技術相談 - 佐藤様</span>
+                <Badge variant="secondary">優先</Badge>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    
+    case 'systemStatus':
+      return (
+        <div>
+          <div className="neo-kpi-grid">
+            <div className="neo-kpi-card">
+              <div className="neo-kpi-value">{stats.systemLoad}%</div>
+              <div className="neo-kpi-label">システム負荷</div>
+            </div>
+            <div className="neo-kpi-card">
+              <div className="neo-kpi-value">{stats.uptime}%</div>
+              <div className="neo-kpi-label">稼働率</div>
+            </div>
+            <div className="neo-kpi-card">
+              <div className="neo-kpi-value">{stats.storage}%</div>
+              <div className="neo-kpi-label">ストレージ</div>
+            </div>
+            <div className="neo-kpi-card">
+              <div className="neo-kpi-value">{stats.alerts}</div>
+              <div className="neo-kpi-label">アラート数</div>
+            </div>
+          </div>
+          {stats.alerts > 0 && (
+            <div className="mt-4">
+              <h4 className="font-semibold mb-2">アクティブアラート</h4>
+              <div className="neo-alert warning">
+                <AlertTriangle className="h-5 w-5" />
+                <div>
+                  <p className="font-medium">CPU使用率が高くなっています</p>
+                  <p className="text-sm text-gray-600">15分前に検出</p>
+                </div>
+              </div>
+              <div className="neo-alert error">
+                <AlertTriangle className="h-5 w-5" />
+                <div>
+                  <p className="font-medium">データベース接続エラー</p>
+                  <p className="text-sm text-gray-600">5分前に検出</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    
+    case 'publicRelations':
+      return (
+        <div>
+          <div className="neo-kpi-grid">
+            <div className="neo-kpi-card">
+              <div className="neo-kpi-value">12</div>
+              <div className="neo-kpi-label">予定投稿</div>
+            </div>
+            <div className="neo-kpi-card">
+              <div className="neo-kpi-value">3,456</div>
+              <div className="neo-kpi-label">今月のリーチ</div>
+            </div>
+            <div className="neo-kpi-card">
+              <div className="neo-kpi-value">8.2%</div>
+              <div className="neo-kpi-label">エンゲージメント率</div>
+            </div>
+            <div className="neo-kpi-card">
+              <div className="neo-kpi-value">5</div>
+              <div className="neo-kpi-label">進行中企画</div>
+            </div>
+          </div>
+          <div className="mt-4">
+            <h4 className="font-semibold mb-2">今週の投稿予定</h4>
+            <div className="space-y-2">
+              <div className="neo-list-item">
+                <span>年末イベント告知 - 12/20</span>
+                <Badge variant="default">準備完了</Badge>
+              </div>
+              <div className="neo-list-item">
+                <span>ヒーロー紹介記事 - 12/22</span>
+                <Badge variant="outline">作成中</Badge>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    
+    case 'memberManagement':
+      return (
+        <div>
+          <div className="neo-kpi-grid">
+            <div className="neo-kpi-card">
+              <div className="neo-kpi-value">23</div>
+              <div className="neo-kpi-label">新規登録</div>
+            </div>
+            <div className="neo-kpi-card">
+              <div className="neo-kpi-value">156</div>
+              <div className="neo-kpi-label">審査待ち</div>
+            </div>
+            <div className="neo-kpi-card">
+              <div className="neo-kpi-value">2</div>
+              <div className="neo-kpi-label">要注意ユーザー</div>
+            </div>
+            <div className="neo-kpi-card">
+              <div className="neo-kpi-value">892</div>
+              <div className="neo-kpi-label">アクティブ会員</div>
+            </div>
+          </div>
+          <div className="mt-4">
+            <h4 className="font-semibold mb-2">最近の新規登録</h4>
+            <div className="space-y-2">
+              <div className="neo-list-item">
+                <span>山田太郎 - 12/19登録</span>
+                <Badge variant="secondary">審査中</Badge>
+              </div>
+              <div className="neo-list-item">
+                <span>鈴木花子 - 12/18登録</span>
+                <Badge variant="default">承認済み</Badge>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    
+    case 'settings':
+      return (
+        <div>
+          <div className="space-y-4">
+            <div>
+              <h4 className="font-semibold mb-2">表示設定</h4>
+              <p className="text-sm text-gray-600 mb-4">各セクションの表示/非表示は右側のトグルスイッチで設定できます。</p>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-2">自動更新設定</h4>
+              <div className="space-y-2">
+                <div className="neo-list-item">
+                  <span>リアルタイム更新</span>
+                  <div className="neo-toggle-switch enabled">
+                    <div className="neo-toggle-knob"></div>
+                  </div>
+                </div>
+                <div className="neo-list-item">
+                  <span>アラート通知</span>
+                  <div className="neo-toggle-switch enabled">
+                    <div className="neo-toggle-knob"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-2">データ管理</h4>
+              <div className="space-y-2">
+                <Button variant="outline" className="w-full justify-start">
+                  <FileText className="h-4 w-4 mr-2" />
+                  データエクスポート
+                </Button>
+                <Button variant="outline" className="w-full justify-start">
+                  <Settings className="h-4 w-4 mr-2" />
+                  システム設定
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    
+    default:
+      return <div>セクションコンテンツ</div>;
+  }
 }

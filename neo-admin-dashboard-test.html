@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEO Digital Platform - 管理者ダッシュボード</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.js" rel="stylesheet">
+    <style>
+        :root {
+          --neo-bg: #f8fafc;
+          --neo-card: #ffffff;
+          --neo-text: #0f172a;
+          --neo-text-secondary: #64748b;
+          --neo-primary: #2563eb;
+          --neo-secondary: #7c3aed;
+          --neo-success: #059669;
+          --neo-warning: #d97706;
+          --neo-danger: #dc2626;
+          --neo-border: #e2e8f0;
+          --neo-header-height: 72px;
+        }
+        
+        body {
+          background-color: var(--neo-bg);
+          min-height: 100vh;
+          font-family: system-ui, -apple-system, sans-serif;
+          margin: 0;
+          padding: 2rem;
+        }
+        
+        .neo-header {
+          background: linear-gradient(135deg, var(--neo-primary) 0%, var(--neo-secondary) 100%);
+          color: white;
+          padding: 1rem 1.5rem;
+          margin: -2rem -2rem 2rem -2rem;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        .neo-section {
+          background: var(--neo-card);
+          border-radius: 12px;
+          box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+          margin-bottom: 1.5rem;
+          overflow: hidden;
+          transition: all 0.2s ease;
+        }
+        
+        .neo-section:hover {
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        .neo-section-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 1rem 1.5rem;
+          cursor: pointer;
+          border-bottom: 1px solid var(--neo-border);
+          transition: background-color 0.2s ease;
+        }
+        
+        .neo-section-header:hover {
+          background-color: #f8fafc;
+        }
+        
+        .neo-section-title {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          font-weight: 600;
+          color: var(--neo-text);
+        }
+        
+        .neo-section-icon {
+          font-size: 1.25rem;
+        }
+        
+        .neo-section-controls {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+        }
+        
+        .neo-toggle-switch {
+          position: relative;
+          width: 44px;
+          height: 24px;
+          background-color: #e2e8f0;
+          border-radius: 12px;
+          cursor: pointer;
+          transition: background-color 0.2s ease;
+        }
+        
+        .neo-toggle-switch.enabled {
+          background-color: var(--neo-primary);
+        }
+        
+        .neo-toggle-knob {
+          position: absolute;
+          top: 2px;
+          left: 2px;
+          width: 20px;
+          height: 20px;
+          background-color: white;
+          border-radius: 50%;
+          transition: transform 0.2s ease;
+        }
+        
+        .neo-toggle-switch.enabled .neo-toggle-knob {
+          transform: translateX(20px);
+        }
+        
+        .neo-toggle-icon {
+          transition: transform 0.2s ease;
+        }
+        
+        .neo-section.collapsed .neo-toggle-icon {
+          transform: rotate(-90deg);
+        }
+        
+        .neo-section-content {
+          padding: 1.5rem;
+          display: block;
+        }
+        
+        .neo-section.collapsed .neo-section-content {
+          display: none;
+        }
+        
+        .neo-kpi-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 1rem;
+          margin-bottom: 1.5rem;
+        }
+        
+        .neo-kpi-card {
+          background: #f8fafc;
+          padding: 1rem;
+          border-radius: 8px;
+          text-align: center;
+        }
+        
+        .neo-kpi-value {
+          font-size: 1.875rem;
+          font-weight: 700;
+          color: var(--neo-primary);
+        }
+        
+        .neo-kpi-label {
+          font-size: 0.875rem;
+          color: var(--neo-text-secondary);
+          margin-top: 0.25rem;
+        }
+        
+        .neo-alert {
+          display: flex;
+          align-items: flex-start;
+          gap: 0.75rem;
+          padding: 1rem;
+          border-radius: 8px;
+          margin-bottom: 0.5rem;
+        }
+        
+        .neo-alert.warning {
+          background-color: #fef3c7;
+          border-left: 4px solid var(--neo-warning);
+        }
+        
+        .neo-alert.error {
+          background-color: #fee2e2;
+          border-left: 4px solid var(--neo-danger);
+        }
+        
+        .neo-list-item {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0.75rem 0;
+          border-bottom: 1px solid var(--neo-border);
+        }
+        
+        .neo-list-item:last-child {
+          border-bottom: none;
+        }
+        
+        .badge {
+          display: inline-block;
+          padding: 0.25rem 0.75rem;
+          border-radius: 9999px;
+          font-size: 0.75rem;
+          font-weight: 500;
+        }
+        
+        .badge-primary {
+          background-color: var(--neo-primary);
+          color: white;
+        }
+        
+        .badge-secondary {
+          background-color: #e2e8f0;
+          color: var(--neo-text);
+        }
+        
+        .badge-success {
+          background-color: var(--neo-success);
+          color: white;
+        }
+        
+        .badge-warning {
+          background-color: var(--neo-warning);
+          color: white;
+        }
+        
+        .badge-danger {
+          background-color: var(--neo-danger);
+          color: white;
+        }
+        
+        .badge-outline {
+          background-color: transparent;
+          border: 1px solid var(--neo-border);
+          color: var(--neo-text);
+        }
+    </style>
+</head>
+<body>
+    <div class="neo-admin-dashboard">
+        <!-- NEO Platform Header -->
+        <div class="neo-header">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <div class="text-2xl">🚀</div>
+                    <div>
+                        <h1 class="text-2xl font-bold">NEO Digital Platform</h1>
+                        <p class="text-blue-100">事務局ダッシュボード</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="badge badge-outline bg-white/20 text-white border-white/30">
+                        管理者
+                    </span>
+                    <div class="text-right">
+                        <p class="font-medium">田中 太郎</p>
+                        <p class="text-xs text-blue-100">最終ログイン: 10分前</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard Sections -->
+        <div class="space-y-0">
+            <!-- コミュニティ健康度 -->
+            <div class="neo-section" id="section-communityHealth">
+                <div class="neo-section-header" onclick="toggleSection('communityHealth')">
+                    <div class="neo-section-title">
+                        <span class="neo-section-icon">📊</span>
+                        コミュニティ健康度
+                    </div>
+                    <div class="neo-section-controls">
+                        <div class="neo-toggle-switch enabled" onclick="toggleSectionEnabled(event, 'communityHealth')">
+                            <div class="neo-toggle-knob"></div>
+                        </div>
+                        <div class="neo-toggle-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6,9 12,15 18,9"></polyline>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                <div class="neo-section-content">
+                    <div class="neo-kpi-grid">
+                        <div class="neo-kpi-card">
+                            <div class="neo-kpi-value">1,247</div>
+                            <div class="neo-kpi-label">総ユーザー数</div>
+                        </div>
+                        <div class="neo-kpi-card">
+                            <div class="neo-kpi-value">892</div>
+                            <div class="neo-kpi-label">アクティブユーザー</div>
+                        </div>
+                        <div class="neo-kpi-card">
+                            <div class="neo-kpi-value">87%</div>
+                            <div class="neo-kpi-label">関与度スコア</div>
+                        </div>
+                        <div class="neo-kpi-card">
+                            <div class="neo-kpi-value">+12%</div>
+                            <div class="neo-kpi-label">前月比増加</div>
+                        </div>
+                    </div>
+                    <p class="text-sm text-gray-600">コミュニティの健康度は良好です。アクティブユーザー数が前月から12%増加しています。</p>
+                </div>
+            </div>
+
+            <!-- ヒーローステップ KPI -->
+            <div class="neo-section" id="section-heroStepKPI">
+                <div class="neo-section-header" onclick="toggleSection('heroStepKPI')">
+                    <div class="neo-section-title">
+                        <span class="neo-section-icon">🏆</span>
+                        ヒーローステップ KPI
+                    </div>
+                    <div class="neo-section-controls">
+                        <div class="neo-toggle-switch enabled" onclick="toggleSectionEnabled(event, 'heroStepKPI')">
+                            <div class="neo-toggle-knob"></div>
+                        </div>
+                        <div class="neo-toggle-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6,9 12,15 18,9"></polyline>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                <div class="neo-section-content">
+                    <div class="neo-kpi-grid">
+                        <div class="neo-kpi-card">
+                            <div class="neo-kpi-value">156</div>
+                            <div class="neo-kpi-label">アクティブヒーロー</div>
+                        </div>
+                        <div class="neo-kpi-card">
+                            <div class="neo-kpi-value">23</div>
+                            <div class="neo-kpi-label">承認待ち</div>
+                        </div>
+                        <div class="neo-kpi-card">
+                            <div class="neo-kpi-value">4.8</div>
+                            <div class="neo-kpi-label">平均評価</div>
+                        </div>
+                        <div class="neo-kpi-card">
+                            <div class="neo-kpi-value">92%</div>
+                            <div class="neo-kpi-label">完了率</div>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <h4 class="font-semibold mb-2">新規ヒーロー候補</h4>
+                        <div class="space-y-2">
+                            <div class="neo-list-item">
+                                <span>佐藤花子 - ウェブ開発</span>
+                                <span class="badge badge-secondary">審査中</span>
+                            </div>
+                            <div class="neo-list-item">
+                                <span>鈴木一郎 - データ分析</span>
+                                <span class="badge badge-outline">書類確認中</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 授業・イベント運営 -->
+            <div class="neo-section collapsed" id="section-classEvents">
+                <div class="neo-section-header" onclick="toggleSection('classEvents')">
+                    <div class="neo-section-title">
+                        <span class="neo-section-icon">📚</span>
+                        授業・イベント運営
+                    </div>
+                    <div class="neo-section-controls">
+                        <div class="neo-toggle-switch enabled" onclick="toggleSectionEnabled(event, 'classEvents')">
+                            <div class="neo-toggle-knob"></div>
+                        </div>
+                        <div class="neo-toggle-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6,9 12,15 18,9"></polyline>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                <div class="neo-section-content">
+                    <div class="neo-kpi-grid">
+                        <div class="neo-kpi-card">
+                            <div class="neo-kpi-value">8</div>
+                            <div class="neo-kpi-label">今週の授業</div>
+                        </div>
+                        <div class="neo-kpi-card">
+                            <div class="neo-kpi-value">85%</div>
+                            <div class="neo-kpi-label">平均出席率</div>
+                        </div>
+                        <div class="neo-kpi-card">
+                            <div class="neo-kpi-value">4.6</div>
+                            <div class="neo-kpi-label">授業評価</div>
+                        </div>
+                        <div class="neo-kpi-card">
+                            <div class="neo-kpi-value">3</div>
+                            <div class="neo-kpi-label">準備中</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- システム・運営状況 -->
+            <div class="neo-section" id="section-systemStatus">
+                <div class="neo-section-header" onclick="toggleSection('systemStatus')">
+                    <div class="neo-section-title">
+                        <span class="neo-section-icon">⚡</span>
+                        システム・運営状況
+                    </div>
+                    <div class="neo-section-controls">
+                        <div class="neo-toggle-switch enabled" onclick="toggleSectionEnabled(event, 'systemStatus')">
+                            <div class="neo-toggle-knob"></div>
+                        </div>
+                        <div class="neo-toggle-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6,9 12,15 18,9"></polyline>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                <div class="neo-section-content">
+                    <div class="neo-kpi-grid">
+                        <div class="neo-kpi-card">
+                            <div class="neo-kpi-value">12%</div>
+                            <div class="neo-kpi-label">システム負荷</div>
+                        </div>
+                        <div class="neo-kpi-card">
+                            <div class="neo-kpi-value">99.9%</div>
+                            <div class="neo-kpi-label">稼働率</div>
+                        </div>
+                        <div class="neo-kpi-card">
+                            <div class="neo-kpi-value">45%</div>
+                            <div class="neo-kpi-label">ストレージ</div>
+                        </div>
+                        <div class="neo-kpi-card">
+                            <div class="neo-kpi-value">2</div>
+                            <div class="neo-kpi-label">アラート数</div>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <h4 class="font-semibold mb-2">アクティブアラート</h4>
+                        <div class="neo-alert warning">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+                                <path d="M12 9v4"/>
+                                <path d="m12 17 .01 0"/>
+                            </svg>
+                            <div>
+                                <p class="font-medium">CPU使用率が高くなっています</p>
+                                <p class="text-sm text-gray-600">15分前に検出</p>
+                            </div>
+                        </div>
+                        <div class="neo-alert error">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+                                <path d="M12 9v4"/>
+                                <path d="m12 17 .01 0"/>
+                            </svg>
+                            <div>
+                                <p class="font-medium">データベース接続エラー</p>
+                                <p class="text-sm text-gray-600">5分前に検出</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 設定・カスタマイズ -->
+            <div class="neo-section collapsed" id="section-settings">
+                <div class="neo-section-header" onclick="toggleSection('settings')">
+                    <div class="neo-section-title">
+                        <span class="neo-section-icon">⚙️</span>
+                        設定・カスタマイズ
+                    </div>
+                    <div class="neo-section-controls">
+                        <div class="neo-toggle-switch enabled" onclick="toggleSectionEnabled(event, 'settings')">
+                            <div class="neo-toggle-knob"></div>
+                        </div>
+                        <div class="neo-toggle-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6,9 12,15 18,9"></polyline>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                <div class="neo-section-content">
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="font-semibold mb-2">表示設定</h4>
+                            <p class="text-sm text-gray-600 mb-4">各セクションの表示/非表示は右側のトグルスイッチで設定できます。</p>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold mb-2">自動更新設定</h4>
+                            <div class="space-y-2">
+                                <div class="neo-list-item">
+                                    <span>リアルタイム更新</span>
+                                    <div class="neo-toggle-switch enabled">
+                                        <div class="neo-toggle-knob"></div>
+                                    </div>
+                                </div>
+                                <div class="neo-list-item">
+                                    <span>アラート通知</span>
+                                    <div class="neo-toggle-switch enabled">
+                                        <div class="neo-toggle-knob"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // セクション状態管理
+        const sectionStates = {
+            communityHealth: { expanded: true, enabled: true },
+            heroStepKPI: { expanded: true, enabled: true },
+            classEvents: { expanded: false, enabled: true },
+            consultingMatch: { expanded: false, enabled: true },
+            systemStatus: { expanded: true, enabled: true },
+            publicRelations: { expanded: false, enabled: true },
+            memberManagement: { expanded: false, enabled: true },
+            settings: { expanded: false, enabled: true }
+        };
+
+        // セクションの展開/折りたたみ
+        function toggleSection(sectionId) {
+            const section = document.getElementById(`section-${sectionId}`);
+            const state = sectionStates[sectionId];
+            
+            state.expanded = !state.expanded;
+            
+            if (state.expanded) {
+                section.classList.remove('collapsed');
+            } else {
+                section.classList.add('collapsed');
+            }
+        }
+
+        // セクションの有効/無効切替
+        function toggleSectionEnabled(event, sectionId) {
+            event.stopPropagation();
+            
+            const section = document.getElementById(`section-${sectionId}`);
+            const toggleSwitch = section.querySelector('.neo-toggle-switch');
+            const state = sectionStates[sectionId];
+            
+            state.enabled = !state.enabled;
+            
+            if (state.enabled) {
+                toggleSwitch.classList.add('enabled');
+                section.style.opacity = '1';
+            } else {
+                toggleSwitch.classList.remove('enabled');
+                section.style.opacity = '0.5';
+            }
+        }
+
+        // ページ読み込み時の初期化
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 NEO Digital Platform - 管理者ダッシュボード');
+            console.log('📱 スタンドアローン版が読み込まれました');
+            
+            // 初期状態の設定
+            Object.keys(sectionStates).forEach(sectionId => {
+                const section = document.getElementById(`section-${sectionId}`);
+                if (section) {
+                    const state = sectionStates[sectionId];
+                    
+                    // 展開状態の初期化
+                    if (!state.expanded) {
+                        section.classList.add('collapsed');
+                    }
+                    
+                    // 有効状態の初期化
+                    if (!state.enabled) {
+                        section.style.opacity = '0.5';
+                        section.querySelector('.neo-toggle-switch').classList.remove('enabled');
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
