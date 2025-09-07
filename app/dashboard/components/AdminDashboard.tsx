@@ -27,6 +27,18 @@ interface SystemStats {
   uptime: number;
   alerts: number;
   storage: number;
+  heroStepDistribution: Array<{
+    step: number;
+    count: number;
+    percentage: number;
+  }>;
+  statusDistribution: Array<{
+    status: string;
+    count: number;
+    percentage: number;
+    label: string;
+    color: string;
+  }>;
   recentActivities: Array<{
     id: string;
     action: string;
@@ -57,6 +69,20 @@ export default function AdminDashboard() {
         uptime: 99.9,
         alerts: 0,
         storage: 45,
+        heroStepDistribution: [
+          { step: 1, count: 354, percentage: 28.4 },
+          { step: 2, count: 298, percentage: 23.9 },
+          { step: 3, count: 267, percentage: 21.4 },
+          { step: 4, count: 198, percentage: 15.9 },
+          { step: 5, count: 130, percentage: 10.4 }
+        ],
+        statusDistribution: [
+          { status: 'core', count: 125, percentage: 10.0, label: 'コア', color: '#ef4444' },
+          { status: 'active', count: 498, percentage: 39.9, label: 'アクティブ', color: '#3b82f6' },
+          { status: 'peripheral', count: 374, percentage: 30.0, label: '周辺', color: '#6b7280' },
+          { status: 'at_risk', count: 187, percentage: 15.0, label: '離脱予備軍', color: '#f59e0b' },
+          { status: 'inactive', count: 63, percentage: 5.1, label: '非アクティブ', color: '#9ca3af' }
+        ],
         recentActivities: [
           {
             id: '1',
@@ -272,6 +298,99 @@ export default function AdminDashboard() {
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">ネットワーク</span>
                   <Badge variant="default">正常</Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* ヒーローステップ分布 */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <TrendingUp className="h-5 w-5 mr-2 text-blue-500" />
+                ヒーローステップ分布
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {stats.heroStepDistribution.map((item) => (
+                  <div key={item.step}>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-gray-700">
+                        ステップ {item.step}
+                      </span>
+                      <span className="text-sm text-gray-600">
+                        {item.count}人 ({item.percentage}%)
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-blue-600 h-2 rounded-full transition-all duration-500"
+                        style={{ width: `${item.percentage}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                ))}
+                <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                  <h4 className="text-sm font-medium text-blue-900 mb-2">ステップ説明</h4>
+                  <div className="text-xs text-blue-700 space-y-1">
+                    <div>ステップ1: エントリー - 新規参加者</div>
+                    <div>ステップ2: 基礎学習 - 学習フェーズ</div>
+                    <div>ステップ3: 実践参加 - 実践フェーズ</div>
+                    <div>ステップ4: プロジェクト実行 - 実行フェーズ</div>
+                    <div>ステップ5: リーダーシップ - 指導的役割</div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* エンゲージメント ステータス分布 */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Activity className="h-5 w-5 mr-2 text-green-500" />
+                エンゲージメント分布
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {stats.statusDistribution.map((item) => (
+                  <div key={item.status}>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center space-x-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: item.color }}
+                        ></div>
+                        <span className="text-sm font-medium text-gray-700">
+                          {item.label}
+                        </span>
+                      </div>
+                      <span className="text-sm text-gray-600">
+                        {item.count}人 ({item.percentage}%)
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="h-2 rounded-full transition-all duration-500"
+                        style={{ 
+                          width: `${item.percentage}%`,
+                          backgroundColor: item.color
+                        }}
+                      ></div>
+                    </div>
+                  </div>
+                ))}
+                <div className="mt-4 p-3 bg-green-50 rounded-lg">
+                  <h4 className="text-sm font-medium text-green-900 mb-2">ステータス説明</h4>
+                  <div className="text-xs text-green-700 space-y-1">
+                    <div><strong>コア:</strong> 最重要メンバー、高い貢献度</div>
+                    <div><strong>アクティブ:</strong> 活発に参加している一般メンバー</div>
+                    <div><strong>周辺:</strong> 時々参加、軽い関与レベル</div>
+                    <div><strong>離脱予備軍:</strong> 活動減少傾向、要注意</div>
+                    <div><strong>非アクティブ:</strong> 長期間活動停止</div>
+                  </div>
                 </div>
               </div>
             </CardContent>

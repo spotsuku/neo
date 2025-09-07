@@ -37,12 +37,361 @@ interface PasswordRequirement {
 }
 
 export default function SignupPage() {
-  // 一時的に無効化
+  const [formData, setFormData] = useState<SignupFormData>({
+    invitationCode: '',
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: ''
+  })
+  
+  const [membershipType, setMembershipType] = useState<string>('')
+  const [affiliation, setAffiliation] = useState<string>('')
+  const [errors, setErrors] = useState<FormErrors>({})
+  const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [success, setSuccess] = useState(false)
+
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const { login } = useAuth()
+
+  useEffect(() => {
+    const code = searchParams.get('code')
+    if (code) {
+      setFormData(prev => ({ ...prev, invitationCode: code }))
+    }
+  }, [searchParams])
+
+  const passwordRequirements: PasswordRequirement[] = [
+    { met: formData.password.length >= 8, text: '8文字以上' },
+    { met: /[A-Z]/.test(formData.password), text: '大文字を含む' },
+    { met: /[a-z]/.test(formData.password), text: '小文字を含む' },
+    { met: /\d/.test(formData.password), text: '数字を含む' },
+  ]
+
+  const validateForm = (): FormErrors => {
+    const newErrors: FormErrors = {}
+
+    if (!formData.invitationCode.trim()) {
+      newErrors.invitationCode = '招待コードは必須です'
+    }
+
+    if (!formData.name.trim()) {
+      newErrors.name = '名前は必須です'
+    }
+
+    if (!formData.email.trim()) {
+      newErrors.email = 'メールアドレスは必須です'
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = '有効なメールアドレスを入力してください'
+    }
+
+    if (!formData.password) {
+      newErrors.password = 'パスワードは必須です'
+    } else if (passwordRequirements.some(req => !req.met)) {
+      newErrors.password = 'パスワード要件を満たしていません'
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = 'パスワードが一致しません'
+    }
+
+    if (!membershipType) {
+      newErrors.general = '会員区分を選択してください'
+    }
+
+    return newErrors
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    const formErrors = validateForm()
+    if (Object.keys(formErrors).length > 0) {
+      setErrors(formErrors)
+      return
+    }
+
+    setLoading(true)
+    setErrors({})
+
+    try {
+      // サインアップ処理（デモ用）
+      await new Promise(resolve => setTimeout(resolve, 2000))
+
+      // 成功処理
+      setSuccess(true)
+      
+      setTimeout(() => {
+        router.push('/auth/login?signup=success')
+      }, 2000)
+
+    } catch (error: any) {
+      setErrors({ general: error.message || 'サインアップに失敗しました' })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleInputChange = (field: keyof SignupFormData) => (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    setFormData(prev => ({ ...prev, [field]: e.target.value }))
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: undefined }))
+    }
+  }
+
+  if (success) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">サインアップ完了！</h1>
+          <p className="text-gray-600 mb-4">アカウントが正常に作成されました。</p>
+          <p className="text-sm text-gray-500">ログイン画面に移動しています...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="text-center">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">サインアップ</h1>
-        <p className="text-gray-600">現在メンテナンス中です</p>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        <div>
+          <div className="text-center">
+            <UserPlus className="h-12 w-12 text-blue-600 mx-auto" />
+            <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
+              NEOポータル サインアップ
+            </h2>
+            <p className="mt-2 text-sm text-gray-600">
+              招待コードを使用してアカウントを作成
+            </p>
+          </div>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>新規アカウント作成</CardTitle>
+            <CardDescription>
+              必要事項を入力してアカウントを作成してください
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form className="space-y-6" onSubmit={handleSubmit}>
+              {errors.general && (
+                <div className="flex items-center space-x-2 p-3 bg-red-50 border border-red-200 rounded-md">
+                  <AlertCircle className="h-5 w-5 text-red-500" />
+                  <span className="text-sm text-red-700">{errors.general}</span>
+                </div>
+              )}
+
+              {/* 招待コード */}
+              <div>
+                <Label htmlFor="invitationCode">招待コード *</Label>
+                <Input
+                  id="invitationCode"
+                  type="text"
+                  value={formData.invitationCode}
+                  onChange={handleInputChange('invitationCode')}
+                  className={errors.invitationCode ? 'border-red-300' : ''}
+                  placeholder="招待コードを入力"
+                />
+                {errors.invitationCode && (
+                  <p className="text-sm text-red-600 mt-1">{errors.invitationCode}</p>
+                )}
+              </div>
+
+              {/* 名前 */}
+              <div>
+                <Label htmlFor="name">氏名 *</Label>
+                <Input
+                  id="name"
+                  type="text"
+                  value={formData.name}
+                  onChange={handleInputChange('name')}
+                  className={errors.name ? 'border-red-300' : ''}
+                  placeholder="田中 太郎"
+                />
+                {errors.name && (
+                  <p className="text-sm text-red-600 mt-1">{errors.name}</p>
+                )}
+              </div>
+
+              {/* メールアドレス */}
+              <div>
+                <Label htmlFor="email">メールアドレス *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleInputChange('email')}
+                  className={errors.email ? 'border-red-300' : ''}
+                  placeholder="example@company.com"
+                />
+                {errors.email && (
+                  <p className="text-sm text-red-600 mt-1">{errors.email}</p>
+                )}
+              </div>
+
+              {/* 会員区分 */}
+              <div>
+                <Label htmlFor="membershipType">会員区分 *</Label>
+                <select
+                  id="membershipType"
+                  value={membershipType}
+                  onChange={(e) => setMembershipType(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">選択してください</option>
+                  <option value="student">学生</option>
+                  <option value="teacher">教師・研究者</option>
+                  <option value="company_user">企業ユーザー</option>
+                  <option value="mentor">メンター</option>
+                  <option value="partner">パートナー</option>
+                </select>
+              </div>
+
+              {/* 所属 */}
+              <div>
+                <Label htmlFor="affiliation">所属</Label>
+                <Input
+                  id="affiliation"
+                  type="text"
+                  value={affiliation}
+                  onChange={(e) => setAffiliation(e.target.value)}
+                  placeholder="東京大学 / 株式会社ABC"
+                />
+              </div>
+
+              {/* パスワード */}
+              <div>
+                <Label htmlFor="password">パスワード *</Label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={formData.password}
+                    onChange={handleInputChange('password')}
+                    className={errors.password ? 'border-red-300' : ''}
+                    placeholder="パスワードを入力"
+                  />
+                  <button
+                    type="button"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4 text-gray-400" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-gray-400" />
+                    )}
+                  </button>
+                </div>
+
+                {formData.password && (
+                  <div className="mt-2 space-y-1">
+                    {passwordRequirements.map((req, index) => (
+                      <div key={index} className="flex items-center space-x-2">
+                        <div
+                          className={`h-2 w-2 rounded-full ${
+                            req.met ? 'bg-green-500' : 'bg-gray-300'
+                          }`}
+                        />
+                        <span className={`text-xs ${req.met ? 'text-green-600' : 'text-gray-500'}`}>
+                          {req.text}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {errors.password && (
+                  <p className="text-sm text-red-600 mt-1">{errors.password}</p>
+                )}
+              </div>
+
+              {/* パスワード確認 */}
+              <div>
+                <Label htmlFor="confirmPassword">パスワード確認 *</Label>
+                <div className="relative">
+                  <Input
+                    id="confirmPassword"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    value={formData.confirmPassword}
+                    onChange={handleInputChange('confirmPassword')}
+                    className={errors.confirmPassword ? 'border-red-300' : ''}
+                    placeholder="パスワードを再入力"
+                  />
+                  <button
+                    type="button"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="h-4 w-4 text-gray-400" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-gray-400" />
+                    )}
+                  </button>
+                </div>
+                {errors.confirmPassword && (
+                  <p className="text-sm text-red-600 mt-1">{errors.confirmPassword}</p>
+                )}
+              </div>
+
+              {/* 利用規約同意 */}
+              <div className="flex items-center">
+                <input
+                  id="terms"
+                  name="terms"
+                  type="checkbox"
+                  required
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label htmlFor="terms" className="ml-2 block text-sm text-gray-900">
+                  <Link href="/terms" className="text-blue-600 hover:text-blue-500 underline">
+                    利用規約
+                  </Link>
+                  および
+                  <Link href="/privacy" className="text-blue-600 hover:text-blue-500 underline">
+                    プライバシーポリシー
+                  </Link>
+                  に同意します
+                </label>
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                    アカウント作成中...
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    アカウントを作成
+                  </>
+                )}
+              </Button>
+            </form>
+
+            <div className="mt-6 text-center">
+              <p className="text-sm text-gray-600">
+                既にアカウントをお持ちの方は{' '}
+                <Link href="/auth/login" className="font-medium text-blue-600 hover:text-blue-500">
+                  ログイン
+                </Link>
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )
