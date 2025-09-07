@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ナビゲーションフローテスト - NEO Digital Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/auth.js"></script>
+</head>
+<body class="bg-gray-50 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6">ナビゲーションフローテスト</h1>
+        
+        <div class="bg-white p-6 rounded-lg shadow mb-6">
+            <h2 class="text-xl font-semibold mb-4">テストシナリオ</h2>
+            <div class="space-y-3 text-sm">
+                <div class="flex items-center space-x-2">
+                    <span class="bg-blue-500 text-white px-2 py-1 rounded text-xs">1</span>
+                    <span>管理者としてログイン</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="bg-blue-500 text-white px-2 py-1 rounded text-xs">2</span>
+                    <span>ダッシュボードでKPI確認</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="bg-blue-500 text-white px-2 py-1 rounded text-xs">3</span>
+                    <span>会員総数KPIクリック → 全会員一覧</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="bg-blue-500 text-white px-2 py-1 rounded text-xs">4</span>
+                    <span>離脱予備軍KPIクリック → 離脱予備軍フィルタ適用</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="bg-blue-500 text-white px-2 py-1 rounded text-xs">5</span>
+                    <span>ダッシュボードボタンで戻る</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- 管理者ログイン -->
+            <div class="bg-white p-4 rounded-lg shadow">
+                <h3 class="font-semibold mb-3">1. 認証テスト</h3>
+                <button onclick="testAdminLogin()" class="w-full bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                    管理者ログイン
+                </button>
+                <div id="auth-status" class="mt-2 text-sm text-gray-600">未ログイン</div>
+            </div>
+            
+            <!-- ダッシュボード移動 -->
+            <div class="bg-white p-4 rounded-lg shadow">
+                <h3 class="font-semibold mb-3">2. ダッシュボード</h3>
+                <button onclick="goToDashboard()" class="w-full bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                    ダッシュボードへ
+                </button>
+                <div class="mt-2 text-xs text-gray-500">KPI確認とナビゲーションテスト</div>
+            </div>
+            
+            <!-- 全会員一覧 -->
+            <div class="bg-white p-4 rounded-lg shadow">
+                <h3 class="font-semibold mb-3">3. 全会員一覧</h3>
+                <button onclick="goToAllMembers()" class="w-full bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                    全会員表示
+                </button>
+                <div class="mt-2 text-xs text-gray-500">会員総数KPIと同じ動作</div>
+            </div>
+            
+            <!-- 離脱予備軍 -->
+            <div class="bg-white p-4 rounded-lg shadow">
+                <h3 class="font-semibold mb-3">4. 離脱予備軍</h3>
+                <button onclick="goToAtRiskMembers()" class="w-full bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">
+                    離脱予備軍表示
+                </button>
+                <div class="mt-2 text-xs text-gray-500">離脱予備軍KPIと同じ動作</div>
+            </div>
+            
+            <!-- KPI同期テスト -->
+            <div class="bg-white p-4 rounded-lg shadow">
+                <h3 class="font-semibold mb-3">5. KPI確認</h3>
+                <button onclick="checkKPI()" class="w-full bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">
+                    KPI数値確認
+                </button>
+                <div id="kpi-info" class="mt-2 text-xs text-gray-500">KPI取得中...</div>
+            </div>
+            
+            <!-- ログアウト -->
+            <div class="bg-white p-4 rounded-lg shadow">
+                <h3 class="font-semibold mb-3">6. ログアウト</h3>
+                <button onclick="testLogout()" class="w-full bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
+                    ログアウト
+                </button>
+                <div class="mt-2 text-xs text-gray-500">セッションをクリア</div>
+            </div>
+        </div>
+        
+        <div class="bg-white p-6 rounded-lg shadow mt-6">
+            <h2 class="text-xl font-semibold mb-4">テスト結果ログ</h2>
+            <div id="test-log" class="text-sm font-mono bg-gray-100 p-4 rounded min-h-32 max-h-64 overflow-y-auto">
+                テスト開始準備中...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function log(message) {
+            const logElement = document.getElementById('test-log');
+            const timestamp = new Date().toLocaleTimeString();
+            logElement.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function testAdminLogin() {
+            log('🔐 管理者ログインテスト開始');
+            
+            if (!window.authManager) {
+                log('❌ authManagerが初期化されていません');
+                return;
+            }
+            
+            const result = window.authManager.quickLogin('admin@neo.com', 'password123');
+            
+            if (result.success) {
+                log('✅ 管理者ログイン成功: ' + result.user.name);
+                document.getElementById('auth-status').textContent = `✅ ${result.user.name} (${result.user.role})`;
+                document.getElementById('auth-status').className = 'mt-2 text-sm text-green-600';
+            } else {
+                log('❌ 管理者ログイン失敗: ' + result.message);
+                document.getElementById('auth-status').textContent = '❌ ログイン失敗';
+                document.getElementById('auth-status').className = 'mt-2 text-sm text-red-600';
+            }
+        }
+        
+        function goToDashboard() {
+            log('📊 ダッシュボードに移動');
+            
+            if (!checkAuth()) return;
+            
+            setTimeout(() => {
+                window.open('/admin-dashboard.html', '_blank');
+            }, 500);
+        }
+        
+        function goToAllMembers() {
+            log('👥 全会員一覧に移動');
+            
+            if (!checkAuth()) return;
+            
+            setTimeout(() => {
+                window.open('/admin-members.html', '_blank');
+            }, 500);
+        }
+        
+        function goToAtRiskMembers() {
+            log('⚠️ 離脱予備軍フィルタで会員一覧に移動');
+            
+            if (!checkAuth()) return;
+            
+            setTimeout(() => {
+                window.open('/admin-members.html?filter=at_risk', '_blank');
+            }, 500);
+        }
+        
+        function checkKPI() {
+            log('📊 KPI数値をチェック中...');
+            
+            // 会員データを動的に読み込んでKPIを計算
+            const script = document.createElement('script');
+            script.src = '/members.js';
+            script.onload = function() {
+                if (typeof demoMembers !== 'undefined') {
+                    const total = demoMembers.length;
+                    const students = demoMembers.filter(m => m.all_roles.includes('student')).length;
+                    const companies = demoMembers.filter(m => m.all_roles.includes('company')).length;
+                    const atRisk = demoMembers.filter(m => m.is_inactive_30d || m.status === 'inactive').length;
+                    const heroCertified = demoMembers.filter(m => m.is_hero_certified).length;
+                    const heroRate = ((heroCertified / total) * 100).toFixed(1);
+                    
+                    const kpiInfo = `総数:${total} | 学生:${students} | 企業:${companies} | 離脱予備軍:${atRisk} | ヒーロー認定率:${heroRate}%`;
+                    
+                    log('📊 KPI数値: ' + kpiInfo);
+                    document.getElementById('kpi-info').textContent = kpiInfo;
+                } else {
+                    log('❌ 会員データの読み込みに失敗');
+                }
+            };
+            script.onerror = function() {
+                log('❌ members.jsの読み込みに失敗');
+            };
+            document.head.appendChild(script);
+        }
+        
+        function testLogout() {
+            log('🚪 ログアウトテスト');
+            
+            if (window.authManager) {
+                window.authManager.logout();
+                log('✅ ログアウト完了');
+                document.getElementById('auth-status').textContent = '未ログイン';
+                document.getElementById('auth-status').className = 'mt-2 text-sm text-gray-600';
+            } else {
+                log('❌ authManagerが見つかりません');
+            }
+        }
+        
+        function checkAuth() {
+            if (!window.authManager || !window.authManager.getCurrentUser()) {
+                log('❌ ログインが必要です - 先に管理者ログインを実行してください');
+                return false;
+            }
+            
+            const user = window.authManager.getCurrentUser();
+            if (user.role !== 'admin') {
+                log('❌ 管理者権限が必要です');
+                return false;
+            }
+            
+            return true;
+        }
+        
+        // 初期化
+        window.addEventListener('load', function() {
+            log('🚀 ナビゲーションフローテスト準備完了');
+            log('📋 テスト手順: 1.管理者ログイン → 2.各ページへの遷移テスト → 3.KPI数値確認 → 4.ログアウト');
+            
+            // KPI数値を事前に取得
+            setTimeout(checkKPI, 1000);
+        });
+    </script>
+</body>
+</html>

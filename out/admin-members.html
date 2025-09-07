@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>会員一覧 - NEO Digital Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="/auth.js"></script>
+    <style>
+        /* カスタムスタイル */
+        .drawer-slide {
+            transform: translateX(100%);
+            transition: transform 0.3s ease-in-out;
+        }
+        .drawer-slide.show {
+            transform: translateX(0);
+        }
+        
+        .loading-spinner {
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .toast {
+            transform: translateY(-100%);
+            transition: transform 0.3s ease-in-out;
+        }
+        .toast.show {
+            transform: translateY(0);
+        }
+        
+        .table-row:hover {
+            background-color: #f8fafc;
+        }
+        
+        .table-row:focus {
+            outline: 2px solid #3b82f6;
+            outline-offset: -2px;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- ヘッダー -->
+    <header class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <h1 class="text-xl font-semibold text-gray-900">
+                        <i class="fas fa-users mr-2 text-pink-600"></i>
+                        会員一覧
+                    </h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button onclick="location.href='/admin-dashboard.html'" class="flex items-center px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors">
+                        <i class="fas fa-tachometer-alt mr-2"></i>
+                        ダッシュボード
+                    </button>
+                    <button onclick="window.authManager?.logout()" class="flex items-center px-3 py-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-colors">
+                        <i class="fas fa-sign-out-alt mr-2"></i>
+                        ログアウト
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- メインコンテンツ -->
+    <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <!-- 検索・フィルタセクション -->
+        <div class="bg-white shadow rounded-lg p-6 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                <!-- 検索 -->
+                <div class="lg:col-span-2">
+                    <label for="search-input" class="block text-sm font-medium text-gray-700 mb-2">検索</label>
+                    <input 
+                        id="search-input" 
+                        type="text" 
+                        placeholder="名前、メールアドレスで検索"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    >
+                </div>
+                
+                <!-- 会員区分フィルタ -->
+                <div>
+                    <label for="membership-filter" class="block text-sm font-medium text-gray-700 mb-2">会員区分</label>
+                    <select id="membership-filter" multiple class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        <option value="student">学生</option>
+                        <option value="youth_selected">ユース選出</option>
+                        <option value="company">企業</option>
+                        <option value="company_selected">企業選出</option>
+                    </select>
+                </div>
+                
+                <!-- ステータスフィルタ -->
+                <div>
+                    <label for="status-filter" class="block text-sm font-medium text-gray-700 mb-2">ステータス</label>
+                    <select id="status-filter" multiple class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        <option value="active">アクティブ</option>
+                        <option value="inactive">非アクティブ</option>
+                        <option value="suspended">停止</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- ロールフィルタと操作ボタン -->
+            <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                <div>
+                    <label for="role-filter" class="block text-sm font-medium text-gray-700 mb-2">ロール</label>
+                    <select id="role-filter" multiple class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        <option value="student">学生</option>
+                        <option value="company">企業</option>
+                        <option value="admin">事務局</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="sort-field" class="block text-sm font-medium text-gray-700 mb-2">並び替え</label>
+                    <select id="sort-field" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        <option value="last_login_at">最終ログイン</option>
+                        <option value="hero_step">ヒーローステップ</option>
+                        <option value="name">名前</option>
+                        <option value="created_at">登録日</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="sort-order" class="block text-sm font-medium text-gray-700 mb-2">順序</label>
+                    <select id="sort-order" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        <option value="desc">降順</option>
+                        <option value="asc">昇順</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="per-page" class="block text-sm font-medium text-gray-700 mb-2">表示件数</label>
+                    <select id="per-page" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        <option value="10">10件</option>
+                        <option value="25" selected>25件</option>
+                        <option value="50">50件</option>
+                        <option value="100">100件</option>
+                    </select>
+                </div>
+                
+                <div class="flex items-end">
+                    <button id="csv-export-btn" class="w-full px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500">
+                        <i class="fas fa-download mr-2"></i>
+                        CSV出力
+                    </button>
+                </div>
+                
+                <div class="flex items-end">
+                    <button id="bulk-action-btn" disabled class="w-full px-4 py-2 bg-gray-400 text-white text-sm font-medium rounded-md cursor-not-allowed">
+                        <i class="fas fa-check-square mr-2"></i>
+                        一括操作
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- テーブルセクション -->
+        <div class="bg-white shadow rounded-lg">
+            <!-- テーブルヘッダー -->
+            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                <div class="flex items-center space-x-4">
+                    <input type="checkbox" id="select-all" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                    <span id="member-count" class="text-sm text-gray-700">読み込み中...</span>
+                </div>
+                <div id="pagination-info" class="text-sm text-gray-700">-</div>
+            </div>
+
+            <!-- ローディング表示 -->
+            <div id="loading-indicator" class="hidden flex justify-center items-center py-12">
+                <div class="loading-spinner"></div>
+                <span class="ml-3 text-gray-600">読み込み中...</span>
+            </div>
+
+            <!-- テーブル -->
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                選択
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                会員情報
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                会員区分
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                ステータス
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                ヒーローステップ
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                最終ログイン
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                操作
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="members-table-body" class="bg-white divide-y divide-gray-200">
+                        <!-- 会員データがここに動的に追加される -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- ページネーション -->
+            <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+                <div class="flex-1 flex justify-between sm:hidden">
+                    <button id="prev-page-mobile" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        前へ
+                    </button>
+                    <button id="next-page-mobile" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        次へ
+                    </button>
+                </div>
+                <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                    <div>
+                        <p class="text-sm text-gray-700" id="pagination-summary">
+                            表示中: <span class="font-medium" id="results-start">1</span> - <span class="font-medium" id="results-end">25</span> / 全 <span class="font-medium" id="total-results">0</span> 件
+                        </p>
+                    </div>
+                    <div>
+                        <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                            <button id="prev-page" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                <span class="sr-only">前のページ</span>
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <span id="current-page" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
+                                1
+                            </span>
+                            <button id="next-page" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                <span class="sr-only">次のページ</span>
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 編集ドロワー -->
+    <aside id="member-drawer" class="fixed inset-y-0 right-0 w-96 bg-white shadow-xl border-l border-gray-200 transform translate-x-full transition-transform duration-300 ease-in-out z-50 hidden">
+        <div class="drawer-content h-full flex flex-col">
+            <!-- ドロワーヘッダー -->
+            <div class="flex items-center justify-between p-6 border-b border-gray-200">
+                <h2 class="text-lg font-medium text-gray-900">
+                    <i class="fas fa-user-edit mr-2"></i>
+                    会員詳細編集
+                </h2>
+                <button onclick="closeMemberDrawer()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <!-- タブナビゲーション -->
+            <nav class="flex border-b border-gray-200">
+                <button class="drawer-tab px-6 py-3 text-sm font-medium border-b-2 border-blue-500 text-blue-600" data-tab="basic">
+                    基本情報
+                </button>
+                <button class="drawer-tab px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700" data-tab="profile">
+                    プロフィール
+                </button>
+                <button class="drawer-tab px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700" data-tab="checks" id="checks-tab" style="display:none">
+                    管理チェック
+                </button>
+            </nav>
+
+            <!-- タブコンテンツ -->
+            <div class="flex-1 overflow-y-auto">
+                <!-- 基本情報タブ -->
+                <section id="tab-basic" class="tab-content p-6">
+                    <div class="space-y-4">
+                        <div>
+                            <label for="edit-name" class="block text-sm font-medium text-gray-700">氏名</label>
+                            <input id="edit-name" type="text" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="edit-email" class="block text-sm font-medium text-gray-700">メールアドレス</label>
+                            <input id="edit-email" type="email" disabled class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 bg-gray-50 text-gray-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="edit-status" class="block text-sm font-medium text-gray-700">ステータス</label>
+                            <select id="edit-status" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                                <option value="active">アクティブ</option>
+                                <option value="inactive">非アクティブ</option>
+                                <option value="suspended">停止</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="edit-birthdate" class="block text-sm font-medium text-gray-700">生年月日</label>
+                            <input id="edit-birthdate" type="date" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="edit-role" class="block text-sm font-medium text-gray-700">プライマリーロール</label>
+                            <select id="edit-role" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                                <option value="student">学生</option>
+                                <option value="company">企業</option>
+                                <option value="admin">事務局</option>
+                            </select>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- プロフィールタブ -->
+                <section id="tab-profile" class="tab-content hidden p-6">
+                    <div class="space-y-4">
+                        <div>
+                            <label for="edit-tagline" class="block text-sm font-medium text-gray-700">タグライン</label>
+                            <input id="edit-tagline" type="text" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="edit-hometown" class="block text-sm font-medium text-gray-700">出身地</label>
+                            <input id="edit-hometown" type="text" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="edit-high-school" class="block text-sm font-medium text-gray-700">出身高校</label>
+                            <input id="edit-high-school" type="text" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="edit-university" class="block text-sm font-medium text-gray-700">出身大学</label>
+                            <input id="edit-university" type="text" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="edit-affiliation" class="block text-sm font-medium text-gray-700">所属</label>
+                            <input id="edit-affiliation" type="text" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="edit-title" class="block text-sm font-medium text-gray-700">役職</label>
+                            <input id="edit-title" type="text" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="edit-profile-text" class="block text-sm font-medium text-gray-700">プロフィール文</label>
+                            <textarea id="edit-profile-text" rows="4" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"></textarea>
+                        </div>
+                        <div>
+                            <label for="edit-sns-x" class="block text-sm font-medium text-gray-700">X (Twitter)</label>
+                            <input id="edit-sns-x" type="text" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="edit-sns-instagram" class="block text-sm font-medium text-gray-700">Instagram</label>
+                            <input id="edit-sns-instagram" type="text" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="edit-sns-tiktok" class="block text-sm font-medium text-gray-700">TikTok</label>
+                            <input id="edit-sns-tiktok" type="text" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="edit-neo-motivation" class="block text-sm font-medium text-gray-700">NEO参加動機</label>
+                            <textarea id="edit-neo-motivation" rows="4" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"></textarea>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 管理チェックタブ -->
+                <section id="tab-checks" class="tab-content hidden p-6">
+                    <div class="space-y-4">
+                        <div class="flex items-center">
+                            <input id="check-slack" type="checkbox" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                            <label for="check-slack" class="ml-2 block text-sm text-gray-900">Slack接続済み</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input id="check-notion" type="checkbox" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                            <label for="check-notion" class="ml-2 block text-sm text-gray-900">Notion接続済み</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input id="check-fee" type="checkbox" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                            <label for="check-fee" class="ml-2 block text-sm text-gray-900">参加費支払い済み</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input id="check-pledge" type="checkbox" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                            <label for="check-pledge" class="ml-2 block text-sm text-gray-900">誓約書提出済み</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input id="check-kit" type="checkbox" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                            <label for="check-kit" class="ml-2 block text-sm text-gray-900">ウェルカムキット発行済み</label>
+                        </div>
+                        <div>
+                            <label for="checks-notes" class="block text-sm font-medium text-gray-700">管理メモ</label>
+                            <textarea id="checks-notes" rows="4" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">会員区分</label>
+                            <div id="memberships-list" class="space-y-2">
+                                <!-- 会員区分リストが動的に追加される -->
+                            </div>
+                            <button id="add-membership-btn" type="button" class="mt-2 inline-flex items-center px-3 py-2 border border-dashed border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                <i class="fas fa-plus mr-2"></i>
+                                会員区分追加
+                            </button>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- ドロワーアクション -->
+            <div class="drawer-actions flex-shrink-0 px-6 py-4 border-t border-gray-200 space-x-3">
+                <button id="save-member-btn" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <i class="fas fa-save mr-2"></i>
+                    保存
+                </button>
+                <button id="save-close-btn" class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    保存して閉じる
+                </button>
+                <button onclick="closeMemberDrawer()" class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    閉じる
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- トースト通知 -->
+    <div id="toast" class="fixed top-4 right-4 z-50 hidden">
+        <div class="max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden">
+            <div class="p-4">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i id="toast-icon" class="fas fa-check-circle text-green-400"></i>
+                    </div>
+                    <div class="ml-3 w-0 flex-1 pt-0.5">
+                        <p id="toast-message" class="text-sm font-medium text-gray-900">
+                            メッセージ
+                        </p>
+                    </div>
+                    <div class="ml-4 flex-shrink-0 flex">
+                        <button onclick="hideToast()" class="bg-white rounded-md inline-flex text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            <span class="sr-only">閉じる</span>
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="/members.js"></script>
+    <script>
+        // URLパラメーター解析とフィルター適用
+        function parseURLParams() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const filter = urlParams.get('filter');
+            const action = urlParams.get('action');
+            
+            console.log('🔍 URLパラメーター解析:', { filter, action });
+            
+            // アクション処理
+            if (action === 'csv_export') {
+                showToast('CSV出力を準備しています...', 'info');
+                setTimeout(() => {
+                    if (typeof exportMembersCSV === 'function') {
+                        exportMembersCSV();
+                    }
+                }, 1000);
+                return;
+            }
+            
+            // フィルター処理
+            if (filter === 'at_risk') {
+                // 離脱予備軍フィルター適用
+                showToast('離脱予備軍フィルターを適用しています', 'info');
+                
+                // ステータスフィルターで非アクティブを選択
+                setTimeout(() => {
+                    const statusFilter = document.getElementById('status-filter');
+                    if (statusFilter) {
+                        const options = statusFilter.querySelectorAll('option');
+                        options.forEach(option => {
+                            if (option.value === 'inactive') {
+                                option.selected = true;
+                            } else {
+                                option.selected = false;
+                            }
+                        });
+                        
+                        // ページタイトルを更新
+                        document.title = '離脱予備軍 - 会員一覧 - NEO Digital Platform';
+                        const headerTitle = document.querySelector('header h1');
+                        if (headerTitle) {
+                            headerTitle.innerHTML = '<i class="fas fa-user-times mr-2 text-red-600"></i>離脱予備軍';
+                        }
+                        
+                        console.log('⚠️ 離脱予備軍フィルター適用完了');
+                        
+                        // データを再読み込み
+                        if (typeof loadMembersData === 'function') {
+                            loadMembersData();
+                        }
+                    }
+                }, 500);
+            } else if (filter === 'active') {
+                // アクティブ会員フィルター適用
+                showToast('アクティブ会員フィルターを適用しています', 'info');
+                
+                // ステータスフィルターでアクティブを選択
+                setTimeout(() => {
+                    const statusFilter = document.getElementById('status-filter');
+                    if (statusFilter) {
+                        const options = statusFilter.querySelectorAll('option');
+                        options.forEach(option => {
+                            if (option.value === 'active') {
+                                option.selected = true;
+                            } else {
+                                option.selected = false;
+                            }
+                        });
+                        
+                        // ページタイトルを更新
+                        document.title = 'アクティブ会員 - 会員一覧 - NEO Digital Platform';
+                        const headerTitle = document.querySelector('header h1');
+                        if (headerTitle) {
+                            headerTitle.innerHTML = '<i class="fas fa-user-check mr-2 text-green-600"></i>アクティブ会員';
+                        }
+                        
+                        console.log('✅ アクティブ会員フィルター適用完了');
+                        
+                        // データを再読み込み
+                        if (typeof loadMembersData === 'function') {
+                            loadMembersData();
+                        }
+                    }
+                }, 500);
+            }
+        }
+
+        // ページ初期化
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔄 会員一覧ページ初期化開始');
+            
+            // 認証チェック
+            if (!window.authManager) {
+                console.error('❌ 認証システムが初期化されていません');
+                showToast('認証システムエラー', 'error');
+                setTimeout(() => location.href = '/login.html', 2000);
+                return;
+            }
+            
+            const currentUser = window.authManager.getCurrentUser();
+            if (!currentUser || currentUser.role !== 'admin') {
+                console.error('❌ 管理者権限が必要です');
+                showToast('管理者権限が必要です - クイックログインを実行します', 'warning');
+                
+                // デバッグ用：自動で管理者ログイン
+                console.log('🚀 デバッグ用管理者自動ログイン実行');
+                const adminLoginResult = window.authManager.quickLogin('admin@neo.com', 'password123');
+                
+                if (adminLoginResult.success) {
+                    console.log('✅ 管理者自動ログイン成功:', adminLoginResult.user.name);
+                    showToast('管理者として自動ログインしました', 'success');
+                    
+                    // URLパラメーター解析
+                    parseURLParams();
+                    
+                    // 会員データ読み込み
+                    setTimeout(() => {
+                        if (typeof loadMembersData === 'function') {
+                            loadMembersData();
+                        } else {
+                            console.error('❌ members.jsが読み込まれていません');
+                            showToast('システムエラー: members.jsが見つかりません', 'error');
+                        }
+                        
+                        // イベントリスナー設定
+                        setupEventListeners();
+                    }, 1000);
+                } else {
+                    console.error('❌ 管理者自動ログイン失敗:', adminLoginResult.message);
+                    showToast('自動ログインに失敗しました', 'error');
+                    setTimeout(() => location.href = '/login.html', 2000);
+                }
+                return;
+            }
+            
+            console.log('✅ 管理者権限確認済み:', currentUser.name);
+            
+            // URLパラメーター解析
+            parseURLParams();
+            
+            // 会員データ読み込み
+            if (typeof loadMembersData === 'function') {
+                loadMembersData();
+            } else {
+                console.error('❌ members.jsが読み込まれていません');
+                showToast('システムエラー: members.jsが見つかりません', 'error');
+            }
+            
+            // イベントリスナー設定
+            setupEventListeners();
+        });
+        
+        // イベントリスナー設定
+        function setupEventListeners() {
+            // 検索・フィルタ
+            const searchInput = document.getElementById('search-input');
+            const membershipFilter = document.getElementById('membership-filter');
+            const roleFilter = document.getElementById('role-filter');
+            const statusFilter = document.getElementById('status-filter');
+            const sortField = document.getElementById('sort-field');
+            const sortOrder = document.getElementById('sort-order');
+            const perPage = document.getElementById('per-page');
+            
+            // デバウンス機能付き検索
+            let searchTimeout;
+            searchInput?.addEventListener('input', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    if (typeof loadMembersData === 'function') {
+                        loadMembersData();
+                    }
+                }, 300);
+            });
+            
+            // フィルタ・ソート変更時の再読み込み
+            [membershipFilter, roleFilter, statusFilter, sortField, sortOrder, perPage].forEach(element => {
+                element?.addEventListener('change', function() {
+                    if (typeof loadMembersData === 'function') {
+                        loadMembersData();
+                    }
+                });
+            });
+            
+            // ページネーション
+            document.getElementById('prev-page')?.addEventListener('click', function() {
+                if (typeof goToPrevPage === 'function') {
+                    goToPrevPage();
+                }
+            });
+            
+            document.getElementById('next-page')?.addEventListener('click', function() {
+                if (typeof goToNextPage === 'function') {
+                    goToNextPage();
+                }
+            });
+            
+            // CSV出力
+            document.getElementById('csv-export-btn')?.addEventListener('click', function() {
+                if (typeof exportMembersCSV === 'function') {
+                    exportMembersCSV();
+                } else {
+                    showToast('CSV出力機能は準備中です', 'info');
+                }
+            });
+            
+            // 全選択チェックボックス
+            document.getElementById('select-all')?.addEventListener('change', function() {
+                if (typeof toggleSelectAll === 'function') {
+                    toggleSelectAll(this.checked);
+                }
+            });
+            
+            // タブ切り替え
+            document.querySelectorAll('.drawer-tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    const targetTab = this.getAttribute('data-tab');
+                    switchTab(targetTab);
+                });
+            });
+            
+            // 保存ボタン
+            document.getElementById('save-member-btn')?.addEventListener('click', function() {
+                if (typeof saveMemberData === 'function') {
+                    saveMemberData();
+                }
+            });
+            
+            document.getElementById('save-close-btn')?.addEventListener('click', function() {
+                if (typeof saveMemberData === 'function') {
+                    saveMemberData(true); // 保存後に閉じる
+                }
+            });
+        }
+        
+        // タブ切り替え
+        function switchTab(targetTab) {
+            // タブボタンのアクティブ状態更新
+            document.querySelectorAll('.drawer-tab').forEach(tab => {
+                tab.classList.remove('border-blue-500', 'text-blue-600');
+                tab.classList.add('border-transparent', 'text-gray-500');
+            });
+            
+            document.querySelector(`[data-tab="${targetTab}"]`)?.classList.remove('border-transparent', 'text-gray-500');
+            document.querySelector(`[data-tab="${targetTab}"]`)?.classList.add('border-blue-500', 'text-blue-600');
+            
+            // タブコンテンツの表示切り替え
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+            
+            document.getElementById(`tab-${targetTab}`)?.classList.remove('hidden');
+        }
+        
+        // ドロワー関数はmembers.jsで定義済み
+        
+        // トースト表示
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toast-message');
+            const toastIcon = document.getElementById('toast-icon');
+            
+            // アイコンとスタイルを設定
+            if (type === 'error') {
+                toastIcon.className = 'fas fa-exclamation-circle text-red-400';
+            } else if (type === 'warning') {
+                toastIcon.className = 'fas fa-exclamation-triangle text-yellow-400';
+            } else if (type === 'info') {
+                toastIcon.className = 'fas fa-info-circle text-blue-400';
+            } else {
+                toastIcon.className = 'fas fa-check-circle text-green-400';
+            }
+            
+            toastMessage.textContent = message;
+            
+            // 表示
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('show'), 10);
+            
+            // 自動で非表示
+            setTimeout(() => {
+                hideToast();
+            }, 5000);
+        }
+        
+        // トースト非表示
+        function hideToast() {
+            const toast = document.getElementById('toast');
+            toast.classList.remove('show');
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 300);
+        }
+        
+        // ローディング表示
+        function showLoading() {
+            document.getElementById('loading-indicator')?.classList.remove('hidden');
+            document.getElementById('members-table-body').innerHTML = '';
+        }
+        
+        // ローディング非表示
+        function hideLoading() {
+            document.getElementById('loading-indicator')?.classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
