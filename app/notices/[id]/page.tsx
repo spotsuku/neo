@@ -1,5 +1,5 @@
 /**
- * お知らせ詳細画面 - NEO Digital Platform
+ * お知らせ詳細画面 - NEO Portal
  * マークダウン対応・ファイル添付・権限別アクション表示
  */
 'use client'

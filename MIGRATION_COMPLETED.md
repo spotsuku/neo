@@ -127,8 +127,8 @@
 
 **移行関連の問い合わせ**:
 - 技術的問題: GitHub Issues
-- セキュリティ問題: security@neo-platform.com  
-- 移行に関する質問: dev-team@neo-platform.com
+- セキュリティ問題: security@neo-portal.com  
+- 移行に関する質問: dev-team@neo-portal.com
 
 ---
 

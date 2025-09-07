@@ -1,31 +1,31 @@
--- NEO Digital Platformの本番環境用シードデータ
+-- NEO Portalの本番環境用シードデータ
 -- 管理者アカウントとサンプルデータの挿入
 
 -- 管理者ユーザーの作成
 -- パスワード: admin123 (本番環境では必ず変更してください)
 -- ハッシュ化されたパスワード（bcrypt）
 INSERT OR IGNORE INTO users (email, name, password_hash, role, status, email_verified) VALUES 
-  ('admin@neo-platform.local', 'システム管理者', '$2b$10$rOvCFQjBqkf6HwLv1.YS.eCQSS6xN7fzY1r8vGJK7zOo2kL3mZ4eq', 'admin', 'active', TRUE);
+  ('admin@neo-portal.local', 'システム管理者', '$2b$10$rOvCFQjBqkf6HwLv1.YS.eCQSS6xN7fzY1r8vGJK7zOo2kL3mZ4eq', 'admin', 'active', TRUE);
 
 -- 編集者ユーザーの作成
 -- パスワード: editor123
 INSERT OR IGNORE INTO users (email, name, password_hash, role, status, email_verified) VALUES 
-  ('editor@neo-platform.local', 'コンテンツ編集者', '$2b$10$SomeHashedPasswordForEditor123456789abcdef', 'editor', 'active', TRUE);
+  ('editor@neo-portal.local', 'コンテンツ編集者', '$2b$10$SomeHashedPasswordForEditor123456789abcdef', 'editor', 'active', TRUE);
 
 -- 一般ユーザーの作成  
 -- パスワード: user123
 INSERT OR IGNORE INTO users (email, name, password_hash, role, status, email_verified) VALUES 
-  ('user@neo-platform.local', '一般ユーザー', '$2b$10$AnotherHashedPasswordForUser123456789abcdef', 'user', 'active', TRUE);
+  ('user@neo-portal.local', '一般ユーザー', '$2b$10$AnotherHashedPasswordForUser123456789abcdef', 'user', 'active', TRUE);
 
 -- ユーザープロフィールの作成
 INSERT OR IGNORE INTO user_profiles (user_id, bio, department, position, preferences) VALUES 
-  (1, 'NEO Digital Platformのシステム管理者です。', 'IT部門', 'システム管理者', '{"theme":"dark","language":"ja","notifications":true}'),
+  (1, 'NEO Portalのシステム管理者です。', 'IT部門', 'システム管理者', '{"theme":"dark","language":"ja","notifications":true}'),
   (2, 'コンテンツの作成と編集を担当しています。', 'マーケティング部', 'コンテンツエディター', '{"theme":"light","language":"ja","notifications":true}'),
   (3, 'プラットフォームを利用する一般ユーザーです。', '営業部', '営業担当', '{"theme":"light","language":"ja","notifications":false}');
 
 -- システム設定の初期化
 INSERT OR IGNORE INTO system_settings (key, value, description, is_public) VALUES 
-  ('site_name', 'NEO Digital Platform', 'サイト名', TRUE),
+  ('site_name', 'NEO Portal', 'サイト名', TRUE),
   ('site_description', 'Digital Transformation Platform for Modern Business', 'サイト説明', TRUE),
   ('site_version', '1.0.0', 'システムバージョン', TRUE),
   ('maintenance_mode', 'false', 'メンテナンスモード', FALSE),
@@ -43,7 +43,7 @@ INSERT OR IGNORE INTO system_settings (key, value, description, is_public) VALUE
   ('enable_api_access', 'true', 'API アクセスの有効化', FALSE),
   ('rate_limit_requests', '100', 'レート制限 (1時間あたりのリクエスト数)', FALSE),
   ('enable_audit_log', 'true', '監査ログの有効化', FALSE),
-  ('notification_email', 'admin@neo-platform.local', '通知メールアドレス', FALSE),
+  ('notification_email', 'admin@neo-portal.local', '通知メールアドレス', FALSE),
   ('smtp_host', '', 'SMTPサーバーホスト', FALSE),
   ('smtp_port', '587', 'SMTPサーバーポート', FALSE),
   ('smtp_user', '', 'SMTPユーザー名', FALSE),
@@ -53,8 +53,8 @@ INSERT OR IGNORE INTO system_settings (key, value, description, is_public) VALUE
 -- 初期お知らせの作成
 INSERT OR IGNORE INTO announcements (title, content, author_id, status, priority, target_roles) VALUES 
   (
-    'NEO Digital Platformへようこそ',
-    'NEO Digital Platformにアクセスいただき、ありがとうございます。このプラットフォームは、現代のビジネスにおけるデジタル変革を支援するために設計されています。
+    'NEO Portalへようこそ',
+    'NEO Portalにアクセスいただき、ありがとうございます。このプラットフォームは、現代のビジネスにおけるデジタル変革を支援するために設計されています。
 
 主な機能：
 • ユーザー管理とアクセス制御
@@ -131,7 +131,7 @@ INSERT OR IGNORE INTO notifications (user_id, type, title, message, data) VALUES
   (
     1,
     'welcome',
-    'NEO Digital Platformへようこそ',
+    'NEO Portalへようこそ',
     'システム管理者としてログインいただき、ありがとうございます。プラットフォームの設定を確認し、必要に応じてカスタマイズしてください。',
     '{"action":"check_settings","priority":"high"}'
   ),
@@ -146,7 +146,7 @@ INSERT OR IGNORE INTO notifications (user_id, type, title, message, data) VALUES
     3,
     'welcome',
     'ユーザー登録完了',
-    'NEO Digital Platformへの登録が完了しました。プロフィール情報を更新して、プラットフォームをお楽しみください。',
+    'NEO Portalへの登録が完了しました。プロフィール情報を更新して、プラットフォームをお楽しみください。',
     '{"action":"update_profile","priority":"low"}'
   );
 

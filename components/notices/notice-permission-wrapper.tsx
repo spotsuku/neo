@@ -1,5 +1,5 @@
 /**
- * お知らせ権限ラッパー - NEO Digital Platform
+ * お知らせ権限ラッパー - NEO Portal
  * 役割別表示制御・権限チェック
  */
 'use client'

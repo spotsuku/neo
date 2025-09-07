@@ -136,7 +136,7 @@ node scripts/monitoring-setup.js stats
 wrangler d1 execute webapp-production --command="SELECT 1"
 
 # ストレージ接続テスト
-wrangler r2 object head neo-platform-files/test-file
+wrangler r2 object head neo-portal-files/test-file
 
 # KV接続テスト
 wrangler kv:key get --binding=KV test-key
@@ -150,7 +150,7 @@ echo "true" | wrangler kv:key put --binding=KV maintenance_mode
 
 # 緊急修正のデプロイ
 npm run build:prod
-wrangler pages deploy out --project-name neo-platform
+wrangler pages deploy out --project-name neo-portal
 ```
 
 ### Phase 3: 本格復旧（1-4時間）
@@ -229,7 +229,7 @@ node scripts/selective-restore.js --table=users --backup=latest
 wrangler r2 bucket list
 
 # ファイルリストの取得
-wrangler r2 object list neo-platform-files
+wrangler r2 object list neo-portal-files
 
 # 損失ファイルの特定
 node scripts/file-integrity-check.js
@@ -247,11 +247,11 @@ npm install
 npm run build:prod
 
 # 2. 緊急デプロイ
-wrangler pages deploy out --project-name neo-platform
+wrangler pages deploy out --project-name neo-portal
 
 # 3. 動作確認
-curl -f https://neo-platform.pages.dev/api/health
-curl -f https://neo-platform.pages.dev/api/monitoring/dashboard
+curl -f https://neo-portal.pages.dev/api/health
+curl -f https://neo-portal.pages.dev/api/monitoring/dashboard
 
 # 4. 段階的機能復旧
 # - 認証システム
@@ -271,7 +271,7 @@ echo "=== 月次災害復旧テスト開始 ==="
 
 # 1. テスト環境の準備
 export ENVIRONMENT=test
-wrangler pages deploy out --project-name neo-platform-test
+wrangler pages deploy out --project-name neo-portal-test
 
 # 2. バックアップ作成テスト
 node scripts/backup-manager.js backup-all

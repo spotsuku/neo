@@ -1,5 +1,5 @@
 /**
- * お知らせ一覧画面 - NEO Digital Platform
+ * お知らせ一覧画面 - NEO Portal
  * カード表示・フィルタリング・ページネーション対応
  */
 'use client'

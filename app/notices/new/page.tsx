@@ -1,5 +1,5 @@
 /**
- * お知らせ作成画面 - NEO Digital Platform
+ * お知らせ作成画面 - NEO Portal
  * 権限チェック・ファイルアップロード・プレビュー対応
  */
 'use client'

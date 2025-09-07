@@ -1,4 +1,4 @@
-// NEO Digital Platform - Metrics API
+// NEO Portal - Metrics API
 // システムメトリクス取得API（管理者限定）
 
 import { NextRequest } from 'next/server';

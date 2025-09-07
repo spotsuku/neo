@@ -374,15 +374,15 @@ node scripts/load-test.js
 ### 本番環境
 - **プラットフォーム**: Cloudflare Pages (準備完了)
 - **ステータス**: 🚧 デプロイメント待機中 (API認証必要)
-- **プロジェクト名**: neo-platform
-- **予定URL**: https://neo-platform.pages.dev
+- **プロジェクト名**: neo-portal
+- **予定URL**: https://neo-portal.pages.dev
 - **最終更新**: 2024-08-31
 
 ### デプロイメントコマンド (API認証後)
 ```bash
 # Cloudflare API認証後に実行
-npx wrangler pages project create neo-platform --production-branch main
-npx wrangler pages deploy dist --project-name neo-platform
+npx wrangler pages project create neo-portal --production-branch main
+npx wrangler pages deploy dist --project-name neo-portal
 ```
 
 ### CI/CD
@@ -413,8 +413,8 @@ npx wrangler pages deploy dist --project-name neo-platform
 ## サポート・問い合わせ
 
 - **技術的問題**: GitHub Issues
-- **セキュリティ問題**: security@neo-platform.com
-- **一般的な問い合わせ**: support@neo-platform.com
+- **セキュリティ問題**: security@neo-portal.com
+- **一般的な問い合わせ**: support@neo-portal.com
 
 ## ライセンス
 

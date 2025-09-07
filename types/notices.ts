@@ -1,6 +1,6 @@
 /**
  * お知らせ管理システム - 型定義
- * NEO Digital Platform
+ * NEO Portal
  */
 
 export interface Notice {

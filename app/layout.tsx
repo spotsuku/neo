@@ -1,5 +1,5 @@
 /**
- * ルートレイアウト - NEO Digital Platform
+ * ルートレイアウト - NEO Portal
  */
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
@@ -9,10 +9,10 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'NEO Digital Platform',
+  title: 'NEO Portal',
   description: 'デジタル学習管理システム - 効率的な学習体験を提供',
   keywords: ['学習管理', 'デジタル教育', 'プラットフォーム'],
-  authors: [{ name: 'NEO Digital Platform Team' }],
+  authors: [{ name: 'NEO Portal Team' }],
   viewport: 'width=device-width, initial-scale=1',
   robots: 'index, follow',
   manifest: '/manifest.json',
@@ -22,15 +22,15 @@ export const metadata: Metadata = {
     apple: '/icons/icon-192.png',
   },
   openGraph: {
-    title: 'NEO Digital Platform',
+    title: 'NEO Portal',
     description: 'デジタル学習管理システム - 効率的な学習体験を提供',
     type: 'website',
     locale: 'ja_JP',
-    siteName: 'NEO Digital Platform',
+    siteName: 'NEO Portal',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'NEO Digital Platform',
+    title: 'NEO Portal',
     description: 'デジタル学習管理システム - 効率的な学習体験を提供',
   }
 }

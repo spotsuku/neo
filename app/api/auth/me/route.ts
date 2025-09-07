@@ -1,4 +1,4 @@
-// NEO Digital Platform - 認証情報取得API
+// NEO Portal - 認証情報取得API
 // GET /api/auth/me
 
 import { NextRequest, NextResponse } from 'next/server';

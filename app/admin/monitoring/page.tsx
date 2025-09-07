@@ -6,7 +6,7 @@ import MonitoringDashboard from '@/components/admin/monitoring-dashboard';
 import { webVitalsScript } from '@/lib/monitoring';
 
 export const metadata: Metadata = {
-  title: 'システム監視 | NEO Digital Platform',
+  title: 'システム監視 | NEO Portal',
   description: 'システムの健全性とパフォーマンスを監視',
 };
 

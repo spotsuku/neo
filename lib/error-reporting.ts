@@ -238,7 +238,7 @@ class ErrorReportingService {
         username: this.slackConfig.username,
         attachments: [{
           color,
-          title: `${emoji} ${level.toUpperCase()} - NEO Digital Platform Error`,
+          title: `${emoji} ${level.toUpperCase()} - NEO Portal Error`,
           text: error.message,
           fields: [
             {
@@ -267,7 +267,7 @@ class ErrorReportingService {
               short: false
             }
           ],
-          footer: 'NEO Digital Platform Error Monitoring',
+          footer: 'NEO Portal Error Monitoring',
           ts: Math.floor((context.timestamp?.getTime() || Date.now()) / 1000)
         }]
       }

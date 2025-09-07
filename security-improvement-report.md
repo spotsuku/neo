@@ -210,9 +210,9 @@ module.exports = {
 
 ## 📞 連絡先・サポート
 
-**セキュリティインシデント報告**: security@neo-platform.com  
-**技術サポート**: support@neo-platform.com  
-**改善提案**: devops@neo-platform.com
+**セキュリティインシデント報告**: security@neo-portal.com  
+**技術サポート**: support@neo-portal.com  
+**改善提案**: devops@neo-portal.com
 
 **報告者**: NEO Platform セキュリティチーム  
 **作成日**: 2025-08-30  

@@ -311,7 +311,7 @@ export function AdminSettingsComponent() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="p-4 bg-gray-50 rounded-lg">
               <div className="text-sm font-medium text-gray-600">アプリケーション</div>
-              <div className="text-lg font-semibold">NEO Digital Platform</div>
+              <div className="text-lg font-semibold">NEO Portal</div>
               <div className="text-sm text-gray-500">v1.0.0</div>
             </div>
             <div className="p-4 bg-gray-50 rounded-lg">

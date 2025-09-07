@@ -1,4 +1,4 @@
-// NEO Digital Platform Security Utilities
+// NEO Portal Security Utilities
 // Argon2id, TOTP, Rate Limiting, 暗号化機能
 
 import { hash, verify } from '@node-rs/argon2';
@@ -97,7 +97,7 @@ export async function verifyPassword(password: string, hashedPassword: string): 
  * TOTP 2FA ユーティリティ
  */
 export class TOTPService {
-  private static readonly SERVICE_NAME = 'NEO Digital Platform';
+  private static readonly SERVICE_NAME = 'NEO Portal';
   
   /**
    * TOTP秘密鍵生成

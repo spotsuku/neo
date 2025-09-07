@@ -1,4 +1,4 @@
-// NEO Digital Platform - API Documentation (Swagger UI)
+// NEO Portal - API Documentation (Swagger UI)
 // GET /api/docs
 
 import { NextRequest } from 'next/server';
@@ -27,7 +27,7 @@ export const GET = async (request: NextRequest) => {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NEO Digital Platform API Documentation</title>
+    <title>NEO Portal API Documentation</title>
     <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@5.10.3/swagger-ui.css" />
     <style>
       html {
@@ -97,7 +97,7 @@ export const GET = async (request: NextRequest) => {
 </head>
 <body>
     <div class="custom-header">
-        <h1>🚀 NEO Digital Platform API</h1>
+        <h1>🚀 NEO Portal API</h1>
         <p>認証・セキュリティAPI仕様書 v1.0.0</p>
     </div>
 

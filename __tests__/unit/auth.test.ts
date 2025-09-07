@@ -1,6 +1,6 @@
 /**
  * Authentication Unit Tests - Step 13 Automated Testing Suite
- * NEO Digital Platform
+ * NEO Portal
  */
 import { describe, it, expect } from '@jest/globals'
 import { AuthService } from '@/lib/auth/auth-service'

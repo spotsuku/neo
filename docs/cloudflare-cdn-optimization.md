@@ -208,10 +208,10 @@ const configs = {
 npm run build
 
 # Cloudflare Pages デプロイ
-wrangler pages deploy dist --project-name neo-platform
+wrangler pages deploy dist --project-name neo-portal
 
 # キャッシュパージ（必要時）
-wrangler pages purge --project-name neo-platform
+wrangler pages purge --project-name neo-portal
 ```
 
 ### 8. 監視とアラート

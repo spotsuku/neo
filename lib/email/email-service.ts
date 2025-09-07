@@ -1,6 +1,6 @@
 /**
  * メール通知サービス - Step 8 Email Notification System
- * NEO Digital Platform
+ * NEO Portal
  */
 import { z } from 'zod'
 

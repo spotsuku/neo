@@ -56,7 +56,7 @@ NEXT_PUBLIC_APP_URL=https://your-domain.pages.dev
 wrangler login
 
 # プロジェクト作成
-wrangler pages project create neo-platform \
+wrangler pages project create neo-portal \
   --production-branch main \
   --compatibility-date 2024-01-01
 
@@ -67,8 +67,8 @@ wrangler d1 create webapp-production
 #### 2. 環境変数の設定
 ```bash
 # 本番環境の秘密情報設定
-wrangler pages secret put JWT_SECRET --project-name neo-platform
-wrangler pages secret put DATABASE_URL --project-name neo-platform
+wrangler pages secret put JWT_SECRET --project-name neo-portal
+wrangler pages secret put DATABASE_URL --project-name neo-portal
 ```
 
 #### 3. D1 データベースの設定
@@ -86,7 +86,7 @@ wrangler d1 execute webapp-production --remote --file=./seed.sql
 ```bash
 # ビルドとデプロイ
 npm run build
-wrangler pages deploy dist --project-name neo-platform
+wrangler pages deploy dist --project-name neo-portal
 
 # または統合コマンド
 npm run deploy:prod
@@ -111,7 +111,7 @@ npm run deploy:prod
 ### 1. wrangler.jsonc
 ```json
 {
-  "name": "neo-platform",
+  "name": "neo-portal",
   "compatibility_date": "2024-01-01",
   "compatibility_flags": ["nodejs_compat"],
   "pages_build_output_dir": "./dist",
@@ -127,7 +127,7 @@ npm run deploy:prod
 {
   "scripts": {
     "build": "next build",
-    "deploy:prod": "npm run build && wrangler pages deploy dist --project-name neo-platform"
+    "deploy:prod": "npm run build && wrangler pages deploy dist --project-name neo-portal"
   }
 }
 ```
@@ -148,7 +148,7 @@ module.exports = {
 ## 📡 デプロイ後の URL構成
 
 ### 本番環境 URL
-- **メインサイト**: `https://neo-platform.pages.dev`
+- **メインサイト**: `https://neo-portal.pages.dev`
 - **カスタムドメイン** (オプション): `https://your-domain.com`
 
 ### API エンドポイント
@@ -257,7 +257,7 @@ wrangler login
 #### 4. カスタムドメイン設定
 ```bash
 # ドメイン追加
-wrangler pages domain add your-domain.com --project-name neo-platform
+wrangler pages domain add your-domain.com --project-name neo-portal
 
 # DNS設定確認
 dig your-domain.com CNAME
@@ -288,8 +288,8 @@ dig your-domain.com CNAME
 ## 📞 サポート情報
 
 ### デプロイメント支援
-- **技術サポート**: support@neo-platform.com
-- **緊急対応**: emergency@neo-platform.com
+- **技術サポート**: support@neo-portal.com
+- **緊急対応**: emergency@neo-portal.com
 - **ドキュメント**: 本ガイド + `/docs/` フォルダ
 
 ### 外部リソース

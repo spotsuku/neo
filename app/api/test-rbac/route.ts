@@ -1,4 +1,4 @@
-// NEO Digital Platform - RBAC Test API
+// NEO Portal - RBAC Test API
 // 権限システムの動作テスト用エンドポイント
 
 import { NextRequest } from 'next/server';

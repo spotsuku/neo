@@ -1,5 +1,5 @@
 /**
- * ユーザー登録API - NEO Digital Platform
+ * ユーザー登録API - NEO Portal
  * Next.js環境対応版
  */
 import { NextRequest, NextResponse } from 'next/server'

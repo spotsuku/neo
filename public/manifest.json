@@ -1,7 +1,7 @@
 {
-  "name": "NEO Digital Platform",
-  "short_name": "NEO Platform",
-  "description": "Digital Learning Management Platform",
+  "name": "NEO Portal",
+  "short_name": "NEO Portal",
+  "description": "Modern Portal Platform for Business",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

@@ -1,6 +1,6 @@
 /**
  * ユーザー招待・管理サービス - Step 16 User Management UI & Invitations  
- * NEO Digital Platform
+ * NEO Portal
  */
 import { z } from 'zod'
 

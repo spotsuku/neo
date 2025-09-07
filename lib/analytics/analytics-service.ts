@@ -1,6 +1,6 @@
 /**
  * アナリティクスサービス - Step 10 Analytics Dashboard
- * NEO Digital Platform
+ * NEO Portal
  */
 export class AnalyticsService {
   constructor(private db: D1Database) {}

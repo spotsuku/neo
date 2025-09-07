@@ -1,4 +1,4 @@
-// NEO Digital Platform - User Logout API
+// NEO Portal - User Logout API
 // POST /api/auth/logout
 
 import { NextRequest } from 'next/server';

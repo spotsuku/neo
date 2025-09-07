@@ -254,7 +254,7 @@ async headers() {
 #### Service Worker活用
 ```javascript
 // 重要リソースの事前キャッシュ
-const CACHE_NAME = 'neo-platform-v1';
+const CACHE_NAME = 'neo-portal-v1';
 const urlsToCache = [
   '/_next/static/chunks/framework.js',
   '/_next/static/chunks/commons.js',

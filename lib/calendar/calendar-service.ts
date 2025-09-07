@@ -1,6 +1,6 @@
 /**
  * カレンダー統合サービス - Step 11 Calendar Integration
- * NEO Digital Platform
+ * NEO Portal
  */
 export class CalendarService {
   async getEvents(start: string, end: string) {

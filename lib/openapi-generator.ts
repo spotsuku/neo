@@ -1,4 +1,4 @@
-// NEO Digital Platform - OpenAPI Schema Generator
+// NEO Portal - OpenAPI Schema Generator
 // Zodスキーマから自動でOpenAPI仕様を生成
 
 import { z } from 'zod';
@@ -561,10 +561,10 @@ export function generateOpenApiSpec(): OpenAPIV3.Document {
   return {
     openapi: '3.0.3',
     info: {
-      title: 'NEO Digital Platform API',
+      title: 'NEO Portal API',
       version: '1.0.0',
       description: `
-NEO Digital Platform の包括的API仕様書
+NEO Portal の包括的API仕様書
 
 ## 特徴
 - JWT + Refresh Token による安全な認証
@@ -599,7 +599,7 @@ NEO Digital Platform の包括的API仕様書
 - **学生**: student01@neo-digital.jp / SecurePass123!@#
       `,
       contact: {
-        name: 'NEO Digital Platform Support',
+        name: 'NEO Portal Support',
         email: 'support@neo-digital.jp'
       },
       license: {
@@ -613,7 +613,7 @@ NEO Digital Platform の包括的API仕様書
         description: '開発環境'
       },
       {
-        url: 'https://neo-platform.pages.dev/api',
+        url: 'https://neo-portal.pages.dev/api',
         description: '本番環境'
       }
     ],

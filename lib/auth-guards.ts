@@ -1,4 +1,4 @@
-// NEO Digital Platform - Authentication Guards & Middleware
+// NEO Portal - Authentication Guards & Middleware
 // サーバー側RBAC権限ガード
 
 import { NextRequest, NextResponse } from 'next/server';

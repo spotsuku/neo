@@ -1,4 +1,4 @@
-// NEO Digital Platform - お知らせAPI
+// NEO Portal - お知らせAPI
 // GET /api/announcements - お知らせ一覧取得
 // POST /api/announcements - お知らせ作成
 
@@ -27,7 +27,7 @@ const mockAnnouncements: (Announcement & { author_name?: string })[] = [
     id: 'ann_001',
     region_id: 'FUK',
     title: '第3回NEO福岡セッション開催のお知らせ',
-    content: 'NEO Digital Platform活用セッションを以下の日程で開催いたします。\n\n日時: 2024年9月15日(日) 13:00-17:00\n場所: 福岡市スタートアップカフェ\n\n今回のテーマ「地域DX推進戦略」について、各地域の取り組み事例を共有し、相互学習を深めます。',
+    content: 'NEO Portal活用セッションを以下の日程で開催いたします。\n\n日時: 2024年9月15日(日) 13:00-17:00\n場所: 福岡市スタートアップカフェ\n\n今回のテーマ「地域DX推進戦略」について、各地域の取り組み事例を共有し、相互学習を深めます。',
     summary: 'NEO福岡セッション - 地域DX推進戦略',
     author_id: 'user_sec001',
     author_name: '事務局担当者',
@@ -42,7 +42,7 @@ const mockAnnouncements: (Announcement & { author_name?: string })[] = [
     id: 'ann_002',
     region_id: 'ALL',
     title: '新機能「メンバーカルテ」リリースのご案内',
-    content: 'NEO Digital Platformに新機能「メンバーカルテ」を追加いたします。\n\n機能概要:\n- 個人プロフィール詳細表示\n- 学習進捗追跡\n- チーム編成情報\n\nリリース日: 2024年9月20日予定',
+    content: 'NEO Portalに新機能「メンバーカルテ」を追加いたします。\n\n機能概要:\n- 個人プロフィール詳細表示\n- 学習進捗追跡\n- チーム編成情報\n\nリリース日: 2024年9月20日予定',
     summary: 'メンバーカルテ機能リリース予定',
     author_id: 'user_admin001',
     author_name: '福岡管理者',

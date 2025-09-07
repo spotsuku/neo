@@ -1,5 +1,5 @@
 /**
- * プロフィール管理画面 - NEO Digital Platform
+ * プロフィール管理画面 - NEO Portal
  * 名前・アバター・パスワード変更機能
  */
 'use client'

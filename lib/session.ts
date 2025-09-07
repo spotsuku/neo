@@ -1,4 +1,4 @@
-// NEO Digital Platform - セッション管理システム
+// NEO Portal - セッション管理システム
 // JWT + Cookie ベースのセッション管理
 
 import { cookies } from 'next/headers';

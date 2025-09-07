@@ -248,8 +248,8 @@ module.exports = {
 
 ## 📞 連絡先
 
-**セキュリティインシデント報告**: security@neo-platform.com  
-**技術サポート**: support@neo-platform.com  
+**セキュリティインシデント報告**: security@neo-portal.com  
+**技術サポート**: support@neo-portal.com  
 
 **レポート作成者**: NEO Platform セキュリティチーム  
 **作成日**: 2025-08-30  

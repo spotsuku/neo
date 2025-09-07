@@ -178,7 +178,7 @@ const server = http.createServer((req, res) => {
   if (req.url === '/api/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
-      message: 'NEO Digital Platform API',
+      message: 'NEO Portal API',
       version: '1.0.0',
       status: 'active',
       timestamp: new Date().toISOString(),
@@ -670,7 +670,7 @@ const PORT = 3000;
 const HOST = '0.0.0.0';
 
 server.listen(PORT, HOST, () => {
-  console.log(`🚀 NEO Digital Platform Simple Server running on http://${HOST}:${PORT}`);
+  console.log(`🚀 NEO Portal Simple Server running on http://${HOST}:${PORT}`);
   console.log(`📅 Started at: ${new Date().toLocaleString('ja-JP')}`);
 });
 

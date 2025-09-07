@@ -1,4 +1,4 @@
-// NEO Digital Platform - ダッシュボードレイアウト
+// NEO Portal - ダッシュボードレイアウト
 // レスポンシブ・アクセシブル対応
 
 'use client';
@@ -179,7 +179,7 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
                 <span className="sr-only">Open sidebar</span>
               </Button>
               <h1 className="text-xl font-semibold text-gray-900">
-                NEO Digital Platform
+                NEO Portal
               </h1>
             </div>
 

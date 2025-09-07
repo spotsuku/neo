@@ -1,5 +1,5 @@
 /**
- * React Error Boundary - NEO Digital Platform
+ * React Error Boundary - NEO Portal
  * 包括的エラーハンドリング・Sentry連携・ユーザーフレンドリー表示
  */
 'use client'
@@ -227,7 +227,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 <div className="text-center text-sm text-gray-500">
                   問題が解決しない場合は、<br />
                   <a 
-                    href="mailto:support@neo-platform.jp" 
+                    href="mailto:support@neo-portal.jp" 
                     className="text-blue-600 hover:underline inline-flex items-center"
                   >
                     <Mail className="w-3 h-3 mr-1" />

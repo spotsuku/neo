@@ -1,5 +1,5 @@
 /**
- * パスワードリセット画面 - NEO Digital Platform
+ * パスワードリセット画面 - NEO Portal
  * メール送信によるパスワードリセット
  */
 'use client'
@@ -86,7 +86,7 @@ export default function PasswordResetPage() {
       <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">NEO Digital Platform</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">NEO Portal</h1>
           </div>
 
           <Card>
@@ -140,7 +140,7 @@ export default function PasswordResetPage() {
 
           {/* フッター */}
           <div className="mt-8 text-center text-xs text-gray-500">
-            <p>&copy; 2024 NEO Digital Platform. All rights reserved.</p>
+            <p>&copy; 2024 NEO Portal. All rights reserved.</p>
           </div>
         </div>
       </div>
@@ -151,7 +151,7 @@ export default function PasswordResetPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">NEO Digital Platform</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">NEO Portal</h1>
           <p className="text-sm text-gray-600">パスワードをリセットします</p>
         </div>
 
@@ -230,7 +230,7 @@ export default function PasswordResetPage() {
 
         {/* フッター */}
         <div className="mt-8 text-center text-xs text-gray-500">
-          <p>&copy; 2024 NEO Digital Platform. All rights reserved.</p>
+          <p>&copy; 2024 NEO Portal. All rights reserved.</p>
         </div>
       </div>
     </div>

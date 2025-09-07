@@ -1,6 +1,6 @@
 /**
  * ファイル管理 API - 個別操作
- * NEO Digital Platform - Step 7 File Upload Implementation
+ * NEO Portal - Step 7 File Upload Implementation
  */
 import { NextRequest } from 'next/server'
 import { FileStorageService } from '@/lib/file-storage/file-service'

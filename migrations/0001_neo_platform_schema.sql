@@ -1,5 +1,5 @@
 -- Migration number: 0001 	 2025-08-30T11:45:50.423Z
--- NEO Digital Platform - 本番データベーススキーマ
+-- NEO Portal - 本番データベーススキーマ
 -- Cloudflare D1 (SQLite) 用の完全なテーブル定義
 
 -- ユーザーテーブル

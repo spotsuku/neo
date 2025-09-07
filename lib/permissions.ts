@@ -1,4 +1,4 @@
-// NEO Digital Platform - RBAC権限管理システム
+// NEO Portal - RBAC権限管理システム
 // Role-Based Access Control (RBAC) 実装
 
 import type { UserRole, RegionId, AuthUser } from '@/types/database';
@@ -32,7 +32,7 @@ type PermissionMatrix = {
   };
 };
 
-// NEO Digital Platform 権限マトリックス
+// NEO Portal 権限マトリックス
 export const PERMISSION_MATRIX: PermissionMatrix = {
   // オーナー：全権限
   owner: {

@@ -482,7 +482,7 @@ export async function initializeDatabase(db: D1Database): Promise<boolean> {
     // デフォルト設定の挿入
     const model = createDatabaseModel(db);
     
-    await model.setSetting('site_name', 'NEO Digital Platform', 'サイト名', true);
+    await model.setSetting('site_name', 'NEO Portal', 'サイト名', true);
     await model.setSetting('site_description', 'Digital Transformation Platform', 'サイト説明', true);
     await model.setSetting('max_file_size', '10485760', '最大ファイルサイズ (10MB)', false);
     await model.setSetting('session_timeout', '86400', 'セッションタイムアウト (24時間)', false);

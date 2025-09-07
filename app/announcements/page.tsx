@@ -1,4 +1,4 @@
-// NEO Digital Platform - お知らせ管理ページ
+// NEO Portal - お知らせ管理ページ
 // お知らせ一覧・作成・編集機能
 
 'use client';

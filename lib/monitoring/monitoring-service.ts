@@ -1,6 +1,6 @@
 /**
  * 監視・ログ・エラー追跡サービス - Step 15 Monitoring & Error Tracking
- * NEO Digital Platform
+ * NEO Portal
  */
 export class MonitoringService {
   static logError(error: Error, context?: Record<string, any>): void {

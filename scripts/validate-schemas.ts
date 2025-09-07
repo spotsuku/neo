@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 
-// NEO Digital Platform - Schema Validation Tool
+// NEO Portal - Schema Validation Tool
 // データベーススキーマとAPIスキーマの整合性チェック
 
 import fs from 'fs';
@@ -274,7 +274,7 @@ function generateValidationReport(results: ReturnType<typeof validateSchemaConsi
  * メイン実行
  */
 async function main() {
-  console.log('🚀 NEO Digital Platform - スキーマ検証ツール\n');
+  console.log('🚀 NEO Portal - スキーマ検証ツール\n');
   
   try {
     const results = validateSchemaConsistency();

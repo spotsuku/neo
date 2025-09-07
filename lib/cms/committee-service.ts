@@ -1,6 +1,6 @@
 /**
  * 委員会管理CMS - 組織委員会・部会管理サービス
- * NEO Digital Platform - Step 6 CMS Implementation
+ * NEO Portal - Step 6 CMS Implementation
  */
 import { z } from 'zod'
 import { BaseCMSService, BaseCMSItem, ContentStatus, VisibilityScope, NotificationQueue } from './base-cms'

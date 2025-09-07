@@ -1,4 +1,4 @@
-// NEO Digital Platform - RBAC Unit Tests
+// NEO Portal - RBAC Unit Tests
 // RBAC権限システムのユニットテスト
 
 import { 

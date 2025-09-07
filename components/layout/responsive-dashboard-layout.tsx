@@ -1,4 +1,4 @@
-// NEO Digital Platform - レスポンシブ・A11y完全対応ダッシュボードレイアウト
+// NEO Portal - レスポンシブ・A11y完全対応ダッシュボードレイアウト
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -98,7 +98,7 @@ export default function ResponsiveDashboardLayout({ children, user }: DashboardL
   // 現在のページタイトル取得
   const getCurrentPageTitle = () => {
     const currentItem = menuItems.find(item => item.href === pathname);
-    return currentItem?.label || 'NEO Digital Platform';
+    return currentItem?.label || 'NEO Portal';
   };
 
   return (
@@ -125,7 +125,7 @@ export default function ResponsiveDashboardLayout({ children, user }: DashboardL
               <Link 
                 href="/dashboard" 
                 className="flex items-center space-x-2 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded-md"
-                aria-label="NEO Digital Platform ダッシュボードへ"
+                aria-label="NEO Portal ダッシュボードへ"
                 onClick={() => handleNavigation('/dashboard')}
               >
                 <div className="w-8 h-8 neo-gradient rounded-lg flex items-center justify-center" aria-hidden="true">

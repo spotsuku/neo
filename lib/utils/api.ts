@@ -1,5 +1,5 @@
 /**
- * API ユーティリティ - NEO Digital Platform
+ * API ユーティリティ - NEO Portal
  * API レスポンス・エラーハンドリング共通機能
  */
 import { NextRequest, NextResponse } from 'next/server'

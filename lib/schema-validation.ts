@@ -1,4 +1,4 @@
-// NEO Digital Platform - Schema Validation System
+// NEO Portal - Schema Validation System
 // APIスキーマ自動生成とリクエスト/レスポンスバリデーション
 
 import { z } from 'zod';

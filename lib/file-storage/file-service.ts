@@ -1,6 +1,6 @@
 /**
  * ファイルストレージサービス - Cloudflare R2統合
- * NEO Digital Platform - Step 7 File Upload Implementation
+ * NEO Portal - Step 7 File Upload Implementation
  */
 import { z } from 'zod'
 

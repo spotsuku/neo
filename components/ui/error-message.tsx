@@ -1,5 +1,5 @@
 /**
- * エラーメッセージUI - NEO Digital Platform
+ * エラーメッセージUI - NEO Portal
  * 統一されたエラー表示・分類別スタイリング・操作ガイダンス
  */
 'use client'
@@ -230,7 +230,7 @@ export function ErrorMessage({
               
               {showSupport && (
                 <Button size="sm" variant="outline" asChild>
-                  <a href="mailto:support@neo-platform.jp">
+                  <a href="mailto:support@neo-portal.jp">
                     <Mail className="w-3 h-3 mr-1" />
                     サポート
                   </a>

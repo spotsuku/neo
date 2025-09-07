@@ -1,4 +1,4 @@
-// NEO Digital Platform - アクセシビリティ（A11y）サポート
+// NEO Portal - アクセシビリティ（A11y）サポート
 // WCAG 2.1 AA準拠のアクセシビリティ機能
 
 import { useEffect, useRef } from 'react';
@@ -218,7 +218,7 @@ export function createValidationMessage(fieldName: string, error: string): strin
 
 // ページタイトル管理
 export function updatePageTitle(title: string) {
-  document.title = `${title} | NEO Digital Platform`;
+  document.title = `${title} | NEO Portal`;
   
   // スクリーンリーダーにページ変更を通知
   announceToScreenReader(`${title}ページに移動しました`, 'polite');

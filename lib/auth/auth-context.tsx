@@ -1,5 +1,5 @@
 /**
- * 認証状態管理Context - NEO Digital Platform
+ * 認証状態管理Context - NEO Portal
  * JWT認証・リフレッシュトークン・ユーザー状態管理
  */
 'use client'

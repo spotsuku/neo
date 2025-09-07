@@ -1,4 +1,4 @@
-// NEO Digital Platform - User Login API (Next.js Development Version)
+// NEO Portal - User Login API (Next.js Development Version)
 // POST /api/auth/login
 
 import { NextRequest } from 'next/server';
@@ -18,7 +18,7 @@ type LoginRequest = z.infer<typeof loginSchema>;
 const mockUsers = [
   {
     id: 1,
-    email: 'admin@neo-platform.jp',
+    email: 'admin@neo-portal.jp',
     name: '管理者',
     password: 'password123', // 実際の環境ではハッシュ化される
     role: 'admin',
@@ -30,7 +30,7 @@ const mockUsers = [
   },
   {
     id: 2,
-    email: 'user@neo-platform.jp',
+    email: 'user@neo-portal.jp',
     name: '一般ユーザー',
     password: 'password123',
     role: 'user',

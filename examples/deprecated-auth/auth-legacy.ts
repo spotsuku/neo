@@ -48,7 +48,7 @@ export function verifyToken(token: string): AuthUser | null {
       if (token === 'test-token' || token === 'admin-token') {
         return {
           id: 'test-user-123',
-          email: 'test@neo-platform.com',
+          email: 'test@neo-portal.com',
           role: token === 'admin-token' ? 'admin' : 'user',
           permissions: token === 'admin-token' ? ['admin:read', 'admin:write'] : ['user:read'],
           iat: Math.floor(Date.now() / 1000),

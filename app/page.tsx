@@ -1,5 +1,5 @@
 /**
- * メインページ - NEO Digital Platform
+ * メインページ - NEO Portal
  * ホームページ・ダッシュボード
  */
 'use client'
@@ -51,7 +51,7 @@ export default function HomePage() {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <h1 className="text-2xl font-bold text-gray-900">NEO Digital Platform</h1>
+                <h1 className="text-2xl font-bold text-gray-900">NEO Portal</h1>
               </div>
             </div>
             <nav className="hidden md:flex space-x-8">
@@ -98,7 +98,7 @@ export default function HomePage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Hero Section */}
         <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-8 text-white mb-8">
-          <h2 className="text-3xl font-bold mb-4">NEO Digital Platformへようこそ</h2>
+          <h2 className="text-3xl font-bold mb-4">NEO Portalへようこそ</h2>
           <p className="text-xl mb-6">
             デジタル学習管理システムで、効率的な学習体験を提供します
           </p>
@@ -305,7 +305,7 @@ export default function HomePage() {
       <footer className="bg-white border-t mt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center text-gray-600">
-            <p>&copy; 2024 NEO Digital Platform. All rights reserved.</p>
+            <p>&copy; 2024 NEO Portal. All rights reserved.</p>
             <p className="mt-2 text-sm">デジタル学習管理システム - バックエンド API 実装完了</p>
           </div>
         </div>

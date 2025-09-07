@@ -1,4 +1,4 @@
-// NEO Digital Platform - RBAC (Role-Based Access Control) System
+// NEO Portal - RBAC (Role-Based Access Control) System
 // 型安全な権限管理とアクセス制御
 
 import type { UserRole, RegionId, User } from '@/types/database';

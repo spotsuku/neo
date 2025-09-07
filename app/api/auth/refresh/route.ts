@@ -1,4 +1,4 @@
-// NEO Digital Platform - Token Refresh API
+// NEO Portal - Token Refresh API
 // POST /api/auth/refresh
 
 import { NextRequest } from 'next/server';

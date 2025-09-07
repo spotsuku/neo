@@ -1,4 +1,4 @@
-// NEO Digital Platform - 統一認証システム
+// NEO Portal - 統一認証システム
 // Enhanced認証システムへのエイリアス（後方互換性）
 
 // Enhanced認証システムをメイン認証として使用

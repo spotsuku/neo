@@ -13,7 +13,7 @@ process.env.DATABASE_URL = ':memory:';
 process.env.EMAIL_FROM = 'test@neo-digital.jp';
 
 // 2FA設定（テスト用）
-process.env.TOTP_SERVICE_NAME = 'NEO Digital Platform (Test)';
+process.env.TOTP_SERVICE_NAME = 'NEO Portal (Test)';
 process.env.TOTP_ISSUER = 'NEO Digital Test';
 
 // レート制限設定（テスト用：より緩い制限）

@@ -1,4 +1,4 @@
-// NEO Digital Platform - ダッシュボードページ
+// NEO Portal - ダッシュボードページ
 // 認証済みユーザー向けメインダッシュボード
 
 'use client';

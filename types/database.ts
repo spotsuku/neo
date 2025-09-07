@@ -1,4 +1,4 @@
-// NEO Digital Platform Database Types
+// NEO Portal Database Types
 // D1データベーステーブル型定義
 
 export interface User {

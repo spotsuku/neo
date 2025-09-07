@@ -112,7 +112,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
           <div>
             <h1 className="text-lg font-semibold text-gray-900">管理画面</h1>
-            <p className="text-sm text-gray-500">NEO Digital Platform</p>
+            <p className="text-sm text-gray-500">NEO Portal</p>
           </div>
           <Button
             variant="ghost"
@@ -202,7 +202,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         <div className="p-4 border-t border-gray-200">
           <div className="text-xs text-gray-500">
             <div>Version 1.0.0</div>
-            <div>© 2024 NEO Digital Platform</div>
+            <div>© 2024 NEO Portal</div>
           </div>
         </div>
       </div>

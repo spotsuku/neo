@@ -1,6 +1,6 @@
 'use client';
 
-// NEO Digital Platform - Client-side RBAC Components
+// NEO Portal - Client-side RBAC Components
 // フロントエンド権限制御コンポーネント
 
 import React, { createContext, useContext, ReactNode } from 'react';

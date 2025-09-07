@@ -1,5 +1,5 @@
 /**
- * 認証ミドルウェア - NEO Digital Platform
+ * 認証ミドルウェア - NEO Portal
  * API ルート用認証・認可機能
  */
 import { NextRequest } from 'next/server'

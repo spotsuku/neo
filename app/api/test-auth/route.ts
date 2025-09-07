@@ -1,4 +1,4 @@
-// NEO Digital Platform - Authentication Test API
+// NEO Portal - Authentication Test API
 // GET/POST /api/test-auth - 認証・セキュリティテスト用エンドポイント
 
 import { NextRequest } from 'next/server';

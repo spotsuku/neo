@@ -1,5 +1,5 @@
 /**
- * Database Service - NEO Digital Platform
+ * Database Service - NEO Portal
  * D1データベースの共通操作・クエリー実行
  */
 import { D1Database } from '@cloudflare/workers-types'

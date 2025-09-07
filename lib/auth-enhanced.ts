@@ -1,4 +1,4 @@
-// NEO Digital Platform Enhanced Authentication System
+// NEO Portal Enhanced Authentication System
 // JWT + Refresh Token + 2FA + Security
 
 import { SignJWT, jwtVerify, JWTPayload as JoseJWTPayload } from 'jose';

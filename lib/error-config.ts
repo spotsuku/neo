@@ -52,7 +52,7 @@ function createSlackConfig(env: EnvironmentConfig): SlackNotificationConfig | nu
   return {
     webhookUrl: env.SLACK_WEBHOOK_URL,
     channel: env.SLACK_CHANNEL || '#alerts',
-    username: env.SLACK_USERNAME || 'NEO Digital Platform Bot',
+    username: env.SLACK_USERNAME || 'NEO Portal Bot',
     minLevel
   }
 }
@@ -161,7 +161,7 @@ export const productionConfigTemplate: EnvironmentConfig = {
   SENTRY_RELEASE: 'webapp@1.0.0',
   SLACK_WEBHOOK_URL: 'https://hooks.slack.com/services/your/webhook/url',
   SLACK_CHANNEL: '#neo-alerts',
-  SLACK_USERNAME: 'NEO Digital Platform Bot',
+  SLACK_USERNAME: 'NEO Portal Bot',
   SLACK_MIN_ERROR_LEVEL: 'error'
 }
 

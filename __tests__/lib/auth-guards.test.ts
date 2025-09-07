@@ -1,4 +1,4 @@
-// NEO Digital Platform - Auth Guards Unit Tests  
+// NEO Portal - Auth Guards Unit Tests  
 // 認証ガードシステムのユニットテスト
 
 import { NextRequest } from 'next/server';

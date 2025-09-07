@@ -116,7 +116,7 @@ export function AdminDashboardComponent() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">管理者ダッシュボード</h1>
-          <p className="text-gray-600 mt-1">NEO Digital Platform システム管理</p>
+          <p className="text-gray-600 mt-1">NEO Portal システム管理</p>
         </div>
         <div className="flex items-center space-x-2">
           {stats && (

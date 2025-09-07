@@ -1,4 +1,4 @@
-// NEO Digital Platform - RBAC Components Unit Tests
+// NEO Portal - RBAC Components Unit Tests
 // RBACコンポーネントのユニットテスト
 
 import React from 'react';

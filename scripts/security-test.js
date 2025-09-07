@@ -12,7 +12,7 @@ const crypto = require('crypto');
 const SECURITY_CONFIG = {
   baseUrl: 'http://localhost:3000',
   production: {
-    baseUrl: 'https://neo-platform.pages.dev'
+    baseUrl: 'https://neo-portal.pages.dev'
   },
   testCategories: [
     'authentication',

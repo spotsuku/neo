@@ -1,6 +1,6 @@
 /**
  * クラス管理CMS - 学習クラス・講座管理サービス
- * NEO Digital Platform - Step 6 CMS Implementation
+ * NEO Portal - Step 6 CMS Implementation
  */
 import { z } from 'zod'
 import { BaseCMSService, BaseCMSItem, ContentStatus, VisibilityScope, NotificationQueue } from './base-cms'

@@ -1,4 +1,4 @@
-// NEO Digital Platform - 認証・RBAC Middleware
+// NEO Portal - 認証・RBAC Middleware
 // Next.js API Routes用の認証・権限チェックミドルウェア
 
 import { NextRequest, NextResponse } from 'next/server';

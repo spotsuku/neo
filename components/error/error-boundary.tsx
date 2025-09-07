@@ -1,6 +1,6 @@
 'use client';
 
-// NEO Digital Platform - Error Boundary Components
+// NEO Portal - Error Boundary Components
 // エラー境界とエラーハンドリングコンポーネント
 
 import React, { Component, ReactNode, ErrorInfo } from 'react';

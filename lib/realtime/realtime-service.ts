@@ -1,6 +1,6 @@
 /**
  * リアルタイム通知サービス - Step 14 Real-time Notifications
- * NEO Digital Platform
+ * NEO Portal
  */
 export class RealtimeService {
   private clients = new Map<string, WebSocket>()

@@ -1,4 +1,4 @@
-// NEO Digital Platform Database Utilities
+// NEO Portal Database Utilities
 // D1データベースアクセス用ユーティリティ関数
 
 import type { 

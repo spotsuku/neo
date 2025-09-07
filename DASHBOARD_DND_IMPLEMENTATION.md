@@ -97,7 +97,7 @@
 
 ### 1. マイグレーション適用
 ```bash
-npx wrangler d1 migrations apply neo-platform-db --local
+npx wrangler d1 migrations apply neo-portal-db --local
 ```
 
 ### 2. 開発サーバー起動
