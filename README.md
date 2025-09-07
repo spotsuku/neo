@@ -1,8 +1,8 @@
-# NEO Digital Platform
+# NEOポータル (NEO Portal)
 
 ## プロジェクト概要
-- **名前**: NEO Digital Platform
-- **目標**: デジタル時代の教育機関向け総合プラットフォーム
+- **名前**: NEOポータル (NEO Portal)
+- **目標**: デジタル時代の教育機関向け統合Webポータル
 - **メインフィーチャー**: 
   - 🎓 学習管理システム (LMS)
   - 🏆 ヒーローステップ成長管理システム (**NEW!**)
@@ -16,9 +16,9 @@
   - 📊 リアルタイム進捗追跡とレポート
 
 ## URL
-- **開発環境**: https://3000-i76ahk7safxyzeqgo88vc-6532622b.e2b.dev
-- **本番環境**: (Cloudflare Pages デプロイ待ち)
-- **GitHub**: https://github.com/username/webapp
+- **本番環境**: https://app.neo-portal.jp
+- **API環境**: https://api.neo-portal.jp
+- **GitHub**: https://github.com/username/neo-portal
 - **管理ダッシュボード**: /admin/learning-content.html
 
 ### ヒーローステップ管理システム (**NEW!**)

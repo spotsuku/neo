@@ -1,15 +1,15 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "neo-platform",
+  "name": "neo-portal",
   "compatibility_date": "2024-01-01",
   "compatibility_flags": ["nodejs_compat"],
-  "pages_build_output_dir": "./dist",
+  "pages_build_output_dir": "./out",
   
   // D1 Database Configuration
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "webapp-production",
+      "database_name": "neo-portal-production",
       "database_id": "local-development-db"
     }
   ],
@@ -18,8 +18,8 @@
   "kv_namespaces": [
     {
       "binding": "KV",
-      "id": "neo-platform-cache",
-      "preview_id": "neo-platform-cache-dev"
+      "id": "neo-portal-cache",
+      "preview_id": "neo-portal-cache-dev"
     }
   ],
 
@@ -27,8 +27,8 @@
   "r2_buckets": [
     {
       "binding": "R2",
-      "bucket_name": "neo-platform-files",
-      "preview_bucket_name": "neo-platform-files-dev"
+      "bucket_name": "neo-portal-files",
+      "preview_bucket_name": "neo-portal-files-dev"
     }
   ]
 }

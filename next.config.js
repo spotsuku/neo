@@ -1,5 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // ドメイン設定（別オリジンCORS対応）
+  env: {
+    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || 'https://app.neo-portal.jp',
+    NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.neo-portal.jp',
+  },
   // セキュリティ設定
   poweredByHeader: false,
   
@@ -30,7 +35,7 @@ const nextConfig = {
     } : false,
   },
   
-  // 旧静的URL → Next.jsルートへのリダイレクト（Phase 0: 後方互換性確保）
+  // 旧静的URL → Next.jsルートへのリダイレクト（後方互換性確保）
   async redirects() {
     return [
       // 静的HTMLファイル → Nextルート（後方互換）
@@ -68,6 +73,15 @@ const nextConfig = {
           {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=()',
+          },
+          // CORSヘッダー（APIサーバーが別オリジンの場合）
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: 'https://api.neo-portal.jp',
+          },
+          {
+            key: 'Access-Control-Allow-Credentials',
+            value: 'true',
           },
         ],
       },
