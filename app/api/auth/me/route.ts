@@ -2,12 +2,15 @@
 // GET /api/auth/me
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth';
+import { AuthService } from '@/lib/auth-enhanced';
 
 export async function GET(request: NextRequest) {
   try {
-    // 認証ユーザー取得
-    const user = await getCurrentUser(request);
+    // Enhanced認証システムを使用 (Cookie + Header対応)
+    // TODO: Cloudflare Workers環境では env.DB を使用
+    // 開発環境では一時的に null DB で動作確認
+    const authService = new AuthService(null as any);
+    const user = await authService.getAuthUser(request);
 
     if (!user) {
       return NextResponse.json(
