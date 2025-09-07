@@ -16,16 +16,22 @@
   - 📊 リアルタイム進捗追跡とレポート
 
 ## URL
-- **本番環境**: https://app.neo-portal.jp
-- **API環境**: https://api.neo-portal.jp
-- **GitHub**: https://github.com/username/neo-portal
-- **管理ダッシュボード**: /admin/learning-content.html
+- **本番環境**: https://neo.pages.dev (main ブランチ)
+- **ステージング環境**: https://staging.neo.pages.dev (staging ブランチ)
+- **GitHub**: https://github.com/spotsuku/neo
+- **統合ダッシュボード**: /dashboard (権限ベース表示)
 
-### ヒーローステップ管理システム (**NEW!**)
-- **学生進捗画面**: `/student/hero-progress.html`
-- **管理者KPIダッシュボード**: `/admin/hero-kpi-dashboard.html`
-- **企業人材分布画面**: `/company/hero-distribution.html`
-- **API エンドポイント**: `/api/heroes-steps/*`
+### 統合システム機能 (**NEW!**)
+- **統合ダッシュボード**: `/dashboard` (役職別タブ表示)
+- **ユーザー管理**: `/admin/users` (11役職・24権限対応)
+- **学生管理**: `/students` (学籍・成績管理)
+- **API エンドポイント**: `/api/*` (統合API)
+
+### バージョン管理・デプロイ
+- **本番ブランチ**: `main` → 本番環境デプロイ
+- **ステージングブランチ**: `staging` → テスト環境デプロイ
+- **開発ブランチ**: `feature/*` → 機能開発用
+- **ワークフローガイド**: [GIT_WORKFLOW_GUIDE.md](./GIT_WORKFLOW_GUIDE.md)
 
 ## データアーキテクチャ
 - **データモデル**: 
@@ -364,51 +370,58 @@ node scripts/load-test.js
 
 ## デプロイメント
 
-### Task 10 進捗状況 (2024-08-31)
-- **✅ ビルド最適化完了**: 本番ビルド72秒で成功
-- **✅ デプロイメント準備完了**: dist/ディレクトリ作成、_worker.js設定
-- **⚠️ Cloudflare API認証待ち**: Deploy タブでAPI key設定必要
-- **⚠️ GitHub統合**: 権限問題により後回し
-- **📋 デプロイメントガイド作成**: deployment-guide.md (8.5KB)
+### 最新デプロイメント状況 (2024-09-07)
+- **✅ NEO Portal統合完了**: 55+ HTMLファイル → 統合Next.jsシステム
+- **✅ ブランチ戦略実装**: main (本番) / staging (ステージング) 環境分離
+- **✅ GitHub統合完了**: https://github.com/spotsuku/neo リポジトリ
+- **✅ RBAC権限システム**: 11役職・24権限の完全実装
+- **📋 ワークフローガイド**: [GIT_WORKFLOW_GUIDE.md](./GIT_WORKFLOW_GUIDE.md)
 
-### 本番環境
-- **プラットフォーム**: Cloudflare Pages (準備完了)
-- **ステータス**: 🚧 デプロイメント待機中 (API認証必要)
-- **プロジェクト名**: neo-portal
-- **予定URL**: https://neo-portal.pages.dev
-- **最終更新**: 2024-08-31
+### 環境構成
+| 環境 | ブランチ | URL | ステータス |
+|------|---------|-----|------------|
+| **本番環境** | `main` | https://neo.pages.dev | ✅ 準備完了 |
+| **ステージング環境** | `staging` | https://staging.neo.pages.dev | ✅ 準備完了 |
+| **開発環境** | `feature/*` | ローカル開発 | 🔧 開発用 |
 
-### デプロイメントコマンド (API認証後)
+### デプロイメントワークフロー
 ```bash
-# Cloudflare API認証後に実行
-npx wrangler pages project create neo-portal --production-branch main
-npx wrangler pages deploy dist --project-name neo-portal
+# 新機能開発
+git checkout -b feature/新機能名
+# 開発 → staging にマージ → テスト → main にマージ → 本番デプロイ
+
+# 詳細は GIT_WORKFLOW_GUIDE.md を参照
 ```
 
-### CI/CD
-- **GitHub Actions**: ワークフロー一時削除（権限問題回避）
-- **ブランチ戦略**: main ブランチから本番デプロイ
-- **手動デプロイ**: wrangler CLI使用
+### CI/CD パイプライン
+- **ブランチ戦略**: GitFlow ベース (main/staging/feature/*)
+- **自動デプロイ**: Push トリガーでの自動デプロイ
+- **GitHub Actions**: CI/CD パイプライン（設定準備完了）
 
 ## 推奨される次のステップ
 
-### 短期改善項目 (1-2週間)
-1. **ヒーローステップシステムの本格運用開始** - KPI目標の実運用とモニタリング (**NEW!**)
-2. **Next.jsアプリケーションの完全起動** - 開発環境での本格稼働
-3. **未使用依存関係の削除** - 21パッケージ (1.03MB) の最適化
-4. **Web Vitalsの改善** - FCP, LCP の最適化
+### 即座に実行可能 (今すぐ)
+1. **Cloudflare Pages本番デプロイ** - `setup_cloudflare_api_key` 実行後のデプロイ
+2. **ステージング環境での機能テスト** - 統合システムの総合テスト
+3. **ブランチ戦略の運用開始** - feature/* ブランチでの新機能開発
+
+### 短期改善項目 (1-2週間)  
+1. **権限システムの詳細テスト** - 11役職×24権限の全組み合わせ検証
+2. **統合ダッシュボードの UI/UX 改善** - レスポンシブ対応強化
+3. **CI/CD パイプライン設定** - GitHub Actions ワークフロー実装
+4. **データマイグレーション戦略** - 旧システムからの完全移行
 
 ### 中期改善項目 (1-3ヶ月)
-1. **ヒーローステップシステムの高度化** - AI予測機能、自動推奨システム (**NEW!**)
-2. **PWA対応** - Service Worker, オフライン機能
-3. **国際化 (i18n)** - 多言語サポート
-4. **高度な分析機能** - カスタムダッシュボード
+1. **高度な検索・フィルタリング機能** - 全データ統合検索
+2. **リアルタイム通知システム** - WebSocket ベースの即時通知
+3. **PWA対応** - オフライン機能、プッシュ通知
+4. **分析・レポート機能** - カスタムダッシュボード構築
 
-### 長期改善項目 (3-6ヶ月)
-1. **AI駆動成長支援** - 個人最適化された学習パス推奨 (**NEW!**)
-2. **企業連携の深化** - ヒーローステップデータを活用した人材マッチング (**NEW!**)
+### 長期改善項目 (3-6ヶ月)  
+1. **AI駆動のインサイト機能** - 予測分析、推奨システム
+2. **マルチテナント対応** - 複数組織対応
 3. **モバイルアプリ** - React Native連携
-4. **エンタープライズ機能** - SSO、高度な権限管理
+4. **エンタープライズ機能** - SSO、監査ログ、コンプライアンス
 
 ## サポート・問い合わせ
 
