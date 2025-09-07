@@ -1198,17 +1198,30 @@
                 window.authManager = new AuthManager();
             }
             
-            const session = window.authManager.getCurrentSession();
-            console.log('👤 Current session:', session);
+            // デバッグ: ローカルストレージ確認
+            console.log('🔍 localStorage neo_token:', localStorage.getItem('neo_token') ? 'あり' : 'なし');
+            console.log('🔍 localStorage neo_user:', localStorage.getItem('neo_user') ? 'あり' : 'なし');
+            console.log('🔍 authManager.isLoggedIn():', window.authManager.isLoggedIn());
             
-            if (!session || !session.user) {
+            // 認証状態確認
+            if (!window.authManager.isLoggedIn()) {
                 console.log('❌ 未認証 - ログインページにリダイレクト');
                 window.location.href = '/login.html';
                 return;
             }
             
-            if (session.user.role !== 'admin') {
+            const user = window.authManager.getCurrentUser();
+            console.log('👤 Current user:', user);
+            
+            if (!user) {
+                console.log('❌ ユーザー情報取得失敗 - ログインページにリダイレクト');
+                window.location.href = '/login.html';
+                return;
+            }
+            
+            if (user.role !== 'admin') {
                 console.log('❌ 管理者権限なし - ダッシュボードにリダイレクト');
+                console.log('👤 ユーザーロール:', user.role);
                 window.location.href = '/dashboard.html';
                 return;
             }
@@ -1217,8 +1230,8 @@
             
             // 管理者名を表示
             const adminName = document.getElementById('admin-name');
-            if (adminName && session.user.name) {
-                adminName.textContent = session.user.name;
+            if (adminName && user.name) {
+                adminName.textContent = user.name;
             }
             
             // ダッシュボードの初期化

@@ -30,6 +30,23 @@ const nextConfig = {
     } : false,
   },
   
+  // 旧静的URL → Next.jsルートへのリダイレクト（Phase 0: 後方互換性確保）
+  async redirects() {
+    return [
+      // 静的HTMLファイル → Nextルート（後方互換）
+      { source: '/index.html', destination: '/', permanent: true },
+      { source: '/login.html', destination: '/login', permanent: false },
+      { source: '/dashboard.html', destination: '/dashboard', permanent: false },
+      { source: '/admin-dashboard.html', destination: '/admin', permanent: false },
+      { source: '/company-dashboard.html', destination: '/company', permanent: false },
+      
+      // 会員管理関連のリダイレクト
+      { source: '/admin/users.html', destination: '/admin/users', permanent: false },
+      { source: '/members.html', destination: '/admin/users', permanent: false },
+      { source: '/admin-users.html', destination: '/admin/users', permanent: false },
+    ];
+  },
+
   // セキュリティヘッダー
   async headers() {
     return [

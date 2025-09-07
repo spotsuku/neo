@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEO Digital Platform - ホーム</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'neo-blue': '#2563eb',
+                        'neo-purple': '#7c3aed'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <h1 class="text-2xl font-bold text-gray-900">
+                            <i class="fas fa-rocket text-neo-blue mr-2"></i>
+                            NEO Digital Platform
+                        </h1>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="/login" 
+                       class="bg-neo-blue text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-sign-in-alt mr-2"></i>
+                        ログイン
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Hero Section -->
+        <div class="bg-gradient-to-r from-neo-blue to-neo-purple rounded-lg p-8 text-white mb-8">
+            <h2 class="text-3xl font-bold mb-4">NEO Digital Platformへようこそ</h2>
+            <p class="text-xl mb-6">
+                デジタル学習管理システムで、効率的な学習体験を提供します
+            </p>
+            <div class="flex space-x-4">
+                <a href="/login" 
+                   class="bg-white text-neo-blue px-6 py-3 rounded-md font-medium hover:bg-gray-100 transition-colors">
+                    <i class="fas fa-rocket mr-2"></i>
+                    今すぐ開始
+                </a>
+                <button onclick="scrollToFeatures()" 
+                        class="border border-white text-white px-6 py-3 rounded-md font-medium hover:bg-white hover:text-neo-blue transition-colors">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    詳細を見る
+                </button>
+            </div>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-lg shadow">
+                <div class="flex items-center">
+                    <div class="p-2 bg-blue-100 rounded-lg">
+                        <i class="fas fa-users text-2xl text-blue-600"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">総ユーザー数</p>
+                        <p class="text-2xl font-semibold text-gray-900">1,250</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-lg shadow">
+                <div class="flex items-center">
+                    <div class="p-2 bg-green-100 rounded-lg">
+                        <i class="fas fa-check-circle text-2xl text-green-600"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">アクティブユーザー</p>
+                        <p class="text-2xl font-semibold text-gray-900">875</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-lg shadow">
+                <div class="flex items-center">
+                    <div class="p-2 bg-purple-100 rounded-lg">
+                        <i class="fas fa-graduation-cap text-2xl text-purple-600"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">公開クラス数</p>
+                        <p class="text-2xl font-semibold text-gray-900">28</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Features Section -->
+        <div id="features" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow">
+                <div class="text-center">
+                    <div class="mx-auto w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
+                        <i class="fas fa-bullhorn text-blue-600"></i>
+                    </div>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">お知らせ管理</h3>
+                    <p class="text-sm text-gray-600">重要な情報を効率的に配信・管理</p>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow">
+                <div class="text-center">
+                    <div class="mx-auto w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
+                        <i class="fas fa-book text-green-600"></i>
+                    </div>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">クラス管理</h3>
+                    <p class="text-sm text-gray-600">学習クラス・講座の運営管理</p>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow">
+                <div class="text-center">
+                    <div class="mx-auto w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
+                        <i class="fas fa-project-diagram text-purple-600"></i>
+                    </div>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">プロジェクト管理</h3>
+                    <p class="text-sm text-gray-600">チームプロジェクトの進捗管理</p>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow">
+                <div class="text-center">
+                    <div class="mx-auto w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center mb-4">
+                        <i class="fas fa-user-friends text-yellow-600"></i>
+                    </div>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">委員会管理</h3>
+                    <p class="text-sm text-gray-600">委員会・部会の運営管理</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Call to Action -->
+        <div class="bg-white p-8 rounded-lg shadow text-center">
+            <h3 class="text-2xl font-bold text-gray-900 mb-4">今すぐ始めませんか？</h3>
+            <p class="text-gray-600 mb-6">NEO Digital Platformで効率的な学習管理を体験してください</p>
+            <a href="/login" 
+               class="bg-neo-blue text-white px-8 py-3 rounded-md text-lg font-medium hover:bg-blue-700 transition-colors">
+                <i class="fas fa-arrow-right mr-2"></i>
+                ログインして開始
+            </a>
+        </div>
+
+        <!-- API Status -->
+        <div class="bg-white p-6 rounded-lg shadow mt-8">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">
+                <i class="fas fa-server mr-2"></i>
+                システムステータス
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="flex items-center">
+                    <div class="w-3 h-3 bg-green-400 rounded-full mr-3"></div>
+                    <span class="text-sm text-gray-600">CMS API</span>
+                </div>
+                <div class="flex items-center">
+                    <div class="w-3 h-3 bg-green-400 rounded-full mr-3"></div>
+                    <span class="text-sm text-gray-600">ファイルストレージ</span>
+                </div>
+                <div class="flex items-center">
+                    <div class="w-3 h-3 bg-green-400 rounded-full mr-3"></div>
+                    <span class="text-sm text-gray-600">メール配信</span>
+                </div>
+                <div class="flex items-center">
+                    <div class="w-3 h-3 bg-green-400 rounded-full mr-3"></div>
+                    <span class="text-sm text-gray-600">データベース</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="text-center text-gray-600">
+                <p>&copy; 2024 NEO Digital Platform. All rights reserved.</p>
+                <p class="mt-2 text-sm">
+                    <i class="fas fa-code mr-1"></i>
+                    デジタル学習管理システム - 統合プラットフォーム
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Smooth scroll to features section
+        function scrollToFeatures() {
+            document.getElementById('features').scrollIntoView({
+                behavior: 'smooth'
+            });
+        }
+
+        // Console log for debugging
+        console.log('🏠 NEO Digital Platform - Home Page');
+        console.log('📅 Loaded at:', new Date().toLocaleString('ja-JP'));
+        
+        // Simple API health check display
+        fetch('/api/health')
+            .then(response => response.json())
+            .then(data => {
+                console.log('✅ API Health:', data);
+            })
+            .catch(error => {
+                console.log('❌ API Error:', error);
+            });
+    </script>
+</body>
+</html>

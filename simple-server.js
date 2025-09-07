@@ -3,13 +3,25 @@ const fs = require('fs');
 const path = require('path');
 const { ItemsAPI } = require('./api/items.js');
 
+// 環境変数で静的ファイル提供を制御（開発環境でのみUI表示）
+const SERVE_STATIC = process.env.SERVE_STATIC === 'true' || process.env.NODE_ENV !== 'production';
+const DEVELOPMENT_MODE = process.env.NODE_ENV !== 'production';
+
+console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+console.log(`📁 Static file serving: ${SERVE_STATIC ? 'enabled' : 'disabled'}`);
+
 const server = http.createServer((req, res) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
   
-  // CORS headers for GenSpark compatibility
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // CORS headers - 開発環境では緩和、本番環境では厳格
+  if (DEVELOPMENT_MODE) {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', 'https://app.neo-portal.jp');
+  }
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
   
   // Handle OPTIONS preflight requests
   if (req.method === 'OPTIONS') {
@@ -48,96 +60,122 @@ const server = http.createServer((req, res) => {
     res.end(JSON.stringify({ status: 'OK', timestamp: new Date().toISOString(), service: 'NEO Platform' }));
     return;
   }
-  
-  let filePath = req.url === '/' ? '/index.html' : req.url;
-  
-  // Route mappings for authentication pages
-  if (filePath === '/auth') {
-    filePath = '/auth.html';
-  } else if (filePath === '/auth/login') {
-    filePath = '/login.html';
-  } else if (filePath === '/auth/signup') {
-    filePath = '/signup.html';
-  } else if (filePath === '/auth/password-reset') {
-    filePath = '/password-reset.html';
-  } else if (filePath === '/auth/password-reset/confirm') {
-    filePath = '/password-reset-confirm.html';
-  } else if (filePath === '/dashboard') {
-    filePath = '/dashboard.html';
-  } else if (filePath === '/company-dashboard') {
-    filePath = '/company-dashboard.html';
-  } else if (filePath === '/admin-dashboard') {
-    filePath = '/admin-dashboard.html';
-  } else if (filePath === '/admin/dashboard') {
-    filePath = '/admin-dashboard.html';
-  } else if (filePath === '/student/hero-progress' || filePath === '/student/hero-progress.html') {
-    filePath = '/student/hero-progress.html';
-  } else if (filePath === '/profile') {
-    filePath = '/profile.html';
-  } else if (filePath === '/announcements') {
-    filePath = '/announcements.html';
-  } else if (filePath.startsWith('/announcements/')) {
-    filePath = '/announcement-detail.html';
-  } else if (filePath === '/notices') {
-    filePath = '/notices.html';
-  } else if (filePath === '/notices/new') {
-    filePath = '/notices-new.html';
-  } else if (filePath.startsWith('/notices/') && !filePath.includes('/new')) {
-    filePath = '/notice-detail.html';
-  } else if (filePath === '/admin') {
-    filePath = '/admin.html';
-  } else if (filePath === '/admin/users') {
-    filePath = '/admin/users.html';
-  } else if (filePath === '/admin/settings') {
-    filePath = '/admin/settings.html';
-  } else if (filePath === '/admin/audit') {
-    filePath = '/admin/audit.html';
-  } else if (filePath === '/admin/monitoring') {
-    filePath = '/admin/monitoring.html';
-  } else if (filePath === '/admin/performance') {
-    filePath = '/admin/performance.html';
-  } else if (filePath === '/security-dashboard') {
-    filePath = '/security-dashboard.html';
-  } else if (filePath === '/error-test') {
-    filePath = '/error-test.html';
-  } else if (filePath === '/classes') {
-    filePath = '/classes.html';
-  } else if (filePath.startsWith('/classes/') && filePath.includes('/report')) {
-    filePath = '/classes/report.html';
-  } else if (filePath.startsWith('/classes/') && !filePath.includes('.html')) {
-    filePath = '/classes/detail.html';
-  } else if (filePath === '/projects') {
-    filePath = '/projects.html';
-  } else if (filePath === '/projects/new') {
-    filePath = '/projects/new.html';
-  } else if (filePath.startsWith('/projects/') && !filePath.includes('.html') && !filePath.includes('/new')) {
-    filePath = '/projects/detail.html';
-  } else if (filePath === '/committees') {
-    filePath = '/committees.html';
-  } else if (filePath.startsWith('/committees/') && !filePath.includes('.html')) {
-    filePath = '/committees/detail.html';
-  } else if (filePath === '/files') {
-    filePath = '/files.html';
-  } else if (filePath === '/files/upload') {
-    filePath = '/files/upload.html';
-  } else if (filePath.startsWith('/files/') && !filePath.includes('.html') && !filePath.includes('/upload')) {
-    filePath = '/files/detail.html';
-  } else if (filePath === '/events') {
-    filePath = '/events.html';
-  } else if (filePath.startsWith('/events/') && filePath.includes('/attendance')) {
-    filePath = '/events/attendance.html';
-  } else if (filePath.startsWith('/events/') && !filePath.includes('.html') && !filePath.includes('/attendance')) {
-    filePath = '/events/detail.html';
-  } else if (filePath === '/install') {
-    filePath = '/install.html';
-  } else if (filePath === '/offline') {
-    filePath = '/offline.html';
-  } else if (filePath === '/push-test') {
-    filePath = '/push-test.html';
+
+  // Handle Status Page (moved from /)
+  if (req.url === '/status') {
+    res.writeHead(200, { 'Content-Type': 'text/html' });
+    res.end(`
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEO API Server - Status</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-blue-50 min-h-screen flex items-center justify-center">
+    <div class="bg-white p-8 rounded-lg shadow-xl max-w-md w-full text-center">
+        <h1 class="text-3xl font-bold text-gray-800 mb-4">🚀</h1>
+        <h2 class="text-xl font-semibold text-gray-700 mb-4">NEO API Server</h2>
+        <p class="text-gray-600 mb-6">Backend Service Running</p>
+        <div class="bg-green-100 text-green-800 p-3 rounded-lg">
+            ✅ Server Active<br>
+            <small>Port 3000 - API Only</small>
+        </div>
+        <div class="mt-4 space-y-2">
+            <a href="/api/health" class="block bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                API Health Check
+            </a>
+            <a href="/api/heroes-steps" class="block bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600">
+                🏆 Heroes Steps API
+            </a>
+            <a href="/api/heroes-steps/analytics" class="block bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                📊 Heroes KPI Analytics
+            </a>
+        </div>
+        <div class="mt-4 text-xs text-gray-500">
+            UI: <a href="https://app.neo-portal.jp" class="text-blue-600">app.neo-portal.jp</a>
+        </div>
+    </div>
+    <script>
+        console.log('🚀 NEO API Server - Status Page');
+        console.log('📅 Loaded at:', new Date().toLocaleString('ja-JP'));
+    </script>
+</body>
+</html>
+    `);
+    return;
+  }
+
+  // 開発環境での静的ファイル提供
+  if (SERVE_STATIC) {
+    // Route mappings for HTML pages
+    let filePath = req.url;
+    
+    if (filePath === '/') {
+      filePath = '/index.html'; // ホームページ（ランディングページ）
+    } else if (filePath === '/auth' || filePath === '/login') {
+      filePath = '/login.html'; // 現在は login-test.html から改名された正常動作版
+    } else if (filePath === '/dashboard') {
+      filePath = '/dashboard.html'; // 学生ダッシュボード
+    } else if (filePath === '/admin') {
+      filePath = '/admin-dashboard.html';
+    } else if (filePath === '/company') {
+      filePath = '/company-dashboard.html';
+    }
+    
+    // 静的ファイルの提供を試行
+    if (!req.url.startsWith('/api/') && req.url !== '/health' && req.url !== '/status') {
+      const staticFilePath = path.join(__dirname, 'out', filePath);
+      
+      try {
+        if (fs.existsSync(staticFilePath)) {
+          const content = fs.readFileSync(staticFilePath);
+          const ext = path.extname(staticFilePath);
+          let contentType = 'text/html';
+          
+          if (ext === '.css') contentType = 'text/css';
+          else if (ext === '.js') contentType = 'application/javascript';
+          else if (ext === '.json') contentType = 'application/json';
+          else if (ext === '.ico') contentType = 'image/x-icon';
+          
+          res.writeHead(200, { 'Content-Type': contentType });
+          res.end(content);
+          return;
+        }
+      } catch (error) {
+        console.error('Static file error:', error);
+      }
+    }
+  } else {
+    // 本番環境では静的ファイル提供を無効化
+    if (req.url === '/') {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ 
+        error: 'Not Found', 
+        message: 'UI is served from app.neo-portal.jp',
+        status_page: '/status',
+        api_docs: '/api/health' 
+      }));
+      return;
+    }
+
+    // API paths以外を制限
+    if (!req.url.startsWith('/api/') && req.url !== '/health' && req.url !== '/status') {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ 
+        error: 'Not Found',
+        message: 'Only /api/*, /health, and /status are available',
+        ui_location: 'https://app.neo-portal.jp'
+      }));
+      return;
+    }
   }
   
+
+  
   // Simple API endpoints for testing
-  if (filePath === '/api/health') {
+  if (req.url === '/api/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
       message: 'NEO Digital Platform API',
@@ -149,7 +187,7 @@ const server = http.createServer((req, res) => {
     return;
   }
   
-  if (filePath === '/api/test') {
+  if (req.url === '/api/test') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
       success: true,
@@ -160,7 +198,7 @@ const server = http.createServer((req, res) => {
   }
 
   // Monitoring API endpoints
-  if (filePath === '/api/monitoring/system') {
+  if (req.url === '/api/monitoring/system') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
       uptime: process.uptime(),
@@ -172,7 +210,7 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  if (filePath === '/api/monitoring/performance') {
+  if (req.url === '/api/monitoring/performance') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
       responseTime: Math.floor(Math.random() * 200) + 50,
@@ -184,7 +222,7 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  if (filePath === '/api/security/status') {
+  if (req.url === '/api/security/status') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
       threatLevel: 'low',
@@ -198,7 +236,7 @@ const server = http.createServer((req, res) => {
   }
 
   // Error test endpoints
-  if (filePath === '/api/timeout-test') {
+  if (req.url === '/api/timeout-test') {
     // Simulate a slow endpoint that might timeout
     setTimeout(() => {
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -207,7 +245,7 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  if (filePath === '/api/cause-server-error') {
+  if (req.url === '/api/cause-server-error') {
     res.writeHead(500, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
       error: 'Internal Server Error',
@@ -216,84 +254,14 @@ const server = http.createServer((req, res) => {
     }));
     return;
   }
-  
-  // Serve static files
-  const publicPath = path.join(__dirname, 'out', filePath);
-  
-  fs.readFile(publicPath, (err, data) => {
-    if (err) {
-      // If file not found, serve a basic HTML response
-      if (err.code === 'ENOENT') {
-        res.writeHead(200, { 'Content-Type': 'text/html' });
-        res.end(`
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NEO Digital Platform - Simple Server</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-blue-50 min-h-screen flex items-center justify-center">
-    <div class="bg-white p-8 rounded-lg shadow-xl max-w-md w-full text-center">
-        <h1 class="text-3xl font-bold text-gray-800 mb-4">🚀</h1>
-        <h2 class="text-xl font-semibold text-gray-700 mb-4">NEO Digital Platform</h2>
-        <p class="text-gray-600 mb-6">Simple HTTP Server Running</p>
-        <div class="bg-green-100 text-green-800 p-3 rounded-lg">
-            ✅ Server Active<br>
-            <small>Port 3000</small>
-        </div>
-        <div class="mt-4 space-y-2">
-            <a href="/api/health" class="block bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-                API Health Check
-            </a>
-            <a href="/api/heroes-steps" class="block bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600">
-                🏆 Heroes Steps API
-            </a>
-            <a href="/api/heroes-steps/analytics" class="block bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
-                📊 Heroes KPI Analytics
-            </a>
-            <a href="/test.html" class="block bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">
-                Test Page
-            </a>
-        </div>
-    </div>
-    <script>
-        console.log('🚀 NEO Digital Platform - Simple Server Active');
-        console.log('📅 Loaded at:', new Date().toLocaleString('ja-JP'));
-    </script>
-</body>
-</html>
-        `);
-      } else {
-        res.writeHead(500, { 'Content-Type': 'text/plain' });
-        res.end('Internal Server Error');
-      }
-      return;
-    }
-    
-    // Determine content type
-    const ext = path.extname(filePath);
-    let contentType = 'text/plain';
-    
-    switch (ext) {
-      case '.html':
-        contentType = 'text/html';
-        break;
-      case '.css':
-        contentType = 'text/css';
-        break;
-      case '.js':
-        contentType = 'application/javascript';
-        break;
-      case '.json':
-        contentType = 'application/json';
-        break;
-    }
-    
-    res.writeHead(200, { 'Content-Type': contentType });
-    res.end(data);
-  });
+
+  // If we reach here, it's an unhandled API path
+  res.writeHead(404, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({
+    error: 'API endpoint not found',
+    path: req.url,
+    message: 'Check /api/health for available endpoints'
+  }));
 });
 
 // API Handlers

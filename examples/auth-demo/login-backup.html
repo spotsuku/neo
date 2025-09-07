@@ -363,16 +363,13 @@
                 });
             } else {
                 console.log('❌ ユーザーが見つかりません');
-                console.log('📝 登録済みメールアドレス一覧:');
-                const users = window.authManager.getUsers();
-                users.forEach(u => console.log(`  - ${u.email}`));
             }
             
             // UI遅延（UX向上）
             await new Promise(resolve => setTimeout(resolve, 800));
             
             // 統合認証システムでログイン
-            const result = window.authManager.login(email, password, totpCode);
+            const result = await window.authManager.login(email, password, totpCode);
             console.log('🔐 ログイン結果:', result);
             return result;
         }
@@ -443,15 +440,7 @@
             console.log('authManager:', window.authManager);
             
             if (window.authManager) {
-                console.log('🔍 登録済みユーザー一覧:');
-                const users = window.authManager.getUsers();
-                users.forEach(user => {
-                    console.log(`- ${user.name} (${user.email}) [${user.role}]`);
-                });
-                
-                // 学生アカウントが正しく登録されているかチェック
-                const studentUser = window.authManager.findUserByEmail('student@neo-academy.jp');
-                console.log('🎓 学生アカウント詳細:', studentUser);
+                console.log('✅ authManager 正常初期化完了');
             } else {
                 console.error('❌ authManager が初期化されていません');
             }

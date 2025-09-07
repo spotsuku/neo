@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ログインフローテスト</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-2xl mx-auto">
+        <h1 class="text-2xl font-bold mb-6">🔐 ログインフローテスト</h1>
+        
+        <div class="bg-white p-6 rounded-lg shadow mb-6">
+            <h2 class="text-lg font-semibold mb-4">現在のlocalStorage状態</h2>
+            <div id="storage-status" class="space-y-2 text-sm font-mono"></div>
+            <button onclick="clearStorage()" class="mt-4 bg-red-500 text-white px-4 py-2 rounded">
+                localStorage クリア
+            </button>
+        </div>
+
+        <div class="bg-white p-6 rounded-lg shadow mb-6">
+            <h2 class="text-lg font-semibold mb-4">管理者ログインシミュレーション</h2>
+            <button onclick="simulateAdminLogin()" class="bg-blue-500 text-white px-4 py-2 rounded mr-2">
+                管理者ログイン実行
+            </button>
+            <button onclick="testAdminAccess()" class="bg-green-500 text-white px-4 py-2 rounded">
+                管理者ページアクセステスト
+            </button>
+        </div>
+
+        <div class="bg-white p-6 rounded-lg shadow">
+            <h2 class="text-lg font-semibold mb-4">テストログ</h2>
+            <div id="test-log" class="bg-gray-100 p-4 rounded text-sm font-mono h-64 overflow-y-auto"></div>
+        </div>
+    </div>
+
+    <script>
+        function log(message) {
+            const logElement = document.getElementById('test-log');
+            logElement.innerHTML += new Date().toLocaleTimeString() + ': ' + message + '\n';
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(message);
+        }
+
+        function updateStorageStatus() {
+            const statusDiv = document.getElementById('storage-status');
+            const neoToken = localStorage.getItem('neo_token');
+            const neoUser = localStorage.getItem('neo_user');
+            
+            statusDiv.innerHTML = `
+                <div>neo_token: ${neoToken ? '✅ 存在' : '❌ なし'}</div>
+                <div>neo_user: ${neoUser ? '✅ 存在' : '❌ なし'}</div>
+                ${neoUser ? `<div>ユーザー情報: ${neoUser}</div>` : ''}
+            `;
+        }
+
+        function clearStorage() {
+            localStorage.removeItem('neo_token');
+            localStorage.removeItem('neo_user');
+            log('🧹 localStorage クリア完了');
+            updateStorageStatus();
+        }
+
+        function simulateAdminLogin() {
+            log('🔐 管理者ログインシミュレーション開始');
+            
+            // login.htmlと同じ処理をシミュレート
+            const user = {
+                email: 'admin@neo.jp',
+                password: 'password123',
+                role: 'admin',
+                name: '管理者'
+            };
+
+            // トークン生成（login.htmlと同じロジック）
+            const token = btoa(JSON.stringify({
+                userId: user.email,
+                email: user.email,
+                role: user.role,
+                exp: Date.now() + (24 * 60 * 60 * 1000)
+            }));
+
+            // セッション保存
+            localStorage.setItem('neo_token', token);
+            localStorage.setItem('neo_user', JSON.stringify({
+                email: user.email,
+                name: user.name,
+                role: user.role,
+                loginTime: new Date().toISOString()
+            }));
+
+            log('✅ 管理者ログイン完了');
+            log(`📝 トークン: ${token.substring(0, 50)}...`);
+            updateStorageStatus();
+        }
+
+        function testAdminAccess() {
+            log('🚀 管理者ページアクセステスト開始');
+            
+            const neoToken = localStorage.getItem('neo_token');
+            const neoUser = localStorage.getItem('neo_user');
+            
+            log(`🔍 neo_token: ${neoToken ? 'あり' : 'なし'}`);
+            log(`🔍 neo_user: ${neoUser ? 'あり' : 'なし'}`);
+            
+            if (neoToken && neoUser) {
+                const userData = JSON.parse(neoUser);
+                log(`👤 ユーザー情報: ${userData.name} (${userData.role})`);
+                
+                if (userData.role === 'admin') {
+                    log('✅ 管理者権限確認');
+                    log('🎯 /admin-dashboard.html にリダイレクトされるべき');
+                    
+                    // 実際にリダイレクト
+                    setTimeout(() => {
+                        window.location.href = '/admin-dashboard.html';
+                    }, 2000);
+                } else {
+                    log('❌ 管理者権限なし');
+                }
+            } else {
+                log('❌ 認証情報不足 - ログインページにリダイレクト');
+            }
+        }
+
+        // 初期化
+        updateStorageStatus();
+        log('🚀 ログインフローテストページ初期化完了');
+    </script>
+</body>
+</html>
