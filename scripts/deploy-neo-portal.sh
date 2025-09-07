@@ -30,11 +30,8 @@ fi
 echo -e "${YELLOW}📦 依存関係インストール...${NC}"
 npm ci
 
-echo -e "${YELLOW}🔨 Next.js ビルド実行...${NC}"
+echo -e "${YELLOW}🔨 Next.js ビルド・エクスポート実行...${NC}"
 npm run build
-
-echo -e "${YELLOW}📤 静的ファイル生成 (export)...${NC}"
-npx next export -o out
 
 echo -e "${YELLOW}☁️  Cloudflare Pages デプロイ...${NC}"
 npx wrangler pages deploy ./out --project-name "$PROJECT_NAME"

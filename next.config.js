@@ -8,7 +8,8 @@ const nextConfig = {
   // セキュリティ設定
   poweredByHeader: false,
   
-  // Cloudflare Pages用設定（API Routesサポート）
+  // Cloudflare Pages用設定（静的エクスポート対応）
+  output: 'export', // 静的エクスポート有効化
   trailingSlash: false,
   
   // 画像最適化無効（Cloudflare Pages制限）
@@ -74,15 +75,7 @@ const nextConfig = {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=()',
           },
-          // CORSヘッダー（APIサーバーが別オリジンの場合）
-          {
-            key: 'Access-Control-Allow-Origin',
-            value: 'https://api.neo-portal.jp',
-          },
-          {
-            key: 'Access-Control-Allow-Credentials',
-            value: 'true',
-          },
+          // セキュリティヘッダー（CORS設定はAPIサーバー側で行う）
         ],
       },
     ];
