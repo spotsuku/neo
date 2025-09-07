@@ -24,146 +24,155 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { 
-  Users, 
+  BookOpen, 
   UserPlus, 
   Search, 
   MoreHorizontal,
   Edit,
-  Trash2,
-  Shield,
   Eye,
-  Filter
+  Filter,
+  GraduationCap,
+  Award,
+  TrendingUp,
+  Users
 } from 'lucide-react';
 
-interface User {
+interface Student {
   id: number;
-  email: string;
+  studentId: string;
   name: string;
-  role: string;
-  status: 'active' | 'inactive' | 'suspended';
-  lastLogin: string;
-  createdAt: string;
+  email: string;
+  academicYear: number;
+  major: string;
+  gpa: number;
+  creditsEarned: number;
+  attendanceRate: number;
+  status: 'enrolled' | 'graduated' | 'suspended' | 'on_leave';
+  enrolledAt: string;
 }
 
-export default function UsersPage() {
-  const [users, setUsers] = useState<User[]>([]);
+export default function StudentsPage() {
+  const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [yearFilter, setYearFilter] = useState<string>('all');
 
   useEffect(() => {
-    fetchUsers();
+    fetchStudents();
   }, []);
 
-  const fetchUsers = async () => {
+  const fetchStudents = async () => {
     try {
       // モックデータ（実際の実装では API から取得）
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      setUsers([
+      setStudents([
         {
           id: 1,
-          email: 'admin@neo-portal.local',
-          name: 'システム管理者',
-          role: 'admin',
-          status: 'active',
-          lastLogin: '2024-01-18 14:30',
-          createdAt: '2024-01-01'
+          studentId: 'S2024001',
+          name: '佐藤太郎',
+          email: 'sato@example.com',
+          academicYear: 3,
+          major: 'コンピュータサイエンス',
+          gpa: 3.7,
+          creditsEarned: 98,
+          attendanceRate: 94,
+          status: 'enrolled',
+          enrolledAt: '2022-04-01'
         },
         {
           id: 2,
-          email: 'editor@neo-portal.local', 
-          name: 'コンテンツ編集者',
-          role: 'editor',
-          status: 'active',
-          lastLogin: '2024-01-18 10:15',
-          createdAt: '2024-01-05'
+          studentId: 'S2024002',
+          name: '田中花子',
+          email: 'tanaka@example.com',
+          academicYear: 2,
+          major: 'データサイエンス',
+          gpa: 3.9,
+          creditsEarned: 68,
+          attendanceRate: 97,
+          status: 'enrolled',
+          enrolledAt: '2023-04-01'
         },
         {
           id: 3,
-          email: 'teacher@example.com',
-          name: '田中教授',
-          role: 'teacher',
-          status: 'active',
-          lastLogin: '2024-01-17 16:45',
-          createdAt: '2024-01-10'
+          studentId: 'S2024003',
+          name: '鈴木次郎',
+          email: 'suzuki@example.com',
+          academicYear: 4,
+          major: 'ソフトウェア工学',
+          gpa: 3.5,
+          creditsEarned: 118,
+          attendanceRate: 89,
+          status: 'enrolled',
+          enrolledAt: '2021-04-01'
         },
         {
           id: 4,
-          email: 'student@example.com',
-          name: '佐藤太郎',
-          role: 'student',
-          status: 'active',
-          lastLogin: '2024-01-18 09:20',
-          createdAt: '2024-01-15'
+          studentId: 'S2023001',
+          name: '高橋美咲',
+          email: 'takahashi@example.com',
+          academicYear: 4,
+          major: 'AI・機械学習',
+          gpa: 4.0,
+          creditsEarned: 124,
+          attendanceRate: 98,
+          status: 'graduated',
+          enrolledAt: '2020-04-01'
         },
         {
           id: 5,
-          email: 'company@example.com',
-          name: '企業ユーザー',
-          role: 'company_user',
-          status: 'inactive',
-          lastLogin: '2024-01-10 13:00',
-          createdAt: '2024-01-12'
+          studentId: 'S2024004',
+          name: '山田健太',
+          email: 'yamada@example.com',
+          academicYear: 1,
+          major: 'コンピュータサイエンス',
+          gpa: 3.2,
+          creditsEarned: 32,
+          attendanceRate: 85,
+          status: 'enrolled',
+          enrolledAt: '2024-04-01'
         }
       ]);
     } catch (error) {
-      console.error('Failed to fetch users:', error);
+      console.error('Failed to fetch students:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const getRoleLabel = (role: string) => {
-    const roleLabels: Record<string, string> = {
-      admin: '管理者',
-      editor: '編集者',
-      teacher: '教師',
-      student: '学生',
-      company_user: '企業ユーザー',
-      committee_member: '委員会メンバー',
-      user: '一般ユーザー'
-    };
-    return roleLabels[role] || role;
-  };
-
-  const getRoleVariant = (role: string) => {
-    const variants: Record<string, any> = {
-      admin: 'destructive',
-      editor: 'default',
-      teacher: 'secondary',
-      student: 'outline',
-      company_user: 'default',
-      committee_member: 'secondary',
-      user: 'outline'
-    };
-    return variants[role] || 'outline';
-  };
-
   const getStatusVariant = (status: string) => {
     const variants: Record<string, any> = {
-      active: 'default',
-      inactive: 'secondary',
-      suspended: 'destructive'
+      enrolled: 'default',
+      graduated: 'secondary',
+      suspended: 'destructive',
+      on_leave: 'outline'
     };
     return variants[status] || 'outline';
   };
 
   const getStatusLabel = (status: string) => {
     const labels: Record<string, string> = {
-      active: 'アクティブ',
-      inactive: '非アクティブ',
-      suspended: '停止中'
+      enrolled: '在籍中',
+      graduated: '卒業',
+      suspended: '停学',
+      on_leave: '休学'
     };
     return labels[status] || status;
   };
 
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
+  const getGPABadgeVariant = (gpa: number) => {
+    if (gpa >= 3.7) return 'default';
+    if (gpa >= 3.0) return 'secondary';
+    return 'destructive';
+  };
+
+  const filteredStudents = students.filter(student => {
+    const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         student.studentId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         student.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesYear = yearFilter === 'all' || student.academicYear.toString() === yearFilter;
     
-    return matchesSearch && matchesStatus;
+    return matchesSearch && matchesYear;
   });
 
   if (loading) {
@@ -181,21 +190,21 @@ export default function UsersPage() {
 
   return (
     <MainLayout>
-      <PermissionGuard permissions={['users.manage']}>
+      <PermissionGuard permissions={['students.manage', 'students.view']} fallbackPermissions={['students.view']}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* ヘッダー */}
           <div className="mb-8">
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-                  <Users className="h-8 w-8 mr-3 text-blue-600" />
-                  ユーザー管理
+                  <BookOpen className="h-8 w-8 mr-3 text-blue-600" />
+                  学生管理
                 </h1>
-                <p className="mt-2 text-gray-600">システムユーザーの作成・編集・削除を行います。</p>
+                <p className="mt-2 text-gray-600">学生の登録・成績・出席状況を管理します。</p>
               </div>
               <Button className="flex items-center">
                 <UserPlus className="h-4 w-4 mr-2" />
-                新規ユーザー作成
+                新規学生登録
               </Button>
             </div>
           </div>
@@ -204,51 +213,51 @@ export default function UsersPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">総ユーザー数</CardTitle>
+                <CardTitle className="text-sm font-medium">総学生数</CardTitle>
                 <Users className="h-4 w-4 text-blue-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{users.length}</div>
-                <p className="text-xs text-gray-600">全ユーザー</p>
+                <div className="text-2xl font-bold">{students.length}</div>
+                <p className="text-xs text-gray-600">全学生</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">アクティブユーザー</CardTitle>
-                <Shield className="h-4 w-4 text-green-500" />
+                <CardTitle className="text-sm font-medium">在籍学生</CardTitle>
+                <GraduationCap className="h-4 w-4 text-green-500" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {users.filter(u => u.status === 'active').length}
+                  {students.filter(s => s.status === 'enrolled').length}
                 </div>
-                <p className="text-xs text-green-600">稼働中</p>
+                <p className="text-xs text-green-600">アクティブ</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">管理者</CardTitle>
-                <Shield className="h-4 w-4 text-red-500" />
+                <CardTitle className="text-sm font-medium">平均GPA</CardTitle>
+                <Award className="h-4 w-4 text-yellow-500" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {users.filter(u => u.role === 'admin').length}
+                  {(students.reduce((sum, s) => sum + s.gpa, 0) / students.length).toFixed(1)}
                 </div>
-                <p className="text-xs text-gray-600">システム管理者</p>
+                <p className="text-xs text-yellow-600">全体平均</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">今日のログイン</CardTitle>
-                <Eye className="h-4 w-4 text-blue-500" />
+                <CardTitle className="text-sm font-medium">平均出席率</CardTitle>
+                <TrendingUp className="h-4 w-4 text-blue-500" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {users.filter(u => u.lastLogin.includes('2024-01-18')).length}
+                  {Math.round(students.reduce((sum, s) => sum + s.attendanceRate, 0) / students.length)}%
                 </div>
-                <p className="text-xs text-blue-600">本日アクセス</p>
+                <p className="text-xs text-blue-600">全体平均</p>
               </CardContent>
             </Card>
           </div>
@@ -267,7 +276,7 @@ export default function UsersPage() {
                   <div className="relative">
                     <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                     <Input
-                      placeholder="名前またはメールアドレスで検索..."
+                      placeholder="学生名、学籍番号、メールアドレスで検索..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className="pl-10"
@@ -278,23 +287,26 @@ export default function UsersPage() {
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" className="flex items-center">
                       <Filter className="h-4 w-4 mr-2" />
-                      ステータス: {statusFilter === 'all' ? '全て' : getStatusLabel(statusFilter)}
+                      学年: {yearFilter === 'all' ? '全て' : `${yearFilter}年生`}
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
-                    <DropdownMenuLabel>ステータスで絞り込み</DropdownMenuLabel>
+                    <DropdownMenuLabel>学年で絞り込み</DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => setStatusFilter('all')}>
+                    <DropdownMenuItem onClick={() => setYearFilter('all')}>
                       全て
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setStatusFilter('active')}>
-                      アクティブ
+                    <DropdownMenuItem onClick={() => setYearFilter('1')}>
+                      1年生
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setStatusFilter('inactive')}>
-                      非アクティブ
+                    <DropdownMenuItem onClick={() => setYearFilter('2')}>
+                      2年生
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setStatusFilter('suspended')}>
-                      停止中
+                    <DropdownMenuItem onClick={() => setYearFilter('3')}>
+                      3年生
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setYearFilter('4')}>
+                      4年生
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -302,47 +314,55 @@ export default function UsersPage() {
             </CardContent>
           </Card>
 
-          {/* ユーザー一覧テーブル */}
+          {/* 学生一覧テーブル */}
           <Card>
             <CardHeader>
-              <CardTitle>ユーザー一覧</CardTitle>
+              <CardTitle>学生一覧</CardTitle>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>ユーザー</TableHead>
-                    <TableHead>役割</TableHead>
+                    <TableHead>学生情報</TableHead>
+                    <TableHead>学年・専攻</TableHead>
+                    <TableHead>GPA</TableHead>
+                    <TableHead>取得単位</TableHead>
+                    <TableHead>出席率</TableHead>
                     <TableHead>ステータス</TableHead>
-                    <TableHead>最終ログイン</TableHead>
-                    <TableHead>作成日</TableHead>
                     <TableHead className="text-right">操作</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredUsers.map((user) => (
-                    <TableRow key={user.id}>
+                  {filteredStudents.map((student) => (
+                    <TableRow key={student.id}>
                       <TableCell>
                         <div>
-                          <div className="font-medium">{user.name}</div>
-                          <div className="text-sm text-gray-600">{user.email}</div>
+                          <div className="font-medium">{student.name}</div>
+                          <div className="text-sm text-gray-600">{student.studentId}</div>
+                          <div className="text-xs text-gray-500">{student.email}</div>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={getRoleVariant(user.role)}>
-                          {getRoleLabel(user.role)}
+                        <div>
+                          <div className="font-medium">{student.academicYear}年生</div>
+                          <div className="text-sm text-gray-600">{student.major}</div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={getGPABadgeVariant(student.gpa)}>
+                          {student.gpa.toFixed(1)}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={getStatusVariant(user.status)}>
-                          {getStatusLabel(user.status)}
+                        <span className="text-sm">{student.creditsEarned}</span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm">{student.attendanceRate}%</span>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={getStatusVariant(student.status)}>
+                          {getStatusLabel(student.status)}
                         </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm text-gray-600">{user.lastLogin}</span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm text-gray-600">{user.createdAt}</span>
                       </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
@@ -363,13 +383,8 @@ export default function UsersPage() {
                               編集
                             </DropdownMenuItem>
                             <DropdownMenuItem>
-                              <Shield className="h-4 w-4 mr-2" />
-                              権限変更
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-red-600">
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              削除
+                              <Award className="h-4 w-4 mr-2" />
+                              成績管理
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>

@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEO Digital Platform</title>
+    <!-- Chrome compatible inline styles -->
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            line-height: 1.6;
+            min-height: 100vh;
+            background-color: #f9fafb;
+        }
+        
+        /* Layout utilities */
+        .container { max-width: 1280px; margin: 0 auto; padding: 0 16px; }
+        .flex { display: flex; }
+        .flex-col { flex-direction: column; }
+        .items-center { align-items: center; }
+        .justify-center { justify-content: center; }
+        .justify-between { justify-content: space-between; }
+        .text-center { text-align: center; }
+        .space-x-4 > * + * { margin-left: 16px; }
+        .space-x-8 > * + * { margin-left: 32px; }
+        .gap-4 { gap: 16px; }
+        .gap-8 { gap: 32px; }
+        
+        /* Grid */
+        .grid { display: grid; }
+        .grid-cols-1 { grid-template-columns: 1fr; }
+        @media (min-width: 768px) {
+            .md\\:grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (min-width: 1024px) {
+            .lg\\:grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
+        }
+        
+        /* Colors */
+        .bg-white { background-color: #ffffff; }
+        .bg-gray-50 { background-color: #f9fafb; }
+        .bg-gray-100 { background-color: #f3f4f6; }
+        .bg-blue-100 { background-color: #dbeafe; }
+        .bg-green-100 { background-color: #dcfce7; }
+        .bg-yellow-100 { background-color: #fef3c7; }
+        .bg-red-100 { background-color: #fee2e2; }
+        .bg-purple-100 { background-color: #e9d5ff; }
+        .bg-indigo-100 { background-color: #e0e7ff; }
+        .bg-blue-600 { background-color: #2563eb; }
+        .bg-green-600 { background-color: #059669; }
+        .bg-yellow-600 { background-color: #d97706; }
+        .bg-red-600 { background-color: #dc2626; }
+        .bg-purple-600 { background-color: #9333ea; }
+        .bg-indigo-600 { background-color: #4f46e5; }
+        .text-white { color: #ffffff; }
+        .text-gray-500 { color: #6b7280; }
+        .text-gray-600 { color: #4b5563; }
+        .text-gray-700 { color: #374151; }
+        .text-gray-900 { color: #111827; }
+        .text-blue-600 { color: #2563eb; }
+        .text-green-600 { color: #059669; }
+        .text-yellow-600 { color: #d97706; }
+        .text-red-600 { color: #dc2626; }
+        .text-purple-600 { color: #9333ea; }
+        .text-indigo-600 { color: #4f46e5; }
+        
+        /* Typography */
+        .text-sm { font-size: 14px; }
+        .text-base { font-size: 16px; }
+        .text-lg { font-size: 18px; }
+        .text-xl { font-size: 20px; }
+        .text-2xl { font-size: 24px; }
+        .text-3xl { font-size: 30px; }
+        .text-4xl { font-size: 36px; }
+        .text-6xl { font-size: 60px; }
+        .font-medium { font-weight: 500; }
+        .font-semibold { font-weight: 600; }
+        .font-bold { font-weight: 700; }
+        
+        /* Spacing */
+        .p-2 { padding: 8px; }
+        .p-4 { padding: 16px; }
+        .p-8 { padding: 32px; }
+        .px-3 { padding-left: 12px; padding-right: 12px; }
+        .px-4 { padding-left: 16px; padding-right: 16px; }
+        .px-8 { padding-left: 32px; padding-right: 32px; }
+        .py-2 { padding-top: 8px; padding-bottom: 8px; }
+        .py-3 { padding-top: 12px; padding-bottom: 12px; }
+        .py-20 { padding-top: 80px; padding-bottom: 80px; }
+        .mb-2 { margin-bottom: 8px; }
+        .mb-4 { margin-bottom: 16px; }
+        .mb-6 { margin-bottom: 24px; }
+        .mb-8 { margin-bottom: 32px; }
+        .mb-16 { margin-bottom: 64px; }
+        .mr-2 { margin-right: 8px; }
+        .ml-2 { margin-left: 8px; }
+        .mt-4 { margin-top: 16px; }
+        .max-w-3xl { max-width: 768px; }
+        .mx-auto { margin-left: auto; margin-right: auto; }
+        
+        /* Borders and effects */
+        .rounded { border-radius: 6px; }
+        .rounded-lg { border-radius: 8px; }
+        .rounded-md { border-radius: 6px; }
+        .shadow-sm { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
+        .border { border: 1px solid #e5e7eb; }
+        .border-b { border-bottom: 1px solid #e5e7eb; }
+        .border-white { border-color: #ffffff; }
+        
+        /* Header */
+        .header {
+            background-color: #ffffff;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .header-content {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 64px;
+        }
+        
+        /* Navigation */
+        .nav { display: none; }
+        @media (min-width: 768px) {
+            .nav { display: flex; }
+        }
+        .nav-link {
+            color: #6b7280;
+            text-decoration: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+        .nav-link:hover {
+            color: #111827;
+        }
+        
+        /* Buttons */
+        .btn {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            text-decoration: none;
+            text-align: center;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+        .btn-lg {
+            padding: 12px 32px;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+        .btn-primary {
+            background-color: #2563eb;
+            color: #ffffff;
+        }
+        .btn-primary:hover {
+            background-color: #1d4ed8;
+        }
+        .btn-white {
+            background-color: #ffffff;
+            color: #2563eb;
+        }
+        .btn-white:hover {
+            background-color: #f3f4f6;
+        }
+        .btn-outline {
+            background-color: transparent;
+            color: #ffffff;
+            border: 1px solid #ffffff;
+        }
+        .btn-outline:hover {
+            background-color: #ffffff;
+            color: #2563eb;
+        }
+        
+        /* Hero section */
+        .hero {
+            background: linear-gradient(135deg, #2563eb 0%, #9333ea 100%);
+            color: #ffffff;
+            padding: 80px 0;
+        }
+        
+        /* Feature cards */
+        .feature-card {
+            background-color: #f9fafb;
+            padding: 32px;
+            border-radius: 8px;
+        }
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 16px;
+            font-size: 20px;
+        }
+        
+        /* Icons using emoji */
+        .icon-rocket::before { content: "🚀"; font-size: 20px; }
+        .icon-shield::before { content: "🛡️"; font-size: 20px; }
+        .icon-database::before { content: "💾"; font-size: 20px; }
+        .icon-api::before { content: "🔗"; font-size: 20px; }
+        .icon-users::before { content: "👥"; font-size: 20px; }
+        .icon-mobile::before { content: "📱"; font-size: 20px; }
+        .icon-signin::before { content: "🔐"; font-size: 16px; }
+        .icon-signup::before { content: "👤"; font-size: 16px; }
+        
+        /* Responsive */
+        @media (min-width: 640px) {
+            .sm\\:flex-row { flex-direction: row; }
+            .sm\\:px-6 { padding-left: 24px; padding-right: 24px; }
+        }
+        @media (min-width: 768px) {
+            .md\\:text-2xl { font-size: 24px; }
+            .md\\:text-6xl { font-size: 60px; }
+            .md\\:flex { display: flex; }
+        }
+        @media (min-width: 1024px) {
+            .lg\\:px-8 { padding-left: 32px; padding-right: 32px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="flex items-center">
+                <h1 class="text-2xl font-bold text-gray-900">
+                    <span class="icon-rocket mr-2"></span>
+                    NEO Digital Platform
+                </h1>
+            </div>
+            <nav class="nav space-x-8">
+                <a href="#features" class="nav-link">機能</a>
+                <a href="#about" class="nav-link">概要</a>
+                <a href="mailto:info@neo-portal.jp" class="nav-link">お問い合わせ</a>
+            </nav>
+            <div class="flex items-center space-x-4">
+                <a href="/login.html" class="btn btn-primary">ログイン</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        <!-- Hero Section -->
+        <section class="hero">
+            <div class="container text-center">
+                <h2 class="text-4xl md:text-6xl font-bold mb-6">
+                    NEO Digital Platform
+                </h2>
+                <p class="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">
+                    次世代デジタル変革プラットフォーム<br>
+                    Next.js 15 + TypeScript + Cloudflare D1 で構築
+                </p>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                    <a href="/login.html" class="btn btn-lg btn-white">
+                        <span class="icon-signin mr-2"></span>
+                        ログイン
+                    </a>
+                    <a href="/signup.html" class="btn btn-lg btn-outline">
+                        <span class="icon-signup mr-2"></span>
+                        新規登録
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section id="features" class="py-20 bg-white">
+            <div class="container">
+                <div class="text-center mb-16">
+                    <h3 class="text-3xl font-bold text-gray-900 mb-4">プラットフォーム機能</h3>
+                    <p class="text-xl text-gray-600">エンタープライズ級の機能を搭載</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <!-- 認証・セキュリティ -->
+                    <div class="feature-card">
+                        <div class="feature-icon bg-blue-100 text-blue-600">
+                            <span class="icon-shield"></span>
+                        </div>
+                        <h4 class="text-xl font-semibold text-gray-900 mb-2">高度な認証</h4>
+                        <p class="text-gray-600">JWT + TOTP 2要素認証、ロールベースアクセス制御</p>
+                    </div>
+
+                    <!-- データベース -->
+                    <div class="feature-card">
+                        <div class="feature-icon bg-green-100 text-green-600">
+                            <span class="icon-database"></span>
+                        </div>
+                        <h4 class="text-xl font-semibold text-gray-900 mb-2">分散データベース</h4>
+                        <p class="text-gray-600">Cloudflare D1 SQLite、グローバル分散ストレージ</p>
+                    </div>
+
+                    <!-- REST API -->
+                    <div class="feature-card">
+                        <div class="feature-icon bg-yellow-100 text-yellow-600">
+                            <span class="icon-api"></span>
+                        </div>
+                        <h4 class="text-xl font-semibold text-gray-900 mb-2">REST API</h4>
+                        <p class="text-gray-600">完全なCRUD操作、OpenAPI仕様準拠</p>
+                    </div>
+
+                    <!-- 管理機能 -->
+                    <div class="feature-card">
+                        <div class="feature-icon bg-red-100 text-red-600">
+                            <span class="icon-users"></span>
+                        </div>
+                        <h4 class="text-xl font-semibold text-gray-900 mb-2">管理機能</h4>
+                        <p class="text-gray-600">ユーザー管理、監査ログ、システム設定</p>
+                    </div>
+
+                    <!-- 通知システム -->
+                    <div class="feature-card">
+                        <div class="feature-icon bg-purple-100 text-purple-600">
+                            <span class="icon-mobile"></span>
+                        </div>
+                        <h4 class="text-xl font-semibold text-gray-900 mb-2">通知システム</h4>
+                        <p class="text-gray-600">リアルタイム通知、お知らせ管理</p>
+                    </div>
+
+                    <!-- レスポンシブUI -->
+                    <div class="feature-card">
+                        <div class="feature-icon bg-indigo-100 text-indigo-600">
+                            <span class="icon-mobile"></span>
+                        </div>
+                        <h4 class="text-xl font-semibold text-gray-900 mb-2">レスポンシブUI</h4>
+                        <p class="text-gray-600">モバイル対応、PWA機能、オフライン対応</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        console.log('🚀 NEO Digital Platform - ランディングページ');
+        console.log('📱 Chrome互換スタンドアローン版が読み込まれました');
+        console.log('🎯 ログイン: /login.html');
+        console.log('📊 管理者ダッシュボード: /admin-dashboard-standalone.html');
+    </script>
+</body>
+</html>
