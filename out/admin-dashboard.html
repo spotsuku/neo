@@ -100,9 +100,45 @@
                     <a href="/admin/dashboard" class="text-admin-700 font-medium border-b-2 border-admin-500 pb-1">
                         <i class="fas fa-chart-line mr-2"></i>KPI管理
                     </a>
-                    <a href="/admin/users" class="text-gray-600 hover:text-admin-600 font-medium transition-colors">
-                        <i class="fas fa-users mr-2"></i>ユーザー管理
-                    </a>
+                    <div class="relative" id="members-menu">
+                        <button class="text-gray-600 hover:text-admin-600 font-medium transition-colors group flex items-center" onclick="toggleMembersMenu()">
+                            <i class="fas fa-users mr-2 group-hover:text-blue-600"></i>会員管理
+                            <i class="fas fa-chevron-down ml-1 text-xs transition-transform" id="members-menu-icon"></i>
+                        </button>
+                        <div class="absolute top-full left-0 mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50 hidden" id="members-dropdown">
+                            <div class="py-1">
+                                <a href="#" onclick="navigateToMembers(); return false;" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
+                                    <i class="fas fa-list mr-3 text-blue-500"></i>
+                                    <div>
+                                        <div class="font-medium">全会員一覧</div>
+                                        <div class="text-xs text-gray-500">全ての会員を表示・管理</div>
+                                    </div>
+                                </a>
+                                <a href="#" onclick="navigateToAtRiskMembers(); return false;" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 transition-colors">
+                                    <i class="fas fa-exclamation-triangle mr-3 text-yellow-500"></i>
+                                    <div>
+                                        <div class="font-medium">離脱予備軍</div>
+                                        <div class="text-xs text-gray-500">要注意メンバーのフィルタ表示</div>
+                                    </div>
+                                </a>
+                                <a href="#" onclick="navigateToActiveMembers(); return false;" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-colors">
+                                    <i class="fas fa-user-check mr-3 text-green-500"></i>
+                                    <div>
+                                        <div class="font-medium">アクティブ会員</div>
+                                        <div class="text-xs text-gray-500">活動中メンバーのフィルタ表示</div>
+                                    </div>
+                                </a>
+                                <div class="border-t border-gray-100 my-1"></div>
+                                <a href="#" onclick="exportMembersFromDashboard(); return false;" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition-colors">
+                                    <i class="fas fa-download mr-3 text-purple-500"></i>
+                                    <div>
+                                        <div class="font-medium">会員データ出力</div>
+                                        <div class="text-xs text-gray-500">CSV形式でエクスポート</div>
+                                    </div>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
                     <a href="/admin/monitoring" class="text-gray-600 hover:text-admin-600 font-medium transition-colors">
                         <i class="fas fa-server mr-2"></i>システム監視
                     </a>
@@ -174,8 +210,9 @@
                     <a href="/admin/dashboard" class="block text-admin-700 font-medium px-2 py-2 rounded bg-admin-50">
                         <i class="fas fa-chart-line mr-3"></i>KPI管理
                     </a>
-                    <a href="/admin/users" class="block text-gray-600 hover:text-admin-600 px-2 py-2 rounded hover:bg-admin-50 transition-colors">
-                        <i class="fas fa-users mr-3"></i>ユーザー管理
+                    <a href="/admin-members.html" class="block text-gray-600 hover:text-admin-600 px-2 py-2 rounded hover:bg-admin-50 transition-colors group" onclick="navigateToMembers(); return false;">
+                        <i class="fas fa-users mr-3 group-hover:text-blue-600"></i>会員一覧
+                        <i class="fas fa-external-link-alt text-xs ml-1 opacity-60"></i>
                     </a>
                     <a href="/admin/monitoring" class="block text-gray-600 hover:text-admin-600 px-2 py-2 rounded hover:bg-admin-50 transition-colors">
                         <i class="fas fa-server mr-3"></i>システム監視
@@ -206,12 +243,19 @@
     <div class="max-w-7xl mx-auto px-4 py-6">
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
             <!-- 会員総数 -->
-            <div class="bg-white rounded-xl shadow-lg p-4 border-l-4 border-blue-500 hover:shadow-xl transition-shadow">
+            <div class="bg-white rounded-xl shadow-lg p-4 border-l-4 border-blue-500 hover:shadow-xl transition-shadow cursor-pointer transform hover:scale-105" onclick="navigateToMembers()">
                 <div class="text-center">
                     <div class="text-2xl font-bold text-blue-700" id="total-members">247</div>
-                    <div class="text-sm text-gray-600">会員総数</div>
+                    <div class="text-sm text-gray-600 flex items-center justify-center">
+                        <i class="fas fa-users mr-1"></i>
+                        会員総数
+                        <i class="fas fa-external-link-alt text-xs ml-1 opacity-60"></i>
+                    </div>
                     <div class="text-xs text-blue-600 mt-1">
                         <span id="student-count">203</span>学生 / <span id="company-count">28</span>企業 / <span id="youth-count">12</span>ユース / <span id="corporate-count">4</span>企業選抜
+                    </div>
+                    <div class="text-xs text-blue-500 mt-1 opacity-75">
+                        クリックで詳細表示
                     </div>
                 </div>
             </div>
@@ -256,14 +300,21 @@
             </div>
 
             <!-- 離脱予備軍数 -->
-            <div class="bg-white rounded-xl shadow-lg p-4 border-l-4 border-red-500 hover:shadow-xl transition-shadow">
+            <div class="bg-white rounded-xl shadow-lg p-4 border-l-4 border-red-500 hover:shadow-xl transition-shadow cursor-pointer transform hover:scale-105" onclick="navigateToAtRiskMembers()">
                 <div class="text-center">
                     <div class="text-2xl font-bold text-red-700" id="at-risk-count">7</div>
-                    <div class="text-sm text-gray-600">離脱予備軍</div>
+                    <div class="text-sm text-gray-600 flex items-center justify-center">
+                        <i class="fas fa-user-times mr-1"></i>
+                        離脱予備軍
+                        <i class="fas fa-external-link-alt text-xs ml-1 opacity-60"></i>
+                    </div>
                     <div class="text-xs mt-1">
                         <span class="text-red-600 flex items-center justify-center">
                             <i class="fas fa-exclamation-triangle mr-1 animate-bounce"></i>要注意
                         </span>
+                    </div>
+                    <div class="text-xs text-red-500 mt-1 opacity-75">
+                        クリックで詳細表示
                     </div>
                 </div>
             </div>
@@ -1628,8 +1679,21 @@
             
             // 外側クリックでメニューを閉じる
             document.addEventListener('click', function(e) {
+                // ユーザーメニューを閉じる
                 if (userMenu && !userMenuBtn.contains(e.target) && !userMenu.contains(e.target)) {
                     userMenu.classList.add('hidden');
+                }
+                
+                // 会員管理メニューを閉じる
+                const membersMenu = document.getElementById('members-menu');
+                const membersDropdown = document.getElementById('members-dropdown');
+                const membersIcon = document.getElementById('members-menu-icon');
+                
+                if (membersMenu && membersDropdown && !membersMenu.contains(e.target)) {
+                    membersDropdown.classList.add('hidden');
+                    if (membersIcon) {
+                        membersIcon.style.transform = 'rotate(0deg)';
+                    }
                 }
             });
         }
@@ -1644,6 +1708,194 @@
             
             window.location.href = '/login.html';
         }
+
+        // 会員一覧ページへのナビゲーション
+        function navigateToMembers() {
+            console.log('📊 会員一覧ページに移動');
+            
+            // 認証チェック
+            if (!window.authManager || !window.authManager.getCurrentUser()) {
+                showNotification('ログインが必要です', 'warning');
+                setTimeout(() => {
+                    window.location.href = '/login.html';
+                }, 2000);
+                return;
+            }
+            
+            const currentUser = window.authManager.getCurrentUser();
+            if (currentUser.role !== 'admin') {
+                showNotification('管理者権限が必要です', 'error');
+                return;
+            }
+            
+            showNotification('会員一覧ページに移動中...', 'info');
+            setTimeout(() => {
+                window.location.href = '/admin-members.html';
+            }, 1000);
+        }
+
+        // 離脱予備軍会員一覧へのナビゲーション
+        function navigateToAtRiskMembers() {
+            console.log('⚠️ 離脱予備軍会員一覧に移動');
+            
+            // 認証チェック
+            if (!window.authManager || !window.authManager.getCurrentUser()) {
+                showNotification('ログインが必要です', 'warning');
+                setTimeout(() => {
+                    window.location.href = '/login.html';
+                }, 2000);
+                return;
+            }
+            
+            const currentUser = window.authManager.getCurrentUser();
+            if (currentUser.role !== 'admin') {
+                showNotification('管理者権限が必要です', 'error');
+                return;
+            }
+            
+            showNotification('離脱予備軍フィルタを適用して会員一覧に移動中...', 'info');
+            setTimeout(() => {
+                // 離脱予備軍フィルタを適用したURLパラメータで遷移
+                window.location.href = '/admin-members.html?filter=at_risk';
+            }, 1000);
+        }
+
+        // アクティブ会員一覧へのナビゲーション
+        function navigateToActiveMembers() {
+            console.log('✅ アクティブ会員一覧に移動');
+            
+            // 認証チェック
+            if (!window.authManager || !window.authManager.getCurrentUser()) {
+                showNotification('ログインが必要です', 'warning');
+                setTimeout(() => {
+                    window.location.href = '/login.html';
+                }, 2000);
+                return;
+            }
+            
+            const currentUser = window.authManager.getCurrentUser();
+            if (currentUser.role !== 'admin') {
+                showNotification('管理者権限が必要です', 'error');
+                return;
+            }
+            
+            showNotification('アクティブフィルタを適用して会員一覧に移動中...', 'info');
+            setTimeout(() => {
+                // アクティブフィルタを適用したURLパラメータで遷移
+                window.location.href = '/admin-members.html?filter=active';
+            }, 1000);
+        }
+
+        // ダッシュボードから会員データ出力
+        function exportMembersFromDashboard() {
+            console.log('📊 ダッシュボードから会員データ出力');
+            
+            // 認証チェック
+            if (!window.authManager || !window.authManager.getCurrentUser()) {
+                showNotification('ログインが必要です', 'warning');
+                return;
+            }
+            
+            const currentUser = window.authManager.getCurrentUser();
+            if (currentUser.role !== 'admin') {
+                showNotification('管理者権限が必要です', 'error');
+                return;
+            }
+            
+            showNotification('会員データを出力中...', 'info');
+            
+            // 会員一覧ページのCSV出力機能を利用
+            setTimeout(() => {
+                window.open('/admin-members.html?action=csv_export', '_blank');
+            }, 1000);
+        }
+
+        // 会員管理メニューの切り替え
+        function toggleMembersMenu() {
+            const dropdown = document.getElementById('members-dropdown');
+            const icon = document.getElementById('members-menu-icon');
+            
+            if (dropdown && icon) {
+                const isHidden = dropdown.classList.contains('hidden');
+                
+                if (isHidden) {
+                    dropdown.classList.remove('hidden');
+                    icon.style.transform = 'rotate(180deg)';
+                } else {
+                    dropdown.classList.add('hidden');
+                    icon.style.transform = 'rotate(0deg)';
+                }
+            }
+        }
+
+        // KPI数値を会員一覧と同期
+        function syncKPIWithMembers() {
+            console.log('📊 KPI数値を会員データと同期中...');
+            
+            // デモ用の会員データから実際のKPIを計算
+            if (typeof demoMembers !== 'undefined') {
+                const totalMembers = demoMembers.length;
+                const studentCount = demoMembers.filter(m => m.all_roles.includes('student')).length;
+                const companyCount = demoMembers.filter(m => m.all_roles.includes('company')).length;
+                const youthCount = demoMembers.filter(m => m.membership_types.includes('youth_selected')).length;
+                const corporateCount = demoMembers.filter(m => m.membership_types.includes('company_selected')).length;
+                const atRiskCount = demoMembers.filter(m => m.is_inactive_30d || m.status === 'inactive').length;
+                const heroCertifiedCount = demoMembers.filter(m => m.is_hero_certified).length;
+                const heroCertificationRate = totalMembers > 0 ? ((heroCertifiedCount / totalMembers) * 100).toFixed(1) : '0.0';
+                
+                // DOM要素を更新
+                const totalMembersEl = document.getElementById('total-members');
+                const studentCountEl = document.getElementById('student-count');
+                const companyCountEl = document.getElementById('company-count');
+                const youthCountEl = document.getElementById('youth-count');
+                const corporateCountEl = document.getElementById('corporate-count');
+                const atRiskCountEl = document.getElementById('at-risk-count');
+                const heroCertificationRateEl = document.getElementById('hero-certification-rate');
+                
+                if (totalMembersEl) totalMembersEl.textContent = totalMembers;
+                if (studentCountEl) studentCountEl.textContent = studentCount;
+                if (companyCountEl) companyCountEl.textContent = companyCount;
+                if (youthCountEl) youthCountEl.textContent = youthCount;
+                if (corporateCountEl) corporateCountEl.textContent = corporateCount;
+                if (atRiskCountEl) atRiskCountEl.textContent = atRiskCount;
+                if (heroCertificationRateEl) heroCertificationRateEl.textContent = heroCertificationRate + '%';
+                
+                console.log('✅ KPI数値同期完了:', {
+                    total: totalMembers,
+                    student: studentCount,
+                    company: companyCount,
+                    atRisk: atRiskCount,
+                    heroCertification: heroCertificationRate + '%'
+                });
+            }
+        }
+
+        // ページ読み込み時にKPI同期
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔄 ダッシュボード初期化開始');
+            
+            // members.jsが読み込まれるまで待機してからKPI同期
+            const checkMembersData = () => {
+                if (typeof demoMembers !== 'undefined') {
+                    syncKPIWithMembers();
+                } else {
+                    console.log('📊 会員データ待機中...');
+                    setTimeout(checkMembersData, 1000);
+                }
+            };
+            
+            // members.jsを動的に読み込み
+            const script = document.createElement('script');
+            script.src = '/members.js';
+            script.onload = function() {
+                console.log('✅ 会員データ読み込み完了');
+                setTimeout(checkMembersData, 500);
+            };
+            script.onerror = function() {
+                console.log('⚠️ 会員データ読み込み失敗 - デフォルト値を使用');
+            };
+            document.head.appendChild(script);
+        });
 
         console.log('🚀 NEO Digital Platform - 事務局ダッシュボード');
         console.log('🎯 KPI起点の統合管理システムが利用可能です');

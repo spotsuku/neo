@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login Test</title>
+    <script src="/auth.js"></script>
+</head>
+<body>
+    <h1>Login Test</h1>
+    <script>
+        window.addEventListener('load', function() {
+            console.log('Testing authentication system...');
+            
+            if (window.authManager) {
+                console.log('✅ AuthManager loaded successfully');
+                
+                // Test student login
+                console.log('🧪 Testing student login...');
+                const studentResult = window.authManager.login('student@neo-academy.jp', 'student123');
+                console.log('Student login result:', studentResult);
+                
+                if (studentResult.success) {
+                    console.log('✅ Student login successful!');
+                    console.log('Dashboard URL:', studentResult.dashboardUrl);
+                } else {
+                    console.log('❌ Student login failed:', studentResult.message);
+                }
+                
+                // Test admin login with TOTP
+                console.log('🧪 Testing admin login with TOTP...');
+                const adminResult = window.authManager.login('admin@neo.com', 'password123', '123456');
+                console.log('Admin login result:', adminResult);
+                
+                if (adminResult.success) {
+                    console.log('✅ Admin login successful!');
+                    console.log('Dashboard URL:', adminResult.dashboardUrl);
+                } else {
+                    console.log('❌ Admin login failed:', adminResult.message);
+                }
+                
+                // Test invalid login
+                console.log('🧪 Testing invalid login...');
+                const invalidResult = window.authManager.login('invalid@test.com', 'wrongpassword');
+                console.log('Invalid login result:', invalidResult);
+                
+            } else {
+                console.log('❌ AuthManager not loaded');
+            }
+        });
+    </script>
+</body>
+</html>

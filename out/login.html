@@ -458,7 +458,7 @@
             console.log('================================');
         });
         
-        // デバッグ用クイックログイン関数
+        // デバッグ用クイックログイン関数（認証コード無し）
         window.quickLogin = function(type) {
             let email, password;
             
@@ -473,18 +473,35 @@
                 password = 'company123';
             }
             
-            console.log(`🚀 クイックログイン: ${type}`);
+            console.log(`🚀 クイックログイン開始: ${type}（認証コード無し）`);
             console.log(`📧 Email: ${email}`);
             console.log(`🔑 Password: ${password}`);
             
-            // フォームに値を設定
-            document.getElementById('email').value = email;
-            document.getElementById('password').value = password;
+            // authManagerの存在確認
+            if (!window.authManager) {
+                console.error('❌ authManager が見つかりません');
+                showError('認証システムが初期化されていません');
+                return;
+            }
             
-            // 自動ログイン実行
-            setTimeout(() => {
-                document.getElementById('login-form').dispatchEvent(new Event('submit'));
-            }, 100);
+            // クイックログイン実行（認証コード無し）
+            const result = window.authManager.quickLogin(email, password);
+            console.log('🚀 クイックログイン結果:', result);
+            
+            if (result.success) {
+                console.log('✅ クイックログイン成功！');
+                showSuccess(result.message);
+                
+                // ダッシュボードにリダイレクト
+                setTimeout(() => {
+                    const dashboardUrl = getDashboardUrl(result.user.role);
+                    console.log(`🏠 ダッシュボードへリダイレクト: ${dashboardUrl}`);
+                    window.location.href = dashboardUrl;
+                }, 1000);
+            } else {
+                console.error('❌ クイックログイン失敗:', result.message);
+                showError(result.message || 'クイックログインに失敗しました');
+            }
         };
         
         // デバッグ情報表示関数

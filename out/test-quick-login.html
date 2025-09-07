@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Quick Login Test</title>
+    <script src="/auth.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-md mx-auto bg-white rounded-lg shadow-lg p-6">
+        <h1 class="text-2xl font-bold mb-4">クイックログインテスト</h1>
+        
+        <div class="space-y-3">
+            <button onclick="testQuickLogin('student')" 
+                    class="w-full bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                🎓 学生でクイックログイン
+            </button>
+            
+            <button onclick="testQuickLogin('admin')" 
+                    class="w-full bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                👑 管理者でクイックログイン（認証コード無し）
+            </button>
+            
+            <button onclick="testQuickLogin('company')" 
+                    class="w-full bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">
+                🏢 企業でクイックログイン
+            </button>
+            
+            <button onclick="testNormalLogin()" 
+                    class="w-full bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                🔐 通常ログインテスト（管理者・TOTP有り）
+            </button>
+        </div>
+        
+        <div id="result" class="mt-4 p-3 bg-gray-50 border rounded hidden">
+            <h3 class="font-bold">テスト結果:</h3>
+            <pre id="result-text" class="text-sm mt-2"></pre>
+        </div>
+    </div>
+    
+    <script>
+        window.addEventListener('load', function() {
+            console.log('🧪 クイックログインテストページ初期化');
+            
+            if (window.authManager) {
+                console.log('✅ AuthManager loaded successfully');
+            } else {
+                console.log('❌ AuthManager not loaded');
+            }
+        });
+        
+        function testQuickLogin(type) {
+            console.log(`🚀 Testing quick login for: ${type}`);
+            
+            let email, password;
+            if (type === 'student') {
+                email = 'student@neo-academy.jp';
+                password = 'student123';
+            } else if (type === 'admin') {
+                email = 'admin@neo.com';
+                password = 'password123';
+            } else if (type === 'company') {
+                email = 'staff@techcorp.com';
+                password = 'company123';
+            }
+            
+            if (!window.authManager) {
+                showResult('❌ AuthManager not loaded', false);
+                return;
+            }
+            
+            // クイックログイン実行
+            const result = window.authManager.quickLogin(email, password);
+            console.log('Quick Login Result:', result);
+            
+            showResult(JSON.stringify(result, null, 2), result.success);
+            
+            if (result.success) {
+                console.log('✅ Quick login successful!');
+                console.log('User:', result.user);
+                
+                // セッション確認
+                const session = window.authManager.getCurrentSession();
+                console.log('Current session:', session);
+            }
+        }
+        
+        function testNormalLogin() {
+            console.log('🔐 Testing normal login with TOTP');
+            
+            if (!window.authManager) {
+                showResult('❌ AuthManager not loaded', false);
+                return;
+            }
+            
+            // 通常ログイン実行（TOTP有り）
+            const result = window.authManager.login('admin@neo.com', 'password123', '123456');
+            console.log('Normal Login Result:', result);
+            
+            showResult(JSON.stringify(result, null, 2), result.success);
+        }
+        
+        function showResult(text, success) {
+            const resultDiv = document.getElementById('result');
+            const resultText = document.getElementById('result-text');
+            
+            resultText.textContent = text;
+            resultDiv.classList.remove('hidden');
+            
+            if (success) {
+                resultDiv.className = 'mt-4 p-3 bg-green-50 border border-green-200 rounded';
+            } else {
+                resultDiv.className = 'mt-4 p-3 bg-red-50 border border-red-200 rounded';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>完全ナビゲーションテスト - NEO Digital Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/auth.js"></script>
+</head>
+<body class="bg-gray-50 p-4">
+    <div class="max-w-6xl mx-auto">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">🚀 NEO Platform 完全ナビゲーションテスト</h1>
+        
+        <!-- 認証セクション -->
+        <div class="bg-white p-6 rounded-lg shadow mb-6">
+            <h2 class="text-xl font-semibold mb-4 flex items-center">
+                <i class="fas fa-key mr-2 text-blue-600"></i>
+                認証ステータス
+            </h2>
+            <div class="flex items-center justify-between">
+                <div id="auth-status" class="text-gray-600">未ログイン</div>
+                <button onclick="quickAdminLogin()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                    管理者ログイン
+                </button>
+            </div>
+        </div>
+
+        <!-- ナビゲーションテスト -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <!-- KPI起点ナビゲーション -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h3 class="text-lg font-semibold mb-4 flex items-center">
+                    <i class="fas fa-chart-line mr-2 text-green-600"></i>
+                    KPI起点ナビゲーション
+                </h3>
+                <div class="space-y-3">
+                    <button onclick="testNavigation('dashboard')" class="w-full text-left p-3 border border-gray-200 rounded hover:bg-gray-50 transition-colors">
+                        <div class="flex items-center justify-between">
+                            <span>📊 ダッシュボード表示</span>
+                            <i class="fas fa-external-link-alt text-gray-400"></i>
+                        </div>
+                    </button>
+                    <button onclick="testNavigation('kpi-members')" class="w-full text-left p-3 border border-gray-200 rounded hover:bg-blue-50 transition-colors">
+                        <div class="flex items-center justify-between">
+                            <span>👥 会員総数KPI → 全会員一覧</span>
+                            <i class="fas fa-external-link-alt text-blue-400"></i>
+                        </div>
+                    </button>
+                    <button onclick="testNavigation('kpi-atrisk')" class="w-full text-left p-3 border border-gray-200 rounded hover:bg-yellow-50 transition-colors">
+                        <div class="flex items-center justify-between">
+                            <span>⚠️ 離脱予備軍KPI → 離脱予備軍フィルタ</span>
+                            <i class="fas fa-external-link-alt text-yellow-400"></i>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- メニュー起点ナビゲーション -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h3 class="text-lg font-semibold mb-4 flex items-center">
+                    <i class="fas fa-bars mr-2 text-purple-600"></i>
+                    メニュー起点ナビゲーション
+                </h3>
+                <div class="space-y-3">
+                    <button onclick="testNavigation('menu-all')" class="w-full text-left p-3 border border-gray-200 rounded hover:bg-blue-50 transition-colors">
+                        <div class="flex items-center justify-between">
+                            <span>📋 会員管理 → 全会員一覧</span>
+                            <i class="fas fa-external-link-alt text-blue-400"></i>
+                        </div>
+                    </button>
+                    <button onclick="testNavigation('menu-active')" class="w-full text-left p-3 border border-gray-200 rounded hover:bg-green-50 transition-colors">
+                        <div class="flex items-center justify-between">
+                            <span>✅ 会員管理 → アクティブ会員</span>
+                            <i class="fas fa-external-link-alt text-green-400"></i>
+                        </div>
+                    </button>
+                    <button onclick="testNavigation('menu-atrisk')" class="w-full text-left p-3 border border-gray-200 rounded hover:bg-yellow-50 transition-colors">
+                        <div class="flex items-center justify-between">
+                            <span>⚠️ 会員管理 → 離脱予備軍</span>
+                            <i class="fas fa-external-link-alt text-yellow-400"></i>
+                        </div>
+                    </button>
+                    <button onclick="testNavigation('menu-csv')" class="w-full text-left p-3 border border-gray-200 rounded hover:bg-purple-50 transition-colors">
+                        <div class="flex items-center justify-between">
+                            <span>📊 会員管理 → CSV出力</span>
+                            <i class="fas fa-external-link-alt text-purple-400"></i>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- データ統計 -->
+        <div class="bg-white p-6 rounded-lg shadow mb-6">
+            <h3 class="text-lg font-semibold mb-4 flex items-center">
+                <i class="fas fa-chart-pie mr-2 text-indigo-600"></i>
+                リアルタイム会員統計
+            </h3>
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div class="text-center p-3 bg-blue-50 rounded">
+                    <div id="stat-total" class="text-2xl font-bold text-blue-700">-</div>
+                    <div class="text-sm text-blue-600">総会員数</div>
+                </div>
+                <div class="text-center p-3 bg-green-50 rounded">
+                    <div id="stat-active" class="text-2xl font-bold text-green-700">-</div>
+                    <div class="text-sm text-green-600">アクティブ</div>
+                </div>
+                <div class="text-center p-3 bg-yellow-50 rounded">
+                    <div id="stat-atrisk" class="text-2xl font-bold text-yellow-700">-</div>
+                    <div class="text-sm text-yellow-600">離脱予備軍</div>
+                </div>
+                <div class="text-center p-3 bg-purple-50 rounded">
+                    <div id="stat-hero" class="text-2xl font-bold text-purple-700">-</div>
+                    <div class="text-sm text-purple-600">ヒーロー認定</div>
+                </div>
+                <div class="text-center p-3 bg-indigo-50 rounded">
+                    <div id="stat-rate" class="text-2xl font-bold text-indigo-700">-</div>
+                    <div class="text-sm text-indigo-600">認定率</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- テストログ -->
+        <div class="bg-white p-6 rounded-lg shadow">
+            <h3 class="text-lg font-semibold mb-4 flex items-center">
+                <i class="fas fa-terminal mr-2 text-gray-600"></i>
+                テスト実行ログ
+            </h3>
+            <div id="test-log" class="bg-gray-900 text-green-400 p-4 rounded font-mono text-sm h-64 overflow-y-auto">
+                <div>[SYSTEM] NEO Platform ナビゲーションテスト準備完了</div>
+                <div>[INFO] まず「管理者ログイン」を実行してください</div>
+                <div>[INFO] その後、各ナビゲーションボタンをテストできます</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function log(message, type = 'INFO') {
+            const logElement = document.getElementById('test-log');
+            const timestamp = new Date().toLocaleTimeString();
+            const color = type === 'ERROR' ? 'text-red-400' : type === 'SUCCESS' ? 'text-green-400' : type === 'WARN' ? 'text-yellow-400' : 'text-green-400';
+            logElement.innerHTML += `<div class="${color}">[${timestamp}] [${type}] ${message}</div>`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function quickAdminLogin() {
+            log('管理者ログイン処理開始');
+            
+            if (!window.authManager) {
+                log('authManagerが初期化されていません', 'ERROR');
+                return;
+            }
+            
+            const result = window.authManager.quickLogin('admin@neo.com', 'password123');
+            
+            if (result.success) {
+                log(`管理者ログイン成功: ${result.user.name}`, 'SUCCESS');
+                document.getElementById('auth-status').innerHTML = `
+                    <div class="flex items-center text-green-600">
+                        <i class="fas fa-check-circle mr-2"></i>
+                        ${result.user.name} (${result.user.role})
+                    </div>
+                `;
+                loadMemberStats();
+            } else {
+                log(`管理者ログイン失敗: ${result.message}`, 'ERROR');
+            }
+        }
+        
+        function testNavigation(type) {
+            if (!checkAuth()) return;
+            
+            const urls = {
+                'dashboard': '/admin-dashboard.html',
+                'kpi-members': '/admin-members.html',
+                'kpi-atrisk': '/admin-members.html?filter=at_risk',
+                'menu-all': '/admin-members.html',
+                'menu-active': '/admin-members.html?filter=active',
+                'menu-atrisk': '/admin-members.html?filter=at_risk',
+                'menu-csv': '/admin-members.html?action=csv_export'
+            };
+            
+            const descriptions = {
+                'dashboard': 'ダッシュボード',
+                'kpi-members': 'KPI経由→全会員一覧',
+                'kpi-atrisk': 'KPI経由→離脱予備軍',
+                'menu-all': 'メニュー経由→全会員一覧',
+                'menu-active': 'メニュー経由→アクティブ会員',
+                'menu-atrisk': 'メニュー経由→離脱予備軍',
+                'menu-csv': 'メニュー経由→CSV出力'
+            };
+            
+            const url = urls[type];
+            const description = descriptions[type];
+            
+            if (url) {
+                log(`${description}にナビゲート: ${url}`);
+                setTimeout(() => {
+                    window.open(url, '_blank');
+                    log(`${description}のページを新しいタブで開きました`, 'SUCCESS');
+                }, 500);
+            } else {
+                log(`未知のナビゲーションタイプ: ${type}`, 'ERROR');
+            }
+        }
+        
+        function checkAuth() {
+            if (!window.authManager || !window.authManager.getCurrentUser()) {
+                log('ログインが必要です - 先に管理者ログインを実行してください', 'WARN');
+                return false;
+            }
+            
+            const user = window.authManager.getCurrentUser();
+            if (user.role !== 'admin') {
+                log('管理者権限が必要です', 'ERROR');
+                return false;
+            }
+            
+            return true;
+        }
+        
+        function loadMemberStats() {
+            log('会員統計データを読み込み中...');
+            
+            // 会員データを動的に読み込み
+            const script = document.createElement('script');
+            script.src = '/members.js';
+            script.onload = function() {
+                if (typeof demoMembers !== 'undefined') {
+                    const total = demoMembers.length;
+                    const active = demoMembers.filter(m => m.status === 'active').length;
+                    const atRisk = demoMembers.filter(m => m.is_inactive_30d || m.status === 'inactive').length;
+                    const heroCertified = demoMembers.filter(m => m.is_hero_certified).length;
+                    const heroRate = ((heroCertified / total) * 100).toFixed(1);
+                    
+                    // 統計表示を更新
+                    document.getElementById('stat-total').textContent = total;
+                    document.getElementById('stat-active').textContent = active;
+                    document.getElementById('stat-atrisk').textContent = atRisk;
+                    document.getElementById('stat-hero').textContent = heroCertified;
+                    document.getElementById('stat-rate').textContent = heroRate + '%';
+                    
+                    log(`統計データ更新完了: 総数${total}, アクティブ${active}, 離脱予備軍${atRisk}, ヒーロー認定${heroCertified}名(${heroRate}%)`, 'SUCCESS');
+                } else {
+                    log('会員データの読み込みに失敗', 'ERROR');
+                }
+            };
+            script.onerror = function() {
+                log('members.jsの読み込みエラー', 'ERROR');
+            };
+            document.head.appendChild(script);
+        }
+        
+        // 初期化
+        window.addEventListener('load', function() {
+            log('NEO Platform 完全ナビゲーションテスト初期化完了', 'SUCCESS');
+            log('📋 テスト手順:');
+            log('1. 管理者ログインボタンをクリック');
+            log('2. KPI起点ナビゲーションをテスト');
+            log('3. メニュー起点ナビゲーションをテスト');
+            log('4. 各ページの動作を確認');
+        });
+    </script>
+</body>
+</html>

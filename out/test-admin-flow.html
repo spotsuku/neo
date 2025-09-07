@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理者フローテスト - NEO Digital Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/auth.js"></script>
+</head>
+<body class="bg-gray-50 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6">管理者フローテスト</h1>
+        
+        <div class="bg-white p-6 rounded-lg shadow mb-6">
+            <h2 class="text-xl font-semibold mb-4">認証テスト</h2>
+            <div class="space-x-4">
+                <button onclick="testAdminLogin()" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                    管理者ログイン
+                </button>
+                <button onclick="checkCurrentUser()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                    現在のユーザー確認
+                </button>
+                <button onclick="goToMembersPage()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                    会員ページに移動
+                </button>
+                <button onclick="logout()" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
+                    ログアウト
+                </button>
+            </div>
+        </div>
+        
+        <div class="bg-white p-6 rounded-lg shadow">
+            <h2 class="text-xl font-semibold mb-4">テスト結果</h2>
+            <div id="test-results" class="space-y-2 text-sm font-mono bg-gray-100 p-4 rounded min-h-32">
+                テスト結果がここに表示されます...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function log(message) {
+            const results = document.getElementById('test-results');
+            const timestamp = new Date().toLocaleTimeString();
+            results.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+            results.scrollTop = results.scrollHeight;
+        }
+
+        function testAdminLogin() {
+            log('🔐 管理者クイックログインテスト開始');
+            
+            if (!window.authManager) {
+                log('❌ authManagerが初期化されていません');
+                return;
+            }
+            
+            const result = window.authManager.quickLogin('admin@neo.com', 'password123');
+            log(`📊 ログイン結果: ${JSON.stringify(result, null, 2)}`);
+            
+            if (result.success) {
+                log('✅ 管理者ログイン成功');
+                log(`👤 ユーザー: ${result.user.name} (${result.user.role})`);
+            } else {
+                log('❌ 管理者ログイン失敗: ' + result.message);
+            }
+        }
+        
+        function checkCurrentUser() {
+            log('👤 現在のユーザー確認');
+            
+            if (!window.authManager) {
+                log('❌ authManagerが初期化されていません');
+                return;
+            }
+            
+            const user = window.authManager.getCurrentUser();
+            log(`📊 現在のユーザー: ${JSON.stringify(user, null, 2)}`);
+            
+            if (user) {
+                log(`✅ ユーザー認証済み: ${user.name} (${user.role})`);
+                
+                if (user.role === 'admin') {
+                    log('✅ 管理者権限確認済み - 会員ページアクセス可能');
+                } else {
+                    log('⚠️ 管理者権限なし - 会員ページアクセス不可');
+                }
+            } else {
+                log('❌ 未認証 - ログインが必要');
+            }
+        }
+        
+        function goToMembersPage() {
+            log('📄 会員ページに移動');
+            
+            const user = window.authManager?.getCurrentUser();
+            if (!user) {
+                log('❌ ログインが必要です');
+                return;
+            }
+            
+            if (user.role !== 'admin') {
+                log('❌ 管理者権限が必要です');
+                return;
+            }
+            
+            log('✅ 権限確認済み - 会員ページに移動します');
+            setTimeout(() => {
+                window.location.href = '/admin-members.html';
+            }, 1000);
+        }
+        
+        function logout() {
+            log('🚪 ログアウト実行');
+            
+            if (window.authManager) {
+                window.authManager.logout();
+                log('✅ ログアウト完了');
+            } else {
+                log('❌ authManagerが初期化されていません');
+            }
+        }
+        
+        // 初期化
+        window.addEventListener('load', function() {
+            log('🔄 ページ初期化完了');
+            log('📋 利用可能な操作: 管理者ログイン → 現在のユーザー確認 → 会員ページに移動');
+        });
+    </script>
+</body>
+</html>
