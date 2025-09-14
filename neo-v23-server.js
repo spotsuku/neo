@@ -2,7 +2,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-const PORT = 3000;
+const PORT = process.env.PORT || 8000;
 const HOST = '0.0.0.0';
 
 // NEO v2.3専用サーバー - 実運用データ収集・安定化準備版

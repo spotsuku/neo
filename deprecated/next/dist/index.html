@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEOポータル - Modern Portal Platform</title>
+    <meta name="description" content="NEOポータル - 現代のビジネス向けモダンポータルプラットフォーム">
+    <meta name="keywords" content="ポータル, ビジネス, プラットフォーム, 管理システム">
+    <meta name="author" content="NEO Portal Team">
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="NEOポータル - Modern Portal Platform">
+    <meta property="og:description" content="NEOポータル - 現代のビジネス向けモダンポータルプラットフォーム">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://app.neo-portal.jp">
+    <meta property="og:site_name" content="NEOポータル">
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="NEOポータル - Modern Portal Platform">
+    <meta name="twitter:description" content="NEOポータル - 現代のビジネス向けモダンポータルプラットフォーム">
+    
+    <!-- Favicon -->
+    <link rel="icon" href="/favicon.ico">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    
+    <!-- Styles -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        .pulse-animation {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Navigation Header -->
+    <header class="gradient-bg text-white shadow-lg">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <i class="fas fa-rocket text-3xl"></i>
+                    <div>
+                        <h1 class="text-2xl font-bold">NEOポータル</h1>
+                        <p class="text-sm text-blue-100">Modern Portal Platform</p>
+                    </div>
+                </div>
+                <nav class="hidden md:flex space-x-6">
+                    <a href="/dashboard.html" class="hover:text-blue-200 transition-colors flex items-center">
+                        <i class="fas fa-tachometer-alt mr-2"></i>ダッシュボード
+                    </a>
+                    <a href="/admin.html" class="hover:text-blue-200 transition-colors flex items-center">
+                        <i class="fas fa-shield-alt mr-2"></i>管理
+                    </a>
+                    <a href="/profile.html" class="hover:text-blue-200 transition-colors flex items-center">
+                        <i class="fas fa-user mr-2"></i>プロフィール
+                    </a>
+                    <a href="#api" class="hover:text-blue-200 transition-colors flex items-center">
+                        <i class="fas fa-code mr-2"></i>API
+                    </a>
+                </nav>
+                <button class="md:hidden text-white">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-6 py-8">
+        <!-- Status Banner -->
+        <div class="mb-8 p-6 bg-gradient-to-r from-green-100 to-blue-100 border border-green-300 rounded-lg shadow-sm">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-check-circle text-green-600 text-2xl pulse-animation"></i>
+                </div>
+                <div class="ml-4">
+                    <h3 class="font-semibold text-green-800 text-lg">✅ NEOポータル v2.0.0 正常稼働中</h3>
+                    <p class="text-green-700 mt-1">
+                        <strong>UI:</strong> <code class="bg-white px-2 py-1 rounded">app.neo-portal.jp</code> → Cloudflare Pages | 
+                        <strong>API:</strong> <code class="bg-white px-2 py-1 rounded">api.neo-portal.jp</code> → Backend Server
+                    </p>
+                    <p class="text-sm text-green-600 mt-2">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        リブランディング完了 - すべてのシステムが 'neo-portal' に統一されました
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Feature Cards Grid -->
+        <section id="features" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+            <!-- User Management -->
+            <div class="card-hover bg-white rounded-lg shadow-md p-6 border border-gray-200">
+                <div class="flex items-center mb-4">
+                    <div class="bg-blue-100 p-3 rounded-full mr-4">
+                        <i class="fas fa-users text-blue-600 text-xl"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-800">ユーザー管理</h3>
+                </div>
+                <p class="text-gray-600 mb-4">ロールベースアクセス制御（RBAC）によるセキュアなユーザー管理システム</p>
+                <div class="flex flex-wrap gap-2 mb-4">
+                    <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">認証・認可</span>
+                    <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">2FA対応</span>
+                </div>
+                <a href="/admin.html" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors inline-block text-center">
+                    <i class="fas fa-arrow-right mr-2"></i>管理画面へ
+                </a>
+            </div>
+
+            <!-- Analytics Dashboard -->
+            <div class="card-hover bg-white rounded-lg shadow-md p-6 border border-gray-200">
+                <div class="flex items-center mb-4">
+                    <div class="bg-green-100 p-3 rounded-full mr-4">
+                        <i class="fas fa-chart-line text-green-600 text-xl"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-800">データ分析</h3>
+                </div>
+                <p class="text-gray-600 mb-4">リアルタイムデータとパフォーマンス指標の可視化ダッシュボード</p>
+                <div class="flex flex-wrap gap-2 mb-4">
+                    <span class="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">リアルタイム</span>
+                    <span class="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded">レポート</span>
+                </div>
+                <a href="/dashboard.html" class="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition-colors inline-block text-center">
+                    <i class="fas fa-chart-bar mr-2"></i>ダッシュボードへ
+                </a>
+            </div>
+
+            <!-- System Configuration -->
+            <div class="card-hover bg-white rounded-lg shadow-md p-6 border border-gray-200">
+                <div class="flex items-center mb-4">
+                    <div class="bg-purple-100 p-3 rounded-full mr-4">
+                        <i class="fas fa-cog text-purple-600 text-xl"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-800">システム設定</h3>
+                </div>
+                <p class="text-gray-600 mb-4">プラットフォーム全体の設定管理と運用監視機能</p>
+                <div class="flex flex-wrap gap-2 mb-4">
+                    <span class="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">管理者専用</span>
+                    <span class="text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded">設定管理</span>
+                </div>
+                <a href="/profile.html" class="w-full bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700 transition-colors inline-block text-center">
+                    <i class="fas fa-wrench mr-2"></i>プロフィール設定へ
+                </a>
+            </div>
+
+            <!-- File Management -->
+            <div class="card-hover bg-white rounded-lg shadow-md p-6 border border-gray-200">
+                <div class="flex items-center mb-4">
+                    <div class="bg-yellow-100 p-3 rounded-full mr-4">
+                        <i class="fas fa-folder-open text-yellow-600 text-xl"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-800">ファイル管理</h3>
+                </div>
+                <p class="text-gray-600 mb-4">セキュアなファイルアップロード、ダウンロード、共有機能</p>
+                <div class="flex flex-wrap gap-2 mb-4">
+                    <span class="text-xs bg-cyan-100 text-cyan-800 px-2 py-1 rounded">クラウド対応</span>
+                    <span class="text-xs bg-pink-100 text-pink-800 px-2 py-1 rounded">暗号化</span>
+                </div>
+                <button class="w-full bg-yellow-600 text-white py-2 px-4 rounded-md hover:bg-yellow-700 transition-colors">
+                    <i class="fas fa-upload mr-2"></i>ファイル管理へ
+                </button>
+            </div>
+
+            <!-- API Integration -->
+            <div class="card-hover bg-white rounded-lg shadow-md p-6 border border-gray-200">
+                <div class="flex items-center mb-4">
+                    <div class="bg-indigo-100 p-3 rounded-full mr-4">
+                        <i class="fas fa-code text-indigo-600 text-xl"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-800">API統合</h3>
+                </div>
+                <p class="text-gray-600 mb-4">RESTful API とOpenAPI 3.0準拠のドキュメント</p>
+                <div class="flex flex-wrap gap-2 mb-4">
+                    <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">REST API</span>
+                    <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">OpenAPI 3.0</span>
+                </div>
+                <button class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition-colors">
+                    <i class="fas fa-book mr-2"></i>API仕様書へ
+                </button>
+            </div>
+
+            <!-- Notifications -->
+            <div class="card-hover bg-white rounded-lg shadow-md p-6 border border-gray-200">
+                <div class="flex items-center mb-4">
+                    <div class="bg-red-100 p-3 rounded-full mr-4">
+                        <i class="fas fa-bell text-red-600 text-xl"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-800">通知システム</h3>
+                </div>
+                <p class="text-gray-600 mb-4">リアルタイム通知とアナウンスメント管理</p>
+                <div class="flex flex-wrap gap-2 mb-4">
+                    <span class="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">リアルタイム</span>
+                    <span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">メール連携</span>
+                </div>
+                <button class="w-full bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 transition-colors">
+                    <i class="fas fa-envelope mr-2"></i>通知センターへ
+                </button>
+            </div>
+        </section>
+
+        <!-- API Connection Test Section -->
+        <section id="api" class="bg-white rounded-lg shadow-md p-8 border border-gray-200 mb-8">
+            <div class="flex items-center mb-6">
+                <div class="bg-indigo-100 p-3 rounded-full mr-4">
+                    <i class="fas fa-plug text-indigo-600 text-2xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-xl font-semibold text-gray-800">API 接続テスト</h3>
+                    <p class="text-gray-600">バックエンドAPI（api.neo-portal.jp）との接続状況を確認</p>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="space-y-4">
+                    <button id="test-health" class="w-full bg-indigo-600 text-white py-3 px-4 rounded-md hover:bg-indigo-700 transition-colors flex items-center justify-center">
+                        <i class="fas fa-heartbeat mr-2"></i>
+                        Health Check
+                    </button>
+                    <button id="test-auth" class="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center">
+                        <i class="fas fa-lock mr-2"></i>
+                        認証API テスト
+                    </button>
+                    <button id="test-users" class="w-full bg-green-600 text-white py-3 px-4 rounded-md hover:bg-green-700 transition-colors flex items-center justify-center">
+                        <i class="fas fa-users mr-2"></i>
+                        ユーザーAPI テスト
+                    </button>
+                </div>
+                
+                <div>
+                    <h4 class="font-semibold text-gray-700 mb-3">結果表示</h4>
+                    <div id="api-result" class="bg-gray-100 p-4 rounded-md text-sm font-mono min-h-[200px] border">
+                        <span class="text-gray-500">結果がここに表示されます...</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- System Information -->
+        <section class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-200">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+                システム情報
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
+                <div>
+                    <h4 class="font-medium text-gray-700 mb-2">プラットフォーム</h4>
+                    <ul class="space-y-1 text-gray-600">
+                        <li><i class="fas fa-cloud mr-2 text-blue-500"></i>Cloudflare Pages</li>
+                        <li><i class="fas fa-server mr-2 text-green-500"></i>Edge Computing</li>
+                        <li><i class="fas fa-shield-alt mr-2 text-purple-500"></i>SSL/TLS 暗号化</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-medium text-gray-700 mb-2">技術スタック</h4>
+                    <ul class="space-y-1 text-gray-600">
+                        <li><i class="fab fa-js-square mr-2 text-yellow-500"></i>Next.js 15</li>
+                        <li><i class="fas fa-database mr-2 text-blue-500"></i>Cloudflare D1</li>
+                        <li><i class="fas fa-key mr-2 text-red-500"></i>JWT + 2FA</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-medium text-gray-700 mb-2">バージョン情報</h4>
+                    <ul class="space-y-1 text-gray-600">
+                        <li><i class="fas fa-tag mr-2 text-indigo-500"></i>v2.0.0</li>
+                        <li><i class="fas fa-calendar mr-2 text-orange-500"></i>2024年9月7日</li>
+                        <li><i class="fas fa-rocket mr-2 text-pink-500"></i>Production Ready</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-8 mt-16">
+        <div class="container mx-auto px-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">
+                        <i class="fas fa-rocket mr-2"></i>NEOポータル
+                    </h4>
+                    <p class="text-gray-300 text-sm">
+                        現代のビジネス向けモダンポータルプラットフォーム
+                    </p>
+                </div>
+                <div>
+                    <h5 class="font-semibold mb-3">クイックリンク</h5>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="#dashboard" class="text-gray-300 hover:text-white transition-colors">ダッシュボード</a></li>
+                        <li><a href="#api" class="text-gray-300 hover:text-white transition-colors">API仕様書</a></li>
+                        <li><a href="#settings" class="text-gray-300 hover:text-white transition-colors">設定</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h5 class="font-semibold mb-3">技術情報</h5>
+                    <ul class="space-y-2 text-sm">
+                        <li class="text-gray-300">Powered by Cloudflare Pages</li>
+                        <li class="text-gray-300">API: api.neo-portal.jp</li>
+                        <li class="text-gray-300">Version 2.0.0</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-gray-700 mt-8 pt-6 text-center text-sm text-gray-400">
+                <p>&copy; 2024 NEOポータル. All Rights Reserved.</p>
+                <p class="mt-1">Modern Portal Platform for Business | Powered by NEO Portal Team</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        // API Base URL Configuration
+        const API_BASE_URL = 'https://api.neo-portal.jp';
+        
+        // API Test Functions
+        async function testAPI(endpoint, buttonId, description) {
+            const resultDiv = document.getElementById('api-result');
+            const button = document.getElementById(buttonId);
+            
+            // Update UI
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>テスト中...';
+            resultDiv.innerHTML = `<span class="text-blue-600">🔄 ${description} をテスト中...</span>`;
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                const timestamp = new Date().toLocaleString('ja-JP');
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="text-green-600 font-semibold mb-2">✅ ${description} 成功</div>
+                        <div class="text-xs text-gray-500 mb-2">${timestamp}</div>
+                        <div class="bg-green-50 p-2 rounded border">
+                            <div class="text-sm"><strong>Status:</strong> ${response.status} ${response.statusText}</div>
+                            <div class="text-sm"><strong>Response:</strong></div>
+                            <pre class="text-xs mt-1 overflow-auto">${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="text-red-600 font-semibold mb-2">❌ ${description} エラー</div>
+                        <div class="text-xs text-gray-500 mb-2">${timestamp}</div>
+                        <div class="bg-red-50 p-2 rounded border">
+                            <div class="text-sm"><strong>Status:</strong> ${response.status} ${response.statusText}</div>
+                            <div class="text-sm"><strong>Error:</strong></div>
+                            <pre class="text-xs mt-1 overflow-auto">${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                const timestamp = new Date().toLocaleString('ja-JP');
+                resultDiv.innerHTML = `
+                    <div class="text-red-600 font-semibold mb-2">❌ ${description} 接続エラー</div>
+                    <div class="text-xs text-gray-500 mb-2">${timestamp}</div>
+                    <div class="bg-red-50 p-2 rounded border">
+                        <div class="text-sm"><strong>Error:</strong> ${error.name}</div>
+                        <div class="text-xs mt-1">${error.message}</div>
+                        <div class="text-xs mt-2 text-gray-600">
+                            💡 ヒント: CORS設定やネットワーク接続を確認してください
+                        </div>
+                    </div>
+                `;
+            } finally {
+                // Reset button
+                button.disabled = false;
+                const originalTexts = {
+                    'test-health': '<i class="fas fa-heartbeat mr-2"></i>Health Check',
+                    'test-auth': '<i class="fas fa-lock mr-2"></i>認証API テスト',
+                    'test-users': '<i class="fas fa-users mr-2"></i>ユーザーAPI テスト'
+                };
+                button.innerHTML = originalTexts[buttonId];
+            }
+        }
+        
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // API Test Buttons
+            document.getElementById('test-health').addEventListener('click', () => {
+                testAPI('/health', 'test-health', 'Health Check API');
+            });
+            
+            document.getElementById('test-auth').addEventListener('click', () => {
+                testAPI('/api/auth/me', 'test-auth', '認証API');
+            });
+            
+            document.getElementById('test-users').addEventListener('click', () => {
+                testAPI('/api/users', 'test-users', 'ユーザーAPI');
+            });
+            
+            // Page Load Success Log
+            console.log('🚀 NEOポータル v2.0.0 - 正常に読み込まれました');
+            console.log('📍 現在のドメイン:', window.location.hostname);
+            console.log('🔗 API Base URL:', API_BASE_URL);
+            console.log('🎯 プラットフォーム: Cloudflare Pages');
+            
+            // Auto Health Check (Optional)
+            setTimeout(() => {
+                console.log('🔄 自動Health Check実行中...');
+                // Uncomment the next line for auto health check
+                // testAPI('/health', 'test-health', 'Auto Health Check');
+            }, 2000);
+        });
+        
+        // Smooth Scrolling for Navigation
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
