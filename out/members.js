@@ -720,16 +720,69 @@ async function loadMemberDetail(memberId) {
         //     }
         // });
         
-        // デモ用：ローカルデータから取得
-        const member = demoMembers.find(m => m.id === memberId);
-        if (!member) {
-            throw new Error('会員が見つかりません');
-        }
+        // フィーチャーフラグによる実装切り替え
+        const useApiData = window.FEATURE_MEMBER_AFFILIATION_BINDING === 'on';
+        let result;
         
-        const result = {
-            success: true,
-            data: member
-        };
+        if (useApiData) {
+            console.log('🌐 API から会員詳細を取得:', memberId);
+            
+            try {
+                // APIから会員データを取得
+                const response = await fetch('/api/members', {
+                    headers: {
+                        'X-User-Role': 'admin',
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`API Error: ${response.status}`);
+                }
+                
+                const apiData = await response.json();
+                const apiMember = apiData.members?.find(m => m.id === memberId);
+                
+                if (!apiMember) {
+                    throw new Error('会員が見つかりません');
+                }
+                
+                result = {
+                    success: true,
+                    data: apiMember
+                };
+                
+                console.log('✅ API から会員詳細取得完了:', apiMember.name);
+                
+            } catch (apiError) {
+                console.warn('⚠️ API取得エラー、ローカルデータにフォールバック:', apiError);
+                
+                // APIエラー時はローカルデータにフォールバック
+                const member = demoMembers.find(m => m.id === memberId);
+                if (!member) {
+                    throw new Error('会員が見つかりません');
+                }
+                
+                result = {
+                    success: true,
+                    data: member
+                };
+            }
+        } else {
+            console.log('💾 ローカルデータから会員詳細を取得');
+            
+            // デモ用：ローカルデータから取得
+            const member = demoMembers.find(m => m.id === memberId);
+            if (!member) {
+                throw new Error('会員が見つかりません');
+            }
+            
+            result = {
+                success: true,
+                data: member
+            };
+        }
         
         if (result.success) {
             currentMemberId = memberId;
@@ -769,6 +822,21 @@ function populateMemberForm(member) {
     if (statusSelect) statusSelect.value = member.status || 'active';
     if (birthdateInput) birthdateInput.value = member.birthdate || '';
     if (roleSelect) roleSelect.value = member.primary_role || member.all_roles?.split(',')[0] || 'student';
+    
+    // 基本情報タブの所属名フィールドも更新
+    const affiliationBasicInput = document.getElementById('edit-affiliation-basic');
+    if (affiliationBasicInput) affiliationBasicInput.value = member.affiliation || '';
+    
+    // ヒーローステップセレクターも更新
+    const heroStepSelect = document.getElementById('edit-hero-step');
+    if (heroStepSelect && member.hero_step !== undefined) {
+        heroStepSelect.value = member.hero_step.toString();
+    }
+    
+    // エンゲージメントステータスも適切に設定
+    if (statusSelect && member.engagement_status) {
+        statusSelect.value = member.engagement_status;
+    }
     
     // プロフィール情報
     const taglineInput = document.getElementById('edit-tagline');
@@ -929,19 +997,62 @@ async function saveMemberData(closeAfterSave = false) {
         //     body: JSON.stringify(formData)
         // });
         
-        // デモ用：ローカルデータを更新
-        const memberIndex = demoMembers.findIndex(m => m.id === currentMemberId);
-        if (memberIndex >= 0) {
-            demoMembers[memberIndex] = { ...demoMembers[memberIndex], ...formData };
-        }
+        // API経由でデータを更新（統一されたデータソース使用）
+        let result = { success: true };
         
-        const result = { success: true };
+        // フィーチャーフラグによるAPI更新制御
+        if (window.FEATURE_MEMBER_AFFILIATION_BINDING === 'on') {
+            try {
+                // ヒーローステップとステータスの更新を実行
+                console.log('🌐 API経由でデータ更新実行');
+                
+                // hero-step-update.jsで実装されている更新処理を呼び出し
+                if (window.currentMemberId) {
+                    console.log('🔄 API更新処理を実行');
+                    
+                    // ヒーローステップ更新
+                    const heroStepSelect = document.getElementById('edit-hero-step');
+                    if (heroStepSelect) {
+                        await updateMemberHeroStep(window.currentMemberId, parseInt(heroStepSelect.value));
+                    }
+                    
+                    // ステータス更新
+                    const statusSelect = document.getElementById('edit-status');
+                    if (statusSelect && ['core', 'active', 'peripheral', 'at_risk'].includes(statusSelect.value)) {
+                        await updateMemberStatus(window.currentMemberId, statusSelect.value);
+                    }
+                }
+                
+            } catch (error) {
+                console.warn('⚠️ API更新エラー、ローカルフォールバック:', error);
+                // フォールバック：ローカルデータを更新
+                const memberIndex = demoMembers.findIndex(m => m.id === currentMemberId);
+                if (memberIndex >= 0) {
+                    demoMembers[memberIndex] = { ...demoMembers[memberIndex], ...formData };
+                }
+            }
+        } else {
+            // フィーチャーフラグOFF：従来のローカル更新
+            const memberIndex = demoMembers.findIndex(m => m.id === currentMemberId);
+            if (memberIndex >= 0) {
+                demoMembers[memberIndex] = { ...demoMembers[memberIndex], ...formData };
+            }
+        }
         
         if (result.success) {
             showToast('会員情報を保存しました', 'success');
             
-            // テーブルを再読み込み
-            loadMembersData();
+            // テーブルを再読み込み（新しいAPIデータ取得）
+            if (typeof window.loadMembersData === 'function') {
+                console.log('🔄 APIデータを再読み込み');
+                // 少し遅延を入れてAPIの更新が完了してから再読み込み
+                setTimeout(() => {
+                    window.loadMembersData();
+                }, 500);
+            } else {
+                console.log('🔄 従来のデータを再読み込み');
+                loadMembersData();
+            }
             
             if (closeAfterSave) {
                 closeMemberDrawer();
@@ -955,6 +1066,68 @@ async function saveMemberData(closeAfterSave = false) {
     } catch (error) {
         console.error('❌ 会員データ保存エラー:', error);
         showToast(`保存エラー: ${error.message}`, 'error');
+    }
+}
+
+/**
+ * ヒーローステップ更新API呼び出し
+ */
+async function updateMemberHeroStep(memberId, heroStep) {
+    try {
+        console.log('📈 ヒーローステップ更新:', { memberId, heroStep });
+        
+        const response = await fetch(`/api/members/${memberId}/hero-step`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-User-Role': 'admin'
+            },
+            body: JSON.stringify({
+                current_step: heroStep,
+                notes: `Updated via admin interface at ${new Date().toISOString()}`,
+                step_updated_by: 1
+            })
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            console.log('✅ ヒーローステップ更新成功:', result);
+        } else {
+            const error = await response.json();
+            console.error('❌ ヒーローステップ更新失敗:', error);
+        }
+    } catch (error) {
+        console.error('❌ ヒーローステップ更新エラー:', error);
+    }
+}
+
+/**
+ * ステータス更新API呼び出し
+ */
+async function updateMemberStatus(memberId, status) {
+    try {
+        console.log('📊 ステータス更新:', { memberId, status });
+        
+        const response = await fetch(`/api/members/${memberId}/status`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-User-Role': 'admin'
+            },
+            body: JSON.stringify({
+                engagement_status: status
+            })
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            console.log('✅ ステータス更新成功:', result);
+        } else {
+            const error = await response.json();
+            console.error('❌ ステータス更新失敗:', error);
+        }
+    } catch (error) {
+        console.error('❌ ステータス更新エラー:', error);
     }
 }
 
@@ -1140,6 +1313,27 @@ function openMemberDrawer(memberId) {
     setTimeout(() => {
         drawer.classList.remove('translate-x-full');
     }, 10);
+    
+    // 削除ボタンの表示制御（遅延実行で確実に要素が存在することを保証）
+    setTimeout(() => {
+        const deleteBtn = document.getElementById('delete-member-btn');
+        console.log('🔍 削除ボタン要素検索:', deleteBtn ? '見つかりました' : '見つかりません');
+        
+        if (deleteBtn) {
+            if (memberId) {
+                // 既存会員の場合は削除ボタンを表示
+                deleteBtn.style.display = 'inline-flex';
+                deleteBtn.style.visibility = 'visible';
+                console.log('🗑️ 削除ボタンを表示 (既存会員):', memberId);
+            } else {
+                // 新規作成の場合は削除ボタンを非表示
+                deleteBtn.style.display = 'none';
+                console.log('🚫 削除ボタンを非表示 (新規作成)');
+            }
+        } else {
+            console.error('❌ 削除ボタン要素が見つかりません');
+        }
+    }, 100);
     
     // 会員詳細データを読み込み
     if (typeof loadMemberDetail === 'function') {

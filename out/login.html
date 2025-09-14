@@ -184,11 +184,13 @@
                     <!-- デバッグ用クイックログインボタン -->
                     <div class="text-center mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
                         <p class="text-xs text-yellow-700 mb-2">デバッグ用クイックログイン:</p>
-                        <div class="space-x-2">
-                            <button onclick="quickLogin('student')" class="text-xs bg-blue-500 text-white px-2 py-1 rounded">学生</button>
+                        <div class="space-x-1 flex flex-wrap gap-1">
                             <button onclick="quickLogin('admin')" class="text-xs bg-red-500 text-white px-2 py-1 rounded">管理者</button>
-                            <button onclick="quickLogin('company')" class="text-xs bg-purple-500 text-white px-2 py-1 rounded">企業</button>
-                            <button onclick="debugAuth()" class="text-xs bg-green-500 text-white px-2 py-1 rounded">デバッグ</button>
+                            <button onclick="quickLogin('manager')" class="text-xs bg-blue-500 text-white px-2 py-1 rounded">マネージャー</button>
+                            <button onclick="quickLogin('staff')" class="text-xs bg-green-500 text-white px-2 py-1 rounded">スタッフ</button>
+                            <button onclick="quickLogin('student')" class="text-xs bg-purple-500 text-white px-2 py-1 rounded">学生</button>
+                            <button onclick="quickLogin('company')" class="text-xs bg-indigo-500 text-white px-2 py-1 rounded">企業</button>
+                            <button onclick="debugAuth()" class="text-xs bg-gray-500 text-white px-2 py-1 rounded">デバッグ</button>
                             <button onclick="resetAuth()" class="text-xs bg-orange-500 text-white px-2 py-1 rounded">リセット</button>
                         </div>
                     </div>
@@ -259,33 +261,14 @@
                     // ログイン成功
                     console.log('✅ Login successful, user:', response.user);
                     
-                    // ロールベースのリダイレクト先を決定
-                    let redirectUrl = '/dashboard.html'; // デフォルト（学生用）
-                    let dashboardName = 'ダッシュボード';
-                    
-                    if (response.user && response.user.role) {
-                        console.log('👤 User role:', response.user.role);
-                        switch (response.user.role) {
-                            case 'company':
-                                redirectUrl = '/company-dashboard.html';
-                                dashboardName = '企業管理ダッシュボード';
-                                break;
-                            case 'admin':
-                                redirectUrl = '/admin/dashboard';
-                                dashboardName = '事務局ダッシュボード';
-                                break;
-                            case 'student':
-                            default:
-                                redirectUrl = '/dashboard.html';
-                                dashboardName = '学生ダッシュボード';
-                                break;
-                        }
-                    }
+                    // NEO v2.1では全ユーザーが管理ダッシュボードを使用
+                    const redirectUrl = '/admin-dashboard.html';
+                    const dashboardName = 'NEO管理ダッシュボード';
                     
                     showSuccess(`ログイン成功！${dashboardName}に移動します...`);
                     
-                    // ロールに応じたリダイレクト
-                    console.log('🔄 Redirecting to dashboard...');
+                    // ダッシュボードにリダイレクト
+                    console.log('🔄 Redirecting to NEO dashboard...');
                     setTimeout(() => {
                         console.log('📍 Current location:', window.location.href);
                         console.log(`🎯 Target location: ${redirectUrl}`);
@@ -308,7 +291,7 @@
             }
         });
 
-        // バリデーション関数
+        // バリデーション関数（NEO v2.1デモ環境用）
         function validateForm(email, password) {
             let isValid = true;
             
@@ -323,10 +306,8 @@
             if (!password) {
                 showFieldError('password', 'パスワードを入力してください');
                 isValid = false;
-            } else if (password.length < 8) {
-                showFieldError('password', 'パスワードは8文字以上である必要があります');
-                isValid = false;
             }
+            // デモ環境では短いパスワードも許可
             
             return isValid;
         }
@@ -336,7 +317,6 @@
             console.log('🔐 ログイン試行開始');
             console.log('📧 Email:', email);
             console.log('🔑 Password length:', password.length);
-            console.log('🔢 TOTP Code:', totpCode);
             
             // authManagerの存在確認
             if (!window.authManager) {
@@ -347,32 +327,11 @@
                 };
             }
             
-            // ユーザー検索テスト
-            const user = window.authManager.findUserByEmail(email);
-            console.log('👤 検索結果:', user);
-            
-            if (user) {
-                console.log('✅ ユーザーが見つかりました');
-                console.log('🔍 パスワード一致:', user.password === password);
-                console.log('👤 ユーザー詳細:', {
-                    id: user.id,
-                    name: user.name,
-                    email: user.email,
-                    role: user.role,
-                    passwordMatch: user.password === password
-                });
-            } else {
-                console.log('❌ ユーザーが見つかりません');
-                console.log('📝 登録済みメールアドレス一覧:');
-                const users = window.authManager.getUsers();
-                users.forEach(u => console.log(`  - ${u.email}`));
-            }
-            
             // UI遅延（UX向上）
-            await new Promise(resolve => setTimeout(resolve, 800));
+            await new Promise(resolve => setTimeout(resolve, 500));
             
-            // 統合認証システムでログイン
-            const result = window.authManager.login(email, password, totpCode);
+            // NEO v2.1認証システムでログイン
+            const result = await window.authManager.login(email, password);
             console.log('🔐 ログイン結果:', result);
             return result;
         }
@@ -458,24 +417,9 @@
             console.log('================================');
         });
         
-        // デバッグ用クイックログイン関数（認証コード無し）
-        window.quickLogin = function(type) {
-            let email, password;
-            
-            if (type === 'student') {
-                email = 'student@neo-academy.jp';
-                password = 'student123';
-            } else if (type === 'admin') {
-                email = 'admin@neo.com';
-                password = 'password123';
-            } else if (type === 'company') {
-                email = 'staff@techcorp.com';
-                password = 'company123';
-            }
-            
-            console.log(`🚀 クイックログイン開始: ${type}（認証コード無し）`);
-            console.log(`📧 Email: ${email}`);
-            console.log(`🔑 Password: ${password}`);
+        // デバッグ用クイックログイン関数（グローバル関数を直接使用）
+        window.quickLogin = async function(type) {
+            console.log(`🚀 クイックログイン開始: ${type}`);
             
             // authManagerの存在確認
             if (!window.authManager) {
@@ -484,23 +428,28 @@
                 return;
             }
             
-            // クイックログイン実行（認証コード無し）
-            const result = window.authManager.quickLogin(email, password);
-            console.log('🚀 クイックログイン結果:', result);
-            
-            if (result.success) {
-                console.log('✅ クイックログイン成功！');
-                showSuccess(result.message);
+            try {
+                // グローバルquickLogin関数を使用（auth.jsから）
+                const result = await window.authManager.quickLogin(type);
+                console.log('🚀 クイックログイン結果:', result);
                 
-                // ダッシュボードにリダイレクト
-                setTimeout(() => {
-                    const dashboardUrl = getDashboardUrl(result.user.role);
-                    console.log(`🏠 ダッシュボードへリダイレクト: ${dashboardUrl}`);
-                    window.location.href = dashboardUrl;
-                }, 1000);
-            } else {
-                console.error('❌ クイックログイン失敗:', result.message);
-                showError(result.message || 'クイックログインに失敗しました');
+                if (result && result.success) {
+                    console.log('✅ クイックログイン成功！');
+                    showSuccess(`ログイン成功！${result.user.name}さんとしてログインしました。`);
+                    
+                    // NEO v2.1では全て管理ダッシュボードにリダイレクト
+                    setTimeout(() => {
+                        const dashboardUrl = '/admin-dashboard.html';
+                        console.log(`🏠 ダッシュボードへリダイレクト: ${dashboardUrl}`);
+                        window.location.href = dashboardUrl;
+                    }, 1000);
+                } else {
+                    console.error('❌ クイックログイン失敗:', result ? result.error : 'Unknown error');
+                    showError(result ? result.error : 'クイックログインに失敗しました');
+                }
+            } catch (error) {
+                console.error('❌ クイックログインエラー:', error);
+                showError(`クイックログインエラー: ${error.message}`);
             }
         };
         

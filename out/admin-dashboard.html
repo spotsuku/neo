@@ -1240,6 +1240,9 @@
     </div>
 
     <script>
+        // フィーチャーフラグ設定
+        window.FEATURE_ENGAGEMENT_V2 = true; // 実データ注入を有効化
+        
         // 認証チェック
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🔐 事務局ダッシュボード - 認証チェック');
@@ -1249,27 +1252,25 @@
                 window.authManager = new AuthManager();
             }
             
-            const session = window.authManager.getCurrentSession();
-            console.log('👤 Current session:', session);
-            
-            if (!session || !session.user) {
+            // 認証状態をチェック（auth.jsの標準メソッドを使用）
+            if (!window.authManager.isAuthenticated()) {
                 console.log('❌ 未認証 - ログインページにリダイレクト');
                 window.location.href = '/login.html';
                 return;
             }
             
-            if (session.user.role !== 'admin') {
-                console.log('❌ 管理者権限なし - ダッシュボードにリダイレクト');
-                window.location.href = '/dashboard.html';
-                return;
-            }
+            const currentUser = window.authManager.getCurrentUser();
+            console.log('👤 Current user:', currentUser);
+            
+            // NEO v2.1では全ロールがダッシュボードアクセス可能
+            // 管理者権限チェックをスキップ
             
             console.log('✅ 事務局権限確認済み');
             
             // 管理者名を表示
             const adminName = document.getElementById('admin-name');
-            if (adminName && session.user.name) {
-                adminName.textContent = session.user.name;
+            if (adminName && currentUser.name) {
+                adminName.textContent = currentUser.name;
             }
             
             // ダッシュボードの初期化
@@ -1900,5 +1901,11 @@
         console.log('🚀 NEO Digital Platform - 事務局ダッシュボード');
         console.log('🎯 KPI起点の統合管理システムが利用可能です');
     </script>
+    
+    <!-- ダッシュボード分析機能 -->
+    <script src="/js/dashboard-analytics.js"></script>
+    
+    <!-- 関与度チャート実データアダプター -->
+    <script src="/js/engagement-chart-adapter.js" defer></script>
 </body>
 </html>

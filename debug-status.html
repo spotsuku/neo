@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>デバッグ - ステータス更新テスト</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6">🔧 ステータス更新デバッグ</h1>
+        
+        <div class="bg-white p-6 rounded-lg shadow mb-6">
+            <h2 class="text-xl font-bold mb-4">現在のAPIデータ</h2>
+            <pre id="api-data" class="bg-gray-100 p-4 rounded text-sm overflow-auto"></pre>
+            <button onclick="loadAPIData()" class="mt-4 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                APIデータを再読み込み
+            </button>
+        </div>
+        
+        <div class="bg-white p-6 rounded-lg shadow mb-6">
+            <h2 class="text-xl font-bold mb-4">ステータス更新テスト</h2>
+            
+            <div class="mb-4">
+                <label class="block mb-2">会員ID:</label>
+                <input id="member-id" type="text" value="member_001" class="border p-2 rounded w-full">
+            </div>
+            
+            <div class="mb-4">
+                <label class="block mb-2">新しいステータス:</label>
+                <select id="new-status" class="border p-2 rounded w-full">
+                    <option value="core">コア</option>
+                    <option value="active">アクティブ</option>
+                    <option value="peripheral">周辺</option>
+                    <option value="at_risk">離脱予備軍</option>
+                </select>
+            </div>
+            
+            <div class="mb-4">
+                <label class="block mb-2">新しいヒーローステップ:</label>
+                <select id="new-hero-step" class="border p-2 rounded w-full">
+                    <option value="0">0: 目的</option>
+                    <option value="1">1: 主体性</option>
+                    <option value="2">2: 初期行動</option>
+                    <option value="3">3: テーマ決め</option>
+                    <option value="4">4: リーダー</option>
+                    <option value="5">5: ヒーロー</option>
+                </select>
+            </div>
+            
+            <div class="flex gap-4">
+                <button onclick="updateStatus()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                    ステータス更新
+                </button>
+                <button onclick="updateHeroStep()" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">
+                    ヒーローステップ更新
+                </button>
+                <button onclick="updateBoth()" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                    両方更新
+                </button>
+            </div>
+        </div>
+        
+        <div class="bg-white p-6 rounded-lg shadow">
+            <h2 class="text-xl font-bold mb-4">実行ログ</h2>
+            <div id="log" class="bg-gray-900 text-green-400 p-4 rounded text-sm font-mono h-64 overflow-auto"></div>
+            <button onclick="clearLog()" class="mt-2 bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
+                ログクリア
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let logContainer = document.getElementById('log');
+        
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            logContainer.innerHTML += `[${timestamp}] ${message}\n`;
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+        
+        function clearLog() {
+            logContainer.innerHTML = '';
+        }
+        
+        async function loadAPIData() {
+            try {
+                log('🔄 APIデータ読み込み開始...');
+                const response = await fetch('/api/members', {
+                    headers: { 'X-User-Role': 'admin' }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('api-data').textContent = JSON.stringify(data, null, 2);
+                    log('✅ APIデータ読み込み完了');
+                } else {
+                    log(`❌ APIエラー: ${response.status}`);
+                }
+            } catch (error) {
+                log(`❌ 読み込みエラー: ${error.message}`);
+            }
+        }
+        
+        async function updateStatus() {
+            const memberId = document.getElementById('member-id').value;
+            const newStatus = document.getElementById('new-status').value;
+            
+            try {
+                log(`📊 ステータス更新開始: ${memberId} → ${newStatus}`);
+                
+                const response = await fetch(`/api/members/${memberId}/status`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-User-Role': 'admin'
+                    },
+                    body: JSON.stringify({ engagement_status: newStatus })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    log(`✅ ステータス更新成功: ${JSON.stringify(result)}`);
+                    
+                    // データ再読み込み
+                    setTimeout(loadAPIData, 500);
+                } else {
+                    const error = await response.json();
+                    log(`❌ ステータス更新失敗: ${JSON.stringify(error)}`);
+                }
+            } catch (error) {
+                log(`❌ ステータス更新エラー: ${error.message}`);
+            }
+        }
+        
+        async function updateHeroStep() {
+            const memberId = document.getElementById('member-id').value;
+            const newHeroStep = parseInt(document.getElementById('new-hero-step').value);
+            
+            try {
+                log(`📈 ヒーローステップ更新開始: ${memberId} → ${newHeroStep}`);
+                
+                const response = await fetch(`/api/members/${memberId}/hero-step`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-User-Role': 'admin'
+                    },
+                    body: JSON.stringify({ current_step: newHeroStep })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    log(`✅ ヒーローステップ更新成功: ${JSON.stringify(result)}`);
+                    
+                    // データ再読み込み
+                    setTimeout(loadAPIData, 500);
+                } else {
+                    const error = await response.json();
+                    log(`❌ ヒーローステップ更新失敗: ${JSON.stringify(error)}`);
+                }
+            } catch (error) {
+                log(`❌ ヒーローステップ更新エラー: ${error.message}`);
+            }
+        }
+        
+        async function updateBoth() {
+            await updateStatus();
+            setTimeout(updateHeroStep, 300);
+        }
+        
+        // 初期データ読み込み
+        window.addEventListener('DOMContentLoaded', loadAPIData);
+    </script>
+</body>
+</html>

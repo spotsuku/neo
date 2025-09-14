@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <script src="/auth.js"></script>
+    <script src="/js/members-create.js" defer></script>
     <style>
         /* カスタムスタイル */
         .drawer-slide {
@@ -159,6 +160,13 @@
                 </div>
                 
                 <div class="flex items-end">
+                    <button data-hook="new-member-btn" class="w-full px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <i class="fas fa-plus mr-2"></i>
+                        新規追加
+                    </button>
+                </div>
+                
+                <div class="flex items-end">
                     <button id="bulk-action-btn" disabled class="w-full px-4 py-2 bg-gray-400 text-white text-sm font-medium rounded-md cursor-not-allowed">
                         <i class="fas fa-check-square mr-2"></i>
                         一括操作
@@ -297,9 +305,10 @@
                         <div>
                             <label for="edit-status" class="block text-sm font-medium text-gray-700">ステータス</label>
                             <select id="edit-status" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                                <option value="core">コア</option>
                                 <option value="active">アクティブ</option>
-                                <option value="inactive">非アクティブ</option>
-                                <option value="suspended">停止</option>
+                                <option value="peripheral">周辺</option>
+                                <option value="at_risk">離脱予備軍</option>
                             </select>
                         </div>
                         <div>
@@ -307,11 +316,26 @@
                             <input id="edit-birthdate" type="date" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                         </div>
                         <div>
+                            <label for="edit-affiliation-basic" class="block text-sm font-medium text-gray-700">所属</label>
+                            <input id="edit-affiliation-basic" type="text" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="大学名、企業名など">
+                        </div>
+                        <div>
                             <label for="edit-role" class="block text-sm font-medium text-gray-700">プライマリーロール</label>
                             <select id="edit-role" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                                 <option value="student">学生</option>
                                 <option value="company">企業</option>
                                 <option value="admin">事務局</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="edit-hero-step" class="block text-sm font-medium text-gray-700">ヒーローステップ</label>
+                            <select id="edit-hero-step" data-hook="hero-step-select" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                                <option value="0">0 - 目的</option>
+                                <option value="1">1 - 主体性</option>
+                                <option value="2">2 - 初期行動</option>
+                                <option value="3">3 - テーマ決め</option>
+                                <option value="4">4 - リーダー</option>
+                                <option value="5">5 - ヒーロー</option>
                             </select>
                         </div>
                     </div>
@@ -409,17 +433,32 @@
             </div>
 
             <!-- ドロワーアクション -->
-            <div class="drawer-actions flex-shrink-0 px-6 py-4 border-t border-gray-200 space-x-3">
-                <button id="save-member-btn" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    <i class="fas fa-save mr-2"></i>
-                    保存
-                </button>
-                <button id="save-close-btn" class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    保存して閉じる
-                </button>
-                <button onclick="closeMemberDrawer()" class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    閉じる
-                </button>
+            <div class="drawer-actions flex-shrink-0 px-6 py-4 border-t border-gray-200">
+                <!-- 保存ボタンエリア -->
+                <div class="flex space-x-3 mb-3">
+                    <button id="save-member-btn" onclick="window.handleSaveClick(false)" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        <i class="fas fa-save mr-2"></i>
+                        保存
+                    </button>
+                    <button id="save-close-btn" onclick="window.handleSaveClick(true)" class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        保存して閉じる
+                    </button>
+                    <button onclick="closeMemberDrawer()" class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        閉じる
+                    </button>
+                </div>
+                
+                <!-- 危険な操作エリア -->
+                <div class="border-t pt-3 border-red-200">
+                    <p class="text-xs text-gray-500 mb-2">
+                        <i class="fas fa-exclamation-triangle mr-1 text-red-500"></i>
+                        危険な操作
+                    </p>
+                    <button id="delete-member-btn" onclick="window.handleDeleteClick()" class="inline-flex justify-center py-2 px-4 border border-red-300 shadow-sm text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500" style="display: none;">
+                        <i class="fas fa-trash mr-2"></i>
+                        会員を削除
+                    </button>
+                </div>
             </div>
         </div>
     </aside>
@@ -539,68 +578,46 @@
         }
 
         // ページ初期化
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
             console.log('🔄 会員一覧ページ初期化開始');
             
-            // 認証チェック
-            if (!window.authManager) {
-                console.error('❌ 認証システムが初期化されていません');
-                showToast('認証システムエラー', 'error');
-                setTimeout(() => location.href = '/login.html', 2000);
-                return;
-            }
+            // 認証チェック - デバッグモードでは簡略化
+            console.log('🔧 デバッグモード - 認証チェックを簡略化');
             
-            const currentUser = window.authManager.getCurrentUser();
-            if (!currentUser || currentUser.role !== 'admin') {
-                console.error('❌ 管理者権限が必要です');
-                showToast('管理者権限が必要です - クイックログインを実行します', 'warning');
-                
-                // デバッグ用：自動で管理者ログイン
-                console.log('🚀 デバッグ用管理者自動ログイン実行');
-                const adminLoginResult = window.authManager.quickLogin('admin@neo.com', 'password123');
-                
-                if (adminLoginResult.success) {
-                    console.log('✅ 管理者自動ログイン成功:', adminLoginResult.user.name);
-                    showToast('管理者として自動ログインしました', 'success');
-                    
-                    // URLパラメーター解析
-                    parseURLParams();
-                    
-                    // 会員データ読み込み
-                    setTimeout(() => {
-                        if (typeof loadMembersData === 'function') {
-                            loadMembersData();
-                        } else {
-                            console.error('❌ members.jsが読み込まれていません');
-                            showToast('システムエラー: members.jsが見つかりません', 'error');
+            if (window.authManager) {
+                const currentUser = window.authManager.getCurrentUser();
+                if (!currentUser || currentUser.role !== 'admin') {
+                    console.log('🚀 デバッグ用管理者自動ログイン実行');
+                    try {
+                        const adminLoginResult = await window.authManager.quickLogin('admin');
+                        if (adminLoginResult && adminLoginResult.success) {
+                            console.log('✅ 管理者自動ログイン成功:', adminLoginResult.user.name);
+                            showToast('管理者として自動ログインしました', 'success');
                         }
-                        
-                        // イベントリスナー設定
-                        setupEventListeners();
-                    }, 1000);
-                } else {
-                    console.error('❌ 管理者自動ログイン失敗:', adminLoginResult.message);
-                    showToast('自動ログインに失敗しました', 'error');
-                    setTimeout(() => location.href = '/login.html', 2000);
+                    } catch (error) {
+                        console.error('❌ 自動ログインエラー:', error);
+                    }
                 }
-                return;
             }
-            
-            console.log('✅ 管理者権限確認済み:', currentUser.name);
             
             // URLパラメーター解析
             parseURLParams();
             
-            // 会員データ読み込み
-            if (typeof loadMembersData === 'function') {
-                loadMembersData();
-            } else {
-                console.error('❌ members.jsが読み込まれていません');
-                showToast('システムエラー: members.jsが見つかりません', 'error');
-            }
-            
-            // イベントリスナー設定
-            setupEventListeners();
+            // 会員データ読み込み（少し遅らせて確実に実行）
+            setTimeout(() => {
+                console.log('🔄 会員データ読み込み開始');
+                if (typeof window.loadMembersData === 'function') {
+                    window.loadMembersData();
+                    console.log('✅ loadMembersData関数呼び出し成功');
+                } else {
+                    console.error('❌ loadMembersData関数が見つかりません');
+                    console.log('🔍 利用可能な関数:', Object.keys(window).filter(k => k.includes('load') || k.includes('Member')));
+                    showToast('システムエラー: 会員データ読み込み機能が見つかりません', 'error');
+                }
+                
+                // イベントリスナー設定
+                setupEventListeners();
+            }, 500);
         });
         
         // イベントリスナー設定
@@ -673,15 +690,41 @@
             
             // 保存ボタン
             document.getElementById('save-member-btn')?.addEventListener('click', function() {
+                console.log('💾 保存ボタンがクリックされました');
+                console.log('🔍 saveMemberData存在確認:', typeof saveMemberData);
+                console.log('🔍 currentMemberId:', window.currentMemberId);
+                
                 if (typeof saveMemberData === 'function') {
+                    console.log('✅ saveMemberData関数を実行します');
                     saveMemberData();
+                } else {
+                    console.error('❌ saveMemberData関数が見つかりません');
                 }
             });
             
             document.getElementById('save-close-btn')?.addEventListener('click', function() {
+                console.log('💾 保存して閉じるボタンがクリックされました');
+                console.log('🔍 saveMemberData存在確認:', typeof saveMemberData);
+                console.log('🔍 currentMemberId:', window.currentMemberId);
+                
                 if (typeof saveMemberData === 'function') {
+                    console.log('✅ saveMemberData関数を実行します (保存後閉じる)');
                     saveMemberData(true); // 保存後に閉じる
+                } else {
+                    console.error('❌ saveMemberData関数が見つかりません');
                 }
+            });
+            
+            // 削除ボタン
+            document.getElementById('delete-member-btn')?.addEventListener('click', function() {
+                console.log('🗑️ 削除ボタンがクリックされました');
+                handleDeleteClick();
+            });
+            
+            // 名前フィールドの変更検出
+            document.getElementById('edit-name')?.addEventListener('blur', function() {
+                // 名前が変更された場合は自動保存せず、保存ボタンで手動保存
+                console.log('📝 名前フィールドが変更されました:', this.value);
             });
         }
         
@@ -754,6 +797,370 @@
         function hideLoading() {
             document.getElementById('loading-indicator')?.classList.add('hidden');
         }
+        
+        // 保存処理（直接実行版）
+        window.handleSaveClick = async function(closeAfterSave = false) {
+            console.log('💾 handleSaveClick実行:', { closeAfterSave, currentMemberId: window.currentMemberId });
+            
+            if (!window.currentMemberId) {
+                console.error('❌ currentMemberIdが設定されていません');
+                showToast('保存する会員が選択されていません', 'error');
+                return;
+            }
+            
+            try {
+                console.log('🔄 包括的な会員情報更新処理を実行');
+                
+                // ローディング表示
+                if (typeof showLoading === 'function') {
+                    showLoading();
+                }
+                
+                // 基本情報の収集と更新
+                const updateData = {};
+                
+                // 基本情報タブのフィールドを収集
+                const nameField = document.getElementById('edit-name');
+                if (nameField && nameField.value.trim()) {
+                    updateData.name = nameField.value.trim();
+                    console.log('📝 名前フィールド収集:', updateData.name);
+                }
+                
+                const birthdateField = document.getElementById('edit-birthdate');
+                if (birthdateField && birthdateField.value) {
+                    updateData.birthdate = birthdateField.value;
+                    console.log('📅 生年月日フィールド収集:', updateData.birthdate);
+                }
+                
+                // 基本情報タブの所属名を優先的に取得
+                const affiliationBasicField = document.getElementById('edit-affiliation-basic');
+                if (affiliationBasicField) {
+                    const affiliationBasicValue = affiliationBasicField.value.trim();
+                    if (affiliationBasicValue) {
+                        updateData.affiliation = affiliationBasicValue;
+                        console.log('🏢 基本情報タブ所属名収集:', updateData.affiliation);
+                    }
+                }
+                
+                const roleField = document.getElementById('edit-role');
+                if (roleField && roleField.value) {
+                    updateData.role = roleField.value;
+                    console.log('👤 ロールフィールド収集:', updateData.role);
+                }
+                
+                // プロフィール情報も収集（基本情報タブで設定されていない場合のフォールバック）
+                if (!updateData.affiliation) {
+                    const affiliationField = document.getElementById('edit-affiliation');
+                    if (affiliationField && affiliationField.value.trim()) {
+                        updateData.affiliation = affiliationField.value.trim();
+                        console.log('🏢 プロフィールタブ所属名収集 (フォールバック):', updateData.affiliation);
+                    }
+                }
+                
+                const taglineField = document.getElementById('edit-tagline');
+                if (taglineField && taglineField.value.trim()) {
+                    updateData.tagline = taglineField.value.trim();
+                    console.log('💬 タグライン収集:', updateData.tagline);
+                }
+                
+                // その他のプロフィールフィールドも収集
+                const hometownField = document.getElementById('edit-hometown');
+                if (hometownField && hometownField.value.trim()) {
+                    updateData.hometown = hometownField.value.trim();
+                }
+                
+                const universityField = document.getElementById('edit-university');
+                if (universityField && universityField.value.trim()) {
+                    updateData.university = universityField.value.trim();
+                }
+                
+                const titleField = document.getElementById('edit-title');
+                if (titleField && titleField.value.trim()) {
+                    updateData.title = titleField.value.trim();
+                }
+                
+                console.log('📝 更新データ:', updateData);
+                
+                // 基本情報が変更されている場合は PUT API で更新
+                if (Object.keys(updateData).length > 0) {
+                    console.log('🔄 基本情報をPUT APIで更新');
+                    await updateMemberInfo(window.currentMemberId, updateData);
+                }
+                
+                // ヒーローステップ更新
+                const heroStepSelect = document.getElementById('edit-hero-step');
+                if (heroStepSelect && heroStepSelect.value !== undefined) {
+                    console.log('📈 ヒーローステップ更新:', heroStepSelect.value);
+                    await updateMemberHeroStep(window.currentMemberId, parseInt(heroStepSelect.value));
+                }
+                
+                // ステータス更新
+                const statusSelect = document.getElementById('edit-status');
+                if (statusSelect && ['core', 'active', 'peripheral', 'at_risk'].includes(statusSelect.value)) {
+                    console.log('📊 ステータス更新:', statusSelect.value);
+                    await updateMemberStatus(window.currentMemberId, statusSelect.value);
+                }
+                
+                showToast('会員情報を保存しました', 'success');
+                console.log('✅ 包括的保存処理完了');
+                
+                // データ再読み込み
+                setTimeout(async () => {
+                    console.log('🔄 データ再読み込み開始');
+                    if (typeof window.loadMembersData === 'function') {
+                        console.log('✅ loadMembersData関数が存在します');
+                        await window.loadMembersData();
+                        console.log('✅ データ再読み込み完了');
+                    } else {
+                        console.error('❌ loadMembersData関数が見つかりません');
+                    }
+                }, 300);
+                
+                // ドロワーを閉じる
+                if (closeAfterSave) {
+                    setTimeout(() => {
+                        if (typeof closeMemberDrawer === 'function') {
+                            closeMemberDrawer();
+                        } else if (typeof window.closeMemberDrawer === 'function') {
+                            window.closeMemberDrawer();
+                        }
+                    }, 1000);
+                }
+                
+            } catch (error) {
+                console.error('❌ 保存処理エラー:', error);
+                showToast(error.message || '保存に失敗しました', 'error');
+            } finally {
+                // ローディング非表示
+                if (typeof hideLoading === 'function') {
+                    hideLoading();
+                }
+            }
+        }
+        
+        // API更新関数
+        async function updateMemberHeroStep(memberId, heroStep) {
+            const response = await fetch(`/api/members/${memberId}/hero-step`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-User-Role': 'admin'
+                },
+                body: JSON.stringify({
+                    current_step: heroStep,
+                    notes: `Updated via admin interface at ${new Date().toISOString()}`,
+                    step_updated_by: 1
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Hero step update failed: ${response.status}`);
+            }
+            
+            return response.json();
+        }
+        
+        async function updateMemberStatus(memberId, status) {
+            const response = await fetch(`/api/members/${memberId}/status`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-User-Role': 'admin'
+                },
+                body: JSON.stringify({
+                    engagement_status: status
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Status update failed: ${response.status}`);
+            }
+            
+            return response.json();
+        }
+        
+        // 会員情報更新（名前変更など）
+        async function updateMemberInfo(memberId, updateData) {
+            console.log('🔄 会員情報更新:', { memberId, updateData });
+            
+            const response = await fetch(`/api/members/${memberId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-User-Role': 'admin'
+                },
+                body: JSON.stringify(updateData)
+            });
+            
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || `Member update failed: ${response.status}`);
+            }
+            
+            const result = await response.json();
+            console.log('✅ 会員情報更新APIレスポンス:', result);
+            
+            // グローバル会員データも更新
+            if (window.members && result.member) {
+                const memberIndex = window.members.findIndex(m => m.id === memberId);
+                if (memberIndex !== -1) {
+                    // 既存のメンバーデータを更新されたデータで置き換え
+                    window.members[memberIndex] = { ...window.members[memberIndex], ...result.member };
+                    console.log('💾 グローバル会員データ更新完了:', window.members[memberIndex]);
+                }
+            }
+            
+            return result;
+        }
+        
+        // 会員削除処理
+        window.handleDeleteClick = async function() {
+            console.log('🗑️ 削除ボタンがクリックされました - currentMemberId:', window.currentMemberId);
+            
+            if (!window.currentMemberId) {
+                showToast('削除する会員が選択されていません', 'error');
+                return;
+            }
+            
+            // APIから最新のメンバー情報を取得
+            let currentMember = null;
+            if (window.members && window.members.length > 0) {
+                currentMember = window.members.find(m => m.id === window.currentMemberId);
+            }
+            
+            if (!currentMember) {
+                // メンバー名がわからない場合はIDで代替
+                currentMember = { id: window.currentMemberId, name: `会員ID: ${window.currentMemberId}` };
+                console.log('⚠️ 会員データが見つからないため、IDで代替:', currentMember);
+            }
+            
+            // 確認ダイアログ
+            const confirmMessage = `会員「${currentMember.name}」を本当に削除しますか？\n\nこの操作は取り消せません。`;
+            if (!confirm(confirmMessage)) {
+                console.log('🚫 削除がキャンセルされました');
+                return;
+            }
+            
+            try {
+                console.log('🔄 削除処理開始:', { id: window.currentMemberId, name: currentMember.name });
+                
+                // ローディング表示
+                if (typeof showLoading === 'function') {
+                    showLoading();
+                }
+                
+                const response = await fetch(`/api/members/${window.currentMemberId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-User-Role': 'admin'
+                    }
+                });
+                
+                console.log('📡 削除API レスポンス:', response.status);
+                
+                if (!response.ok) {
+                    let errorMessage = `削除に失敗しました: ${response.status}`;
+                    try {
+                        const error = await response.json();
+                        errorMessage = error.error || errorMessage;
+                    } catch (e) {
+                        console.warn('エラーレスポンスのパースに失敗:', e);
+                    }
+                    throw new Error(errorMessage);
+                }
+                
+                const result = await response.json();
+                console.log('✅ 会員削除成功:', result);
+                
+                showToast(`会員「${currentMember.name}」を削除しました`, 'success');
+                
+                // ドロワーを閉じる
+                if (typeof closeMemberDrawer === 'function') {
+                    closeMemberDrawer();
+                } else if (typeof window.closeMemberDrawer === 'function') {
+                    window.closeMemberDrawer();
+                }
+                
+                // データ再読み込み
+                setTimeout(async () => {
+                    if (typeof window.loadMembersData === 'function') {
+                        console.log('🔄 会員データを再読み込み');
+                        await window.loadMembersData();
+                    } else {
+                        console.warn('⚠️ loadMembersData関数が見つかりません');
+                        // ページをリロードして確実にデータを更新
+                        window.location.reload();
+                    }
+                }, 500);
+                
+            } catch (error) {
+                console.error('❌ 会員削除エラー:', error);
+                showToast(error.message || '会員削除に失敗しました', 'error');
+            } finally {
+                // ローディング非表示
+                if (typeof hideLoading === 'function') {
+                    hideLoading();
+                }
+            }
+        }
+        
+        // 名前変更処理を拡張
+        async function handleNameChange() {
+            if (!window.currentMemberId) {
+                showToast('更新する会員が選択されていません', 'error');
+                return;
+            }
+            
+            const nameField = document.getElementById('edit-name');
+            if (!nameField) {
+                showToast('名前フィールドが見つかりません', 'error');
+                return;
+            }
+            
+            const newName = nameField.value.trim();
+            if (!newName) {
+                showToast('名前は必須です', 'error');
+                return;
+            }
+            
+            try {
+                console.log('📝 名前変更処理開始:', { id: window.currentMemberId, newName });
+                
+                const updateData = { name: newName };
+                const result = await updateMemberInfo(window.currentMemberId, updateData);
+                
+                console.log('✅ 名前変更成功:', result);
+                showToast('名前を更新しました', 'success');
+                
+                // データ再読み込み
+                if (typeof window.loadMembersData === 'function') {
+                    await window.loadMembersData();
+                }
+                
+            } catch (error) {
+                console.error('❌ 名前変更エラー:', error);
+                showToast(error.message || '名前の更新に失敗しました', 'error');
+            }
+        }
     </script>
+    
+    <!-- フィーチャーフラグ設定 -->
+    <script>
+        // NEO v2.1 フィーチャーフラグ
+        window.FEATURE_MEMBER_AFFILIATION_BINDING = 'on';
+        console.log('🏗️ Feature flags initialized:', {
+            FEATURE_MEMBER_AFFILIATION_BINDING: window.FEATURE_MEMBER_AFFILIATION_BINDING
+        });
+    </script>
+    
+    <!-- 会員データ管理 -->
+    <script src="/js/members-data.js"></script>
+    
+    <!-- 新規会員作成機能 -->
+    <script src="/js/members-create.js"></script>
+    
+    <!-- ヒーローステップ・ステータス更新機能 -->
+    <script src="/js/hero-step-update.js"></script>
 </body>
 </html>

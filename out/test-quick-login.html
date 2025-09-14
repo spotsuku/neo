@@ -1,117 +1,149 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 <head>
-    <title>Quick Login Test</title>
-    <script src="/auth.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>クイックログインテスト - NEO v2.1</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="/auth.js"></script>
 </head>
-<body class="bg-gray-100 p-8">
-    <div class="max-w-md mx-auto bg-white rounded-lg shadow-lg p-6">
-        <h1 class="text-2xl font-bold mb-4">クイックログインテスト</h1>
+<body class="bg-gray-50 min-h-screen p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold text-gray-800 mb-8">
+            <i class="fas fa-rocket mr-2 text-pink-600"></i>
+            NEO v2.1 クイックログインテスト
+        </h1>
         
-        <div class="space-y-3">
-            <button onclick="testQuickLogin('student')" 
-                    class="w-full bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-                🎓 学生でクイックログイン
-            </button>
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">クイックログイン機能テスト</h2>
             
-            <button onclick="testQuickLogin('admin')" 
-                    class="w-full bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
-                👑 管理者でクイックログイン（認証コード無し）
-            </button>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                <button onclick="testQuickLogin('admin')" class="p-4 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors">
+                    <i class="fas fa-user-shield text-2xl mb-2"></i>
+                    <div>管理者でログイン</div>
+                    <small class="opacity-75">admin@neo-digital.com</small>
+                </button>
+                
+                <button onclick="testQuickLogin('manager')" class="p-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                    <i class="fas fa-user-tie text-2xl mb-2"></i>
+                    <div>マネージャーでログイン</div>
+                    <small class="opacity-75">manager@neo-digital.com</small>
+                </button>
+                
+                <button onclick="testQuickLogin('staff')" class="p-4 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors">
+                    <i class="fas fa-users text-2xl mb-2"></i>
+                    <div>スタッフでログイン</div>
+                    <small class="opacity-75">staff@neo-digital.com</small>
+                </button>
+                
+                <button onclick="testQuickLogin('student')" class="p-4 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors">
+                    <i class="fas fa-graduation-cap text-2xl mb-2"></i>
+                    <div>学生でログイン</div>
+                    <small class="opacity-75">student@university.ac.jp</small>
+                </button>
+                
+                <button onclick="testQuickLogin('company')" class="p-4 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors">
+                    <i class="fas fa-building text-2xl mb-2"></i>
+                    <div>企業でログイン</div>
+                    <small class="opacity-75">company@business.co.jp</small>
+                </button>
+                
+                <button onclick="debugAuth()" class="p-4 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
+                    <i class="fas fa-bug text-2xl mb-2"></i>
+                    <div>認証デバッグ</div>
+                    <small class="opacity-75">システム情報を表示</small>
+                </button>
+            </div>
             
-            <button onclick="testQuickLogin('company')" 
-                    class="w-full bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">
-                🏢 企業でクイックログイン
-            </button>
-            
-            <button onclick="testNormalLogin()" 
-                    class="w-full bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
-                🔐 通常ログインテスト（管理者・TOTP有り）
-            </button>
+            <div class="flex gap-2 mb-6">
+                <button onclick="checkCurrentUser()" class="px-4 py-2 bg-cyan-500 text-white rounded hover:bg-cyan-600">
+                    <i class="fas fa-user-check mr-2"></i>現在のユーザー確認
+                </button>
+                <button onclick="logout()" class="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600">
+                    <i class="fas fa-sign-out-alt mr-2"></i>ログアウト
+                </button>
+            </div>
         </div>
         
-        <div id="result" class="mt-4 p-3 bg-gray-50 border rounded hidden">
-            <h3 class="font-bold">テスト結果:</h3>
-            <pre id="result-text" class="text-sm mt-2"></pre>
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h3 class="text-lg font-semibold mb-4">テスト結果</h3>
+            <div id="test-results" class="space-y-2 text-sm">
+                <p class="text-gray-600">上のボタンをクリックして、クイックログイン機能をテストしてください。</p>
+            </div>
+        </div>
+        
+        <div class="mt-6 text-center">
+            <a href="/login.html" class="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-800 transition-colors">
+                <i class="fas fa-arrow-left"></i>
+                ログインページに戻る
+            </a>
         </div>
     </div>
-    
+
     <script>
-        window.addEventListener('load', function() {
-            console.log('🧪 クイックログインテストページ初期化');
+        async function testQuickLogin(role) {
+            console.log(`🧪 Testing quickLogin for role: ${role}`);
+            addTestResult(`🚀 ${role}でのクイックログインをテスト中...`, 'text-blue-600');
             
-            if (window.authManager) {
-                console.log('✅ AuthManager loaded successfully');
+            try {
+                const result = await quickLogin(role);
+                console.log('Quick login result:', result);
+                
+                if (result && result.success) {
+                    addTestResult(`✅ ${role}ログイン成功: ${result.user.name}`, 'text-green-600');
+                    addTestResult(`📧 メール: ${result.user.email}`, 'text-gray-600');
+                    addTestResult(`🎯 ロール: ${result.user.role}`, 'text-gray-600');
+                    
+                    // 3秒後にダッシュボードへ自動リダイレクト
+                    setTimeout(() => {
+                        addTestResult(`🏠 管理ダッシュボードにリダイレクト中...`, 'text-blue-600');
+                        window.location.href = '/admin-dashboard.html';
+                    }, 3000);
+                } else {
+                    addTestResult(`❌ ${role}ログイン失敗: ${result ? result.error : 'Unknown error'}`, 'text-red-600');
+                }
+            } catch (error) {
+                console.error('Quick login error:', error);
+                addTestResult(`❌ ${role}ログインエラー: ${error.message}`, 'text-red-600');
+            }
+        }
+        
+        function checkCurrentUser() {
+            addTestResult(`🔍 現在のユーザー情報をチェック中...`, 'text-blue-600');
+            
+            if (authManager && authManager.isAuthenticated()) {
+                const user = authManager.getCurrentUser();
+                addTestResult(`✅ 認証済み: ${user.name} (${user.role})`, 'text-green-600');
+                addTestResult(`📧 メール: ${user.email}`, 'text-gray-600');
+                addTestResult(`⏰ ログイン時刻: ${user.loginTime}`, 'text-gray-600');
             } else {
-                console.log('❌ AuthManager not loaded');
+                addTestResult(`❌ 未認証状態`, 'text-red-600');
+            }
+        }
+        
+        function addTestResult(message, className = 'text-gray-800') {
+            const resultsDiv = document.getElementById('test-results');
+            const time = new Date().toLocaleTimeString('ja-JP');
+            const p = document.createElement('p');
+            p.className = className;
+            p.textContent = `[${time}] ${message}`;
+            resultsDiv.appendChild(p);
+            resultsDiv.scrollTop = resultsDiv.scrollHeight;
+        }
+        
+        // 初期化完了時のメッセージ
+        document.addEventListener('DOMContentLoaded', function() {
+            addTestResult('🎯 NEO v2.1 クイックログインテストページが読み込まれました', 'text-green-600');
+            addTestResult(`🔧 authManager初期化状態: ${window.authManager ? '✅ 初期化済み' : '❌ 未初期化'}`, 'text-gray-600');
+            
+            if (authManager && authManager.isAuthenticated()) {
+                const user = authManager.getCurrentUser();
+                addTestResult(`👤 現在ログイン中: ${user.name} (${user.role})`, 'text-blue-600');
+            } else {
+                addTestResult('👤 現在未ログイン状態', 'text-gray-600');
             }
         });
-        
-        function testQuickLogin(type) {
-            console.log(`🚀 Testing quick login for: ${type}`);
-            
-            let email, password;
-            if (type === 'student') {
-                email = 'student@neo-academy.jp';
-                password = 'student123';
-            } else if (type === 'admin') {
-                email = 'admin@neo.com';
-                password = 'password123';
-            } else if (type === 'company') {
-                email = 'staff@techcorp.com';
-                password = 'company123';
-            }
-            
-            if (!window.authManager) {
-                showResult('❌ AuthManager not loaded', false);
-                return;
-            }
-            
-            // クイックログイン実行
-            const result = window.authManager.quickLogin(email, password);
-            console.log('Quick Login Result:', result);
-            
-            showResult(JSON.stringify(result, null, 2), result.success);
-            
-            if (result.success) {
-                console.log('✅ Quick login successful!');
-                console.log('User:', result.user);
-                
-                // セッション確認
-                const session = window.authManager.getCurrentSession();
-                console.log('Current session:', session);
-            }
-        }
-        
-        function testNormalLogin() {
-            console.log('🔐 Testing normal login with TOTP');
-            
-            if (!window.authManager) {
-                showResult('❌ AuthManager not loaded', false);
-                return;
-            }
-            
-            // 通常ログイン実行（TOTP有り）
-            const result = window.authManager.login('admin@neo.com', 'password123', '123456');
-            console.log('Normal Login Result:', result);
-            
-            showResult(JSON.stringify(result, null, 2), result.success);
-        }
-        
-        function showResult(text, success) {
-            const resultDiv = document.getElementById('result');
-            const resultText = document.getElementById('result-text');
-            
-            resultText.textContent = text;
-            resultDiv.classList.remove('hidden');
-            
-            if (success) {
-                resultDiv.className = 'mt-4 p-3 bg-green-50 border border-green-200 rounded';
-            } else {
-                resultDiv.className = 'mt-4 p-3 bg-red-50 border border-red-200 rounded';
-            }
-        }
     </script>
 </body>
 </html>

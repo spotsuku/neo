@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>表示テスト</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 p-8">
+    <h1 class="text-2xl font-bold mb-4">会員一覧表示テスト</h1>
+    
+    <table class="min-w-full divide-y divide-gray-200 bg-white">
+        <thead class="bg-gray-50">
+            <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">選択</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">会員情報</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">会員区分</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ステータス</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ヒーローステップ</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">最終ログイン</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
+            </tr>
+        </thead>
+        <tbody id="test-table-body" class="bg-white divide-y divide-gray-200">
+        </tbody>
+    </table>
+
+    <script>
+        // テストデータ
+        const testMember = {
+            id: 'member_001',
+            name: '田中太郎',
+            email: 'tanaka@example.com',
+            role: 'student',
+            status: 'active',
+            engagement_status: 'active',
+            hero_step: 2,
+            hero_step_label: '初期行動',
+            affiliation: '東京大学',
+            last_login_at: '2024-09-01T10:30:00Z'
+        };
+
+        // HTML エスケープ
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        // 行生成関数（修正版）
+        function createTestMemberRow(member) {
+            const row = document.createElement('tr');
+            row.className = 'hover:bg-gray-50 cursor-pointer';
+            
+            // ステータス表示
+            const statusClass = member.status === 'active' ? 'bg-green-100 text-green-800' : 
+                               member.status === 'inactive' ? 'bg-gray-100 text-gray-800' : 
+                               'bg-red-100 text-red-800';
+            
+            // ロール表示
+            const roleText = member.role === 'student' ? '学生' :
+                            member.role === 'company' ? '企業' :
+                            member.role === 'admin' ? '事務局' : member.role;
+            
+            // 最終ログイン表示
+            const lastLoginText = member.last_login_at ? 
+                new Date(member.last_login_at).toLocaleDateString('ja-JP') : '未ログイン';
+            
+            // ヒーローステップ表示（0-5の数値とラベル）
+            const heroStepDisplay = member.hero_step_label ? 
+                `${member.hero_step}: ${member.hero_step_label}` : 
+                (member.hero_step !== undefined ? `${member.hero_step}` : '-');
+                
+            row.innerHTML = `
+                <td class="px-6 py-4">
+                    <input type="checkbox" class="member-checkbox" value="${member.id}" 
+                           onclick="event.stopPropagation()">
+                </td>
+                <td class="px-6 py-4">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center mr-3">
+                            <i class="fas fa-user text-pink-600"></i>
+                        </div>
+                        <div>
+                            <div class="text-sm font-medium text-gray-900">${escapeHtml(member.name)}</div>
+                            <div class="text-sm text-gray-500">${escapeHtml(member.email)}${member.affiliation ? ' • ' + escapeHtml(member.affiliation) : ''}</div>
+                        </div>
+                    </div>
+                </td>
+                <td class="px-6 py-4 text-sm text-gray-900">${escapeHtml(roleText)}</td>
+                <td class="px-6 py-4">
+                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ${statusClass}">
+                        ${member.engagement_status || member.status}
+                    </span>
+                </td>
+                <td class="px-6 py-4 text-sm text-gray-500">${escapeHtml(heroStepDisplay)}</td>
+                <td class="px-6 py-4 text-sm text-gray-500">${lastLoginText}</td>
+                <td class="px-6 py-4 text-sm font-medium">
+                    <button class="text-pink-600 hover:text-pink-900 mr-2">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="text-red-600 hover:text-red-900">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            `;
+            
+            return row;
+        }
+
+        // テスト実行
+        window.addEventListener('DOMContentLoaded', function() {
+            const tbody = document.getElementById('test-table-body');
+            const testRow = createTestMemberRow(testMember);
+            tbody.appendChild(testRow);
+            
+            console.log('✅ テスト行生成完了');
+            console.log('📊 テストデータ:', testMember);
+            console.log('🎯 ヒーローステップ表示:', testMember.hero_step + ': ' + testMember.hero_step_label);
+        });
+    </script>
+</body>
+</html>
