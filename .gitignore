@@ -52,4 +52,4 @@ logs/
 
 # Cloudflare
 _worker.js
-_routes.json
+_routes.jsoncore
